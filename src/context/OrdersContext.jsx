@@ -16,7 +16,8 @@ export function OrdersProvider({ children }) {
         const newOrder = {
             ...order,
             id: crypto.randomUUID(),
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            status: 'pending' // 'pending', 'ready', 'served'
         };
         setOrders([newOrder, ...orders]);
         return newOrder;
@@ -26,10 +27,17 @@ export function OrdersProvider({ children }) {
         return orders.slice(0, limit);
     };
 
+    const updateOrderStatus = (orderId, status) => {
+        setOrders(prevOrders =>
+            prevOrders.map(o => (o.id === orderId ? { ...o, status } : o))
+        );
+    };
+
     const value = {
         orders,
         addOrder,
-        getRecentOrders
+        getRecentOrders,
+        updateOrderStatus,
     };
 
     return (

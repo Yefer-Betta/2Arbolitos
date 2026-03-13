@@ -210,7 +210,7 @@ export function POS() {
     );
 
     return (
-        <div className="flex h-[calc(100vh-theme(spacing.32))] gap-8 relative">
+        <div className="flex flex-col md:flex-row h-[calc(100vh-theme(spacing.32))] gap-6 relative">
             {/* Checkout Modal Overlay */}
             {isCheckoutOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -419,7 +419,7 @@ export function POS() {
             </div>
 
             {/* Right: Cart */}
-            <div className="w-[400px] bg-white rounded-3xl shadow-xl flex flex-col h-full overflow-hidden border border-black/5">
+            <div className="w-full md:w-[400px] bg-white rounded-3xl shadow-xl flex flex-col h-full overflow-hidden border border-black/5">
                 <div className="p-6 bg-primary text-white">
                     <h2 className="text-xl font-bold flex items-center gap-3">
                         <ShoppingCart className="w-6 h-6" />

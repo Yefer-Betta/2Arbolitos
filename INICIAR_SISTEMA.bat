@@ -19,9 +19,9 @@ if not exist "node_modules\" (
     exit
 )
 
-:: Start the dev server and open the browser automatically
-:: The -- --open flag tells Vite to open the browser when it's ready.
-start "2Arbolitos Server" cmd /k "npm run dev -- --open"
+:: Start the production preview server and open the browser automatically
+:: The --open flag tells Vite to open the browser when it's ready.
+start "2Arbolitos Server" cmd /k "npm run preview -- --open"
 
 echo.
 echo ========================================

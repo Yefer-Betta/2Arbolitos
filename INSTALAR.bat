@@ -14,14 +14,16 @@ pause
 cd /d "%~dp0"
 
 echo.
-echo [1/3] Verificando Node.js...
+echo [1/4] Verificando Node.js...
 node --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Node.js no esta instalado
+    echo Abriendo la pagina de descarga...
     echo.
-    echo Por favor descarga e instala Node.js desde:
+    echo Por favor descarga e instala la version LTS de Node.js desde:
     echo https://nodejs.org
     echo.
+    start https://nodejs.org
     pause
     exit
 )
@@ -29,7 +31,7 @@ if %errorlevel% neq 0 (
 echo [OK] Node.js detectado
 echo.
 
-echo [2/3] Instalando dependencias...
+echo [2/4] Instalando dependencias...
 call npm install
 
 if %errorlevel% neq 0 (
@@ -40,11 +42,18 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [3/3] Preparando el sistema...
-timeout /t 2 /nobreak >nul
+echo [3/4] Construyendo la aplicacion para produccion...
+call npm run build
+
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Fallo la construccion del sistema.
+    pause
+    exit
+)
 
 echo.
-echo ========================================
+echo [4/4] ========================================
 echo   INSTALACION COMPLETADA
 echo ========================================
 echo.

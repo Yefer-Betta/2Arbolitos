@@ -96,6 +96,18 @@ export function CurrencySettings() {
         reader.readAsText(file);
     };
 
+    const handleImageUpload = (e, field) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLocalBusiness(prev => ({ ...prev, [field]: reader.result }));
+                setIsSaved(false);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl">
             {/* Left Column */}
@@ -261,6 +273,30 @@ export function CurrencySettings() {
                             className="input-field"
                             placeholder="Ej. ¡Gracias por su visita!"
                         />
+                    </div>
+
+                    {/* System Logo */}
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Logo del Sistema</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, 'logo')}
+                            className="input-field"
+                        />
+                        {localBusiness.logo && <img src={localBusiness.logo} alt="Logo Preview" className="mt-2 h-16" />}
+                    </div>
+
+                    {/* Invoice Logo */}
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Logo para Factura</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, 'invoiceLogo')}
+                            className="input-field"
+                        />
+                        {localBusiness.invoiceLogo && <img src={localBusiness.invoiceLogo} alt="Invoice Logo Preview" className="mt-2 h-16" />}
                     </div>
 
                     <div className="pt-2">

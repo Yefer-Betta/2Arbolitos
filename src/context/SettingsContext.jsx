@@ -17,7 +17,9 @@ export function SettingsProvider({ children }) {
             nit: '',
             address: '',
             phone: '',
-            message: '¡Gracias por su compra!'
+            message: '¡Gracias por su compra!',
+            logo: '',
+            invoiceLogo: ''
         };
     });
 
