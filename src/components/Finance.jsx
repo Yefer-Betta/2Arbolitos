@@ -3,7 +3,7 @@ import { useFinance } from '../context/FinanceContext';
 import { useOrders } from '../context/OrdersContext';
 import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign, Calendar, Wallet, FileText } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { EndOfDayReport } from './EndOfDayReport';
+import EndOfDayReport from './EndOfDayReport';
 
 export function Finance() {
     const { expenses, addExpense, deleteExpense, lastClosureDate } = useFinance();

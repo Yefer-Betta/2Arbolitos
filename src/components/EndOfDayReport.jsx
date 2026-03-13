@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import { usePurchases } from '../contexts/PurchaseContext';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { useOrders } from '../context/OrdersContext';
+import { formatCurrency, formatDate } from '../lib/utils';
 
 const EndOfDayReport = ({ date }) => {
-  const { purchases } = usePurchases();
+  const { orders: purchases } = useOrders();
 
   // OPTIMIZATION:
   // Usamos useMemo para calcular los datos del reporte. Este bloque de código
