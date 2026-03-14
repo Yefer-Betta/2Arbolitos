@@ -98,6 +98,12 @@ export function CurrencySettings() {
 
     const handleImageUpload = (e, field) => {
         const file = e.target.files[0];
+        if (file && file.size > 1024 * 1024) { // Límite de 1MB
+            alert('La imagen es muy grande. Por favor, elige una imagen de menos de 1MB.');
+            e.target.value = null; // Limpiar el input
+            return;
+        }
+
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {

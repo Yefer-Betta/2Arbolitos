@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
 // Simulación de una base de datos de usuarios. En una app real, esto podría ser más seguro.
@@ -14,7 +15,7 @@ export function UserProvider({ children }) {
         try {
             const storedUsers = localStorage.getItem('users');
             return storedUsers ? JSON.parse(storedUsers) : INITIAL_USERS;
-        } catch (error) {
+        } catch {
             return INITIAL_USERS;
         }
     });

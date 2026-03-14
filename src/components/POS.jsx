@@ -1,16 +1,93 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useMenu } from '../context/MenuContext';
 import { useSettings } from '../context/SettingsContext';
 import { useOrders } from '../context/OrdersContext';
 import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Utensils, X, Printer, Calculator, Check, Receipt, Smartphone, Banknote, DollarSign } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export function POS() {
+function Ticket({ order, business }) {
+    if (!order) return null;
+    return (
+        <div className="bg-white p-6 rounded-none w-80 font-mono text-sm border border-gray-200 shadow-sm mx-auto mb-4 relative">
+            <div className="absolute top-0 left-0 right-0 h-4 bg-[length:16px_16px] bg-[radial-gradient(circle_at_bottom,transparent_40%,white_41%)] -mt-2"></div>
+            <div className="text-center mb-4 pb-4 border-b border-dashed border-gray-300">
+                <h2 className="font-bold text-xl uppercase">{business.name}</h2>
+                {business.nit && <p>NIT: {business.nit}</p>}
+                {business.address && <p>{business.address}</p>}
+                {business.phone && <p>Tel: {business.phone}</p>}
+                <p className="mt-2 text-xs text-gray-500">{new Date(order.date).toLocaleString()}</p>
+            </div>
+
+            <div className="space-y-2 mb-4 pb-4 border-b border-dashed border-gray-300">
+                {order.items.map((item, i) => (
+                    <div key={i} className="flex justify-between">
+                        <span className="truncate w-40">{item.quantity} x {item.product.name}</span>
+                        <span>
+                            {item.product.isUsd
+                                ? `$${(item.product.price * item.quantity).toFixed(2)}`
+                                : `$${(item.product.price * item.quantity).toLocaleString()}`}
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            <div className="space-y-1 text-right mb-4 pb-4 border-b border-dashed border-gray-300">
+                <div className="flex justify-between font-bold text-lg">
+                    <span>TOTAL COP</span>
+                    <span>${order.totalCop.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-gray-600">
+                    <span>TOTAL USD</span>
+                    <span>${order.totalUsd.toFixed(2)}</span>
+                </div>
+            </div>
+
+            <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                    <span>Método Pago:</span>
+                    <span className="uppercase font-bold">
+                        {order.payment.method.replace('_', ' ')}
+                    </span>
+                </div>
+                <div className="flex justify-between">
+                    <span>Recibido:</span>
+                    <span>
+                        {order.payment.currency === 'USD' ? '$' : '$'}
+                        {order.payment.received.toLocaleString()}
+                        {order.payment.currency}
+                    </span>
+                </div>
+                <div className="flex justify-between font-bold">
+                    <span>Cambio:</span>
+                    <span>
+                        {order.payment.currency === 'USD' ? '$' : '$'}
+                        {order.payment.change.toLocaleString()}
+                        {order.payment.currency}
+                    </span>
+                </div>
+            </div>
+
+            <div className="text-center mt-6 pt-4 border-t border-dashed border-gray-300">
+                <p>{business.message}</p>
+            </div>
+
+            <div className="absolute bottom-0 left-0 right-0 h-4 bg-[length:16px_16px] bg-[radial-gradient(circle_at_top,transparent_40%,white_41%)] -mb-2"></div>
+        </div>
+    );
+}
+
+export function POS({ tableId, onBack }) {
     const { products } = useMenu();
     const { exchangeRate, business } = useSettings();
-    const { addOrder } = useOrders();
+    const {
+        addOrder,
+        activeTables,
+        agregarPlatilloAMesa,
+        actualizarCantidad,
+        limpiarMesa,
+    } = useOrders();
 
-    const [cart, setCart] = useState([]);
+    const cart = useMemo(() => activeTables[tableId] || [], [activeTables, tableId]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todos');
 
@@ -32,34 +109,26 @@ export function POS() {
 
     // Cart Logic
     const addToCart = (product) => {
-        setCart(prev => {
-            const existing = prev.find(item => item.product.id === product.id);
-            if (existing) {
-                return prev.map(item =>
-                    item.product.id === product.id
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item
-                );
-            }
-            return [...prev, { product, quantity: 1 }];
-        });
+        agregarPlatilloAMesa(tableId, product);
     };
 
     const removeFromCart = (productId) => {
-        setCart(prev => prev.filter(item => item.product.id !== productId));
+        // Setting quantity to 0 or less will remove it, per context logic
+        actualizarCantidad(tableId, productId, 0);
     };
 
     const updateQuantity = (productId, delta) => {
-        setCart(prev => prev.map(item => {
-            if (item.product.id === productId) {
-                const newQty = Math.max(1, item.quantity + delta);
-                return { ...item, quantity: newQty };
-            }
-            return item;
-        }));
+        const item = cart.find(item => item.product.id === productId);
+        if (item) {
+            const newQty = item.quantity + delta;
+            // The context function handles removing if quantity is <= 0
+            actualizarCantidad(tableId, productId, newQty);
+        }
     };
 
-    const clearCart = () => setCart([]);
+    const clearCart = () => {
+        limpiarMesa(tableId);
+    };
 
     // Totals
     const totals = useMemo(() => {
@@ -129,85 +198,20 @@ export function POS() {
         addOrder(orderData);
         setLastOrder(orderData);
         setShowRecipe(true);
-        setCart([]);
+        // The table is cleared when the user closes the checkout modal
     };
 
     const closeCheckout = () => {
+        if (showRecipe) { // A sale was just completed
+            limpiarMesa(tableId);
+            if (onBack) onBack(); // Go back to table view
+        }
+        // Reset state for next time
         setIsCheckoutOpen(false);
         setShowRecipe(false);
         setLastOrder(null);
-    }
+    };
 
-    // Ticket Component
-    const Ticket = ({ order }) => (
-        <div className="bg-white p-6 rounded-none w-80 font-mono text-sm border border-gray-200 shadow-sm mx-auto mb-4 relative">
-            {/* Perforated edge effect */}
-            <div className="absolute top-0 left-0 right-0 h-4 bg-[length:16px_16px] bg-[radial-gradient(circle_at_bottom,transparent_40%,white_41%)] -mt-2"></div>
-
-            <div className="text-center mb-4 pb-4 border-b border-dashed border-gray-300">
-                <h2 className="font-bold text-xl uppercase">{business.name}</h2>
-                {business.nit && <p>NIT: {business.nit}</p>}
-                {business.address && <p>{business.address}</p>}
-                {business.phone && <p>Tel: {business.phone}</p>}
-                <p className="mt-2 text-xs text-gray-500">{new Date(order.date).toLocaleString()}</p>
-            </div>
-
-            <div className="space-y-2 mb-4 pb-4 border-b border-dashed border-gray-300">
-                {order.items.map((item, i) => (
-                    <div key={i} className="flex justify-between">
-                        <span className="truncate w-40">{item.quantity} x {item.product.name}</span>
-                        <span>
-                            {item.product.isUsd
-                                ? `$${(item.product.price * item.quantity).toFixed(2)}`
-                                : `$${(item.product.price * item.quantity).toLocaleString()}`}
-                        </span>
-                    </div>
-                ))}
-            </div>
-
-            <div className="space-y-1 text-right mb-4 pb-4 border-b border-dashed border-gray-300">
-                <div className="flex justify-between font-bold text-lg">
-                    <span>TOTAL COP</span>
-                    <span>${order.totalCop.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                    <span>TOTAL USD</span>
-                    <span>${order.totalUsd.toFixed(2)}</span>
-                </div>
-            </div>
-
-            <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                    <span>Método Pago:</span>
-                    <span className="uppercase font-bold">
-                        {order.payment.method.replace('_', ' ')}
-                    </span>
-                </div>
-                <div className="flex justify-between">
-                    <span>Recibido:</span>
-                    <span>
-                        {order.payment.currency === 'USD' ? '$' : '$'}
-                        {order.payment.received.toLocaleString()}
-                        {order.payment.currency}
-                    </span>
-                </div>
-                <div className="flex justify-between font-bold">
-                    <span>Cambio:</span>
-                    <span>
-                        {order.payment.currency === 'USD' ? '$' : '$'}
-                        {order.payment.change.toLocaleString()}
-                        {order.payment.currency}
-                    </span>
-                </div>
-            </div>
-
-            <div className="text-center mt-6 pt-4 border-t border-dashed border-gray-300">
-                <p>{business.message}</p>
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 h-4 bg-[length:16px_16px] bg-[radial-gradient(circle_at_top,transparent_40%,white_41%)] -mb-2"></div>
-        </div>
-    );
 
     return (
         <div className="flex flex-col md:flex-row h-[calc(100vh-theme(spacing.32))] gap-6 relative">
@@ -260,7 +264,7 @@ export function POS() {
                                             <span className="text-xs font-bold">Efectivo USD</span>
                                         </button>
                                         <button
-                                            onClick={() => { setPaymentMethod('nequi'); setAmountReceived(totals.cop.toString()); }}
+                                            onClick={() => { setPaymentMethod('nequi'); setAmountReceived(String(totals.cop)); }}
                                             className={cn("p-3 rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'nequi' ? 'bg-purple-50 border-purple-500 text-purple-700' : 'border-gray-200 hover:bg-gray-50')}
                                         >
                                             <Smartphone className="w-5 h-5" />
@@ -317,7 +321,7 @@ export function POS() {
                             </div>
                         ) : (
                             <div className="p-8 flex flex-col items-center">
-                                <Ticket order={lastOrder} />
+                                <Ticket order={lastOrder} business={business} />
 
                                 <div className="flex gap-4 w-full mt-4">
                                     <button
@@ -327,7 +331,7 @@ export function POS() {
                                         <Printer className="w-5 h-5" /> Imprimir
                                     </button>
                                     <button
-                                        onClick={closeCheckout}
+                                        onClick={closeCheckout} // This will now clear the table and go back
                                         className="flex-1 btn-primary flex items-center justify-center gap-2"
                                     >
                                         <Plus className="w-5 h-5" /> Nueva Orden
@@ -344,8 +348,17 @@ export function POS() {
                 {/* Header Section */}
                 <div className="flex flex-col gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Realizar Pedido</h2>
-                        <p className="text-gray-500 text-sm">Selecciona productos para armar la orden</p>
+                        {tableId ? (
+                            <div className="flex items-center gap-4">
+                                <button onClick={onBack} className="btn-secondary p-2 h-10 w-10 text-lg">←</button>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-800">Cuenta de: <span className="text-primary capitalize">{tableId.replace('-', ' ')}</span></h2>
+                                    <p className="text-gray-500 text-sm">Añade productos a la cuenta de la mesa.</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <h2 className="text-2xl font-bold text-gray-800">Realizar Pedido (Caja Rápida)</h2>
+                        )}
                     </div>
                     {/* Search & Filter */}
                     <div className="flex gap-4 bg-white p-2 rounded-2xl shadow-sm border border-black/5">
@@ -425,7 +438,11 @@ export function POS() {
                         <ShoppingCart className="w-6 h-6" />
                         <span>Orden Actual</span>
                     </h2>
-                    <p className="text-primary-light/80 text-sm mt-1">{cart.length} ítems en el carrito</p>
+                    {tableId ? (
+                         <p className="text-primary-light/80 text-sm mt-1 capitalize">Cuenta de {tableId.replace('-', ' ')}</p>
+                    ) : (
+                        <p className="text-primary-light/80 text-sm mt-1">{cart.length} ítems en el carrito</p>
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useMenu } from '../context/MenuContext';
 import { useSettings } from '../context/SettingsContext';
 import { Plus, Trash2, Edit2, X, Check, Search, Utensils } from 'lucide-react';
-import { cn } from '../lib/utils';
 
 export function MenuManager() {
     const { products, addProduct, updateProduct, deleteProduct } = useMenu();

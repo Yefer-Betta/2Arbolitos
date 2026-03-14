@@ -19,6 +19,6 @@ fi
 
 # Iniciar el servidor de desarrollo, exponerlo a la red (--host)
 # y abrir el navegador.
-echo "BUSCA LA LINEA 'Network:' en los mensajes del servidor."
-echo "Esa es la direccion para los celulares (Ej: http://192.168.1.5:5173)"
-npm run dev -- --host --open
+echo "BUSCA LA LINEA 'Network:' en los mensajes del servidor que se abre."
+echo "Esa es la direccion para los celulares (Ej: http://192.168.1.5:4173)"
+npm run preview -- --host --open

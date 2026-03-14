@@ -7,7 +7,9 @@ echo   SISTEMA DE GESTION 2ARBOLITOS
 echo ========================================
 echo.
 echo Iniciando servidor local...
-echo.
+echo BUSCA LA LINEA 'Network:' en los mensajes del servidor.
+echo Esa es la direccion para los celulares (Ej: http://192.168.1.5:4173)
+echo. 
 
 cd /d "%~dp0"
 
@@ -21,15 +23,12 @@ if not exist "node_modules\" (
 
 :: Start the production preview server and open the browser automatically
 :: The --open flag tells Vite to open the browser when it's ready.
-start "2Arbolitos Server" cmd /k "npm run preview -- --open"
+:: The --host flag exposes it to the network.
+start "2Arbolitos Server" cmd /k "npm run preview -- --host --open"
 
 echo.
 echo ========================================
 echo   Sistema iniciado correctamente
 echo ========================================
-echo.
-echo El servidor se esta iniciando en una nueva ventana...
-echo El navegador se abrira automaticamente cuando este listo.
-echo Cierra esta ventana para detener el sistema
 echo.
 pause

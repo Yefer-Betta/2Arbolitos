@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Layout } from './components/Layout';
 import { CurrencySettings } from './components/CurrencySettings';
 import { MenuManager } from './components/MenuManager';
-import { POS } from './components/POS';
+import { PedidosRouter } from './components/PedidosRouter';
 import { History } from './components/History';
 import { Finance } from './components/Finance';
 import Escandallo from './components/Escandallo';
@@ -23,19 +23,13 @@ export function App() {
 
 function MainApp() {
   const { currentUser } = useUser();
-  const initialTab = currentUser.role === 'cook' ? 'kitchen' : 'pos';
-  const [activeTab, setActiveTab] = useState(initialTab);
-
-  useEffect(() => {
-    if (currentUser.role === 'cook') {
-      setActiveTab('kitchen');
-    }
-  }, [currentUser.role]);
+  const defaultTab = currentUser.role === 'cook' ? 'kitchen' : 'pos';
+  const [activeTab, setActiveTab] = useState(defaultTab);
 
   const renderContent = () => {
     switch (activeTab) {
       case 'pos':
-        return <POS />;
+        return <PedidosRouter />;
       case 'kitchen':
         return <KitchenView />;
       case 'menu':
