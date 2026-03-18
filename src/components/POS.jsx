@@ -2,79 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useMenu } from '../context/MenuContext';
 import { useSettings } from '../context/SettingsContext';
 import { useOrders } from '../context/OrdersContext';
-import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Utensils, X, Printer, Calculator, Check, Receipt, Smartphone, Banknote, DollarSign } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Utensils, X, Printer, Calculator, Check, Receipt, Smartphone, Banknote, DollarSign, Percent } from 'lucide-react';
 import { cn } from '../lib/utils';
-
-function Ticket({ order, business }) {
-    if (!order) return null;
-    return (
-        <div className="bg-white p-6 rounded-none w-80 font-mono text-sm border border-gray-200 shadow-sm mx-auto mb-4 relative">
-            <div className="absolute top-0 left-0 right-0 h-4 bg-[length:16px_16px] bg-[radial-gradient(circle_at_bottom,transparent_40%,white_41%)] -mt-2"></div>
-            <div className="text-center mb-4 pb-4 border-b border-dashed border-gray-300">
-                <h2 className="font-bold text-xl uppercase">{business.name}</h2>
-                {business.nit && <p>NIT: {business.nit}</p>}
-                {business.address && <p>{business.address}</p>}
-                {business.phone && <p>Tel: {business.phone}</p>}
-                <p className="mt-2 text-xs text-gray-500">{new Date(order.date).toLocaleString()}</p>
-            </div>
-
-            <div className="space-y-2 mb-4 pb-4 border-b border-dashed border-gray-300">
-                {order.items.map((item, i) => (
-                    <div key={i} className="flex justify-between">
-                        <span className="truncate w-40">{item.quantity} x {item.product.name}</span>
-                        <span>
-                            {item.product.isUsd
-                                ? `$${(item.product.price * item.quantity).toFixed(2)}`
-                                : `$${(item.product.price * item.quantity).toLocaleString()}`}
-                        </span>
-                    </div>
-                ))}
-            </div>
-
-            <div className="space-y-1 text-right mb-4 pb-4 border-b border-dashed border-gray-300">
-                <div className="flex justify-between font-bold text-lg">
-                    <span>TOTAL COP</span>
-                    <span>${order.totalCop.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                    <span>TOTAL USD</span>
-                    <span>${order.totalUsd.toFixed(2)}</span>
-                </div>
-            </div>
-
-            <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                    <span>Método Pago:</span>
-                    <span className="uppercase font-bold">
-                        {order.payment.method.replace('_', ' ')}
-                    </span>
-                </div>
-                <div className="flex justify-between">
-                    <span>Recibido:</span>
-                    <span>
-                        {order.payment.currency === 'USD' ? '$' : '$'}
-                        {order.payment.received.toLocaleString()}
-                        {order.payment.currency}
-                    </span>
-                </div>
-                <div className="flex justify-between font-bold">
-                    <span>Cambio:</span>
-                    <span>
-                        {order.payment.currency === 'USD' ? '$' : '$'}
-                        {order.payment.change.toLocaleString()}
-                        {order.payment.currency}
-                    </span>
-                </div>
-            </div>
-
-            <div className="text-center mt-6 pt-4 border-t border-dashed border-gray-300">
-                <p>{business.message}</p>
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 h-4 bg-[length:16px_16px] bg-[radial-gradient(circle_at_top,transparent_40%,white_41%)] -mb-2"></div>
-        </div>
-    );
-}
+import { Ticket } from './Ticket';
 
 export function POS({ tableId, onBack }) {
     const { products } = useMenu();
@@ -97,6 +27,10 @@ export function POS({ tableId, onBack }) {
     const [paymentMethod, setPaymentMethod] = useState('cash_cop'); // 'cash_cop', 'cash_usd', 'nequi'
     const [showRecipe, setShowRecipe] = useState(false);
     const [lastOrder, setLastOrder] = useState(null);
+    
+    // Discount State
+    const [showDiscountModal, setShowDiscountModal] = useState(false);
+    const [discountFinalPrice, setDiscountFinalPrice] = useState('');
 
     // Filter products
     const categories = ['Todos', ...new Set(products.map(p => p.category))];
@@ -130,27 +64,45 @@ export function POS({ tableId, onBack }) {
         limpiarMesa(tableId);
     };
 
-    // Totals
-    const totals = useMemo(() => {
-        let cop = 0;
-        let usd = 0;
-
-        cart.forEach(item => {
+    // Totals with discount
+    const discountData = useMemo(() => {
+        const originalCop = cart.reduce((sum, item) => {
             const price = item.product.price;
             const isUsd = item.product.isUsd;
             const qty = item.quantity;
+            return sum + (isUsd ? (price * exchangeRate) * qty : price * qty);
+        }, 0);
+        
+        const originalUsd = cart.reduce((sum, item) => {
+            const price = item.product.price;
+            const isUsd = item.product.isUsd;
+            const qty = item.quantity;
+            return sum + (isUsd ? price * qty : (price / exchangeRate) * qty);
+        }, 0);
 
-            if (isUsd) {
-                usd += price * qty;
-                cop += (price * exchangeRate) * qty;
-            } else {
-                cop += price * qty;
-                usd += (price / exchangeRate) * qty;
-            }
-        });
+        const finalPrice = parseFloat(discountFinalPrice) || 0;
+        const discountValue = originalCop - finalPrice;
+        const discountPercent = originalCop > 0 ? ((discountValue / originalCop) * 100) : 0;
+        
+        // Calculate USD equivalent of final price
+        const finalUsd = finalPrice / exchangeRate;
+        const discountUsd = originalUsd - finalUsd;
 
-        return { cop, usd };
-    }, [cart, exchangeRate]);
+        return {
+            originalCop,
+            originalUsd,
+            finalCop: finalPrice,
+            finalUsd,
+            discountValue: Math.max(0, discountValue),
+            discountPercent: Math.max(0, discountPercent),
+            discountUsd: Math.max(0, discountUsd)
+        };
+    }, [cart, exchangeRate, discountFinalPrice]);
+
+    const totals = useMemo(() => ({
+        cop: discountData.finalCop > 0 ? discountData.finalCop : discountData.originalCop,
+        usd: discountData.finalUsd > 0 ? discountData.finalUsd : discountData.originalUsd
+    }), [discountData]);
 
 
     // Checkout Logic
@@ -178,12 +130,26 @@ export function POS({ tableId, onBack }) {
         const currency = paymentMethod === 'cash_usd' ? 'USD' : 'COP';
         const received = parseFloat(amountReceived) || (paymentMethod === 'nequi' ? totals.cop : 0);
 
+        const getOrderType = () => {
+            if (!tableId || tableId.startsWith('mesa-')) return 'mesa';
+            if (tableId === 'para-llevar') return 'para-llevar';
+            if (tableId === 'domicilio') return 'domicilio';
+            return tableId;
+        };
+
         const orderData = {
             items: cart,
             totalCop: totals.cop,
             totalUsd: totals.usd,
             exchangeRateSnapshot: exchangeRate,
             date: new Date().toISOString(),
+            orderType: getOrderType(),
+            tableId: tableId,
+            // Discount data
+            originalPriceCop: discountData.originalCop,
+            originalPriceUsd: discountData.originalUsd,
+            discountValue: discountData.discountValue,
+            discountPercent: discountData.discountPercent,
             payment: {
                 method: paymentMethod, // 'cash_cop', 'cash_usd', 'nequi'
                 currency: currency,
@@ -203,13 +169,33 @@ export function POS({ tableId, onBack }) {
 
     const closeCheckout = () => {
         if (showRecipe) { // A sale was just completed
-            limpiarMesa(tableId);
+            // Only clean up if it was a table order
+            if (tableId && tableId.startsWith('mesa-')) {
+                limpiarMesa(tableId);
+            } else if (tableId === 'para-llevar' || tableId === 'domicilio') {
+                // For direct sales, clear the cart but stay in POS for new orders
+                limpiarMesa(tableId);
+            }
             if (onBack) onBack(); // Go back to table view
         }
         // Reset state for next time
         setIsCheckoutOpen(false);
         setShowRecipe(false);
         setLastOrder(null);
+        setDiscountFinalPrice('');
+    };
+
+    // Discount handlers
+    const handleApplyDiscount = () => {
+        const price = parseFloat(discountFinalPrice);
+        if (price > 0 && price < discountData.originalCop) {
+            setShowDiscountModal(false);
+        }
+    };
+
+    const handleClearDiscount = () => {
+        setDiscountFinalPrice('');
+        setShowDiscountModal(false);
     };
 
 
@@ -237,6 +223,11 @@ export function POS({ tableId, onBack }) {
                                         <p className="text-gray-500 text-xs font-bold uppercase">Total a Pagar</p>
                                         <p className="text-3xl font-bold text-primary">${totals.cop.toLocaleString()}</p>
                                         <p className="text-sm text-gray-400">COP</p>
+                                        {discountData.discountValue > 0 && (
+                                            <p className="text-xs text-red-500 font-bold mt-1">
+                                                -{discountData.discountPercent.toFixed(1)}% (${discountData.discountValue.toLocaleString()})
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="flex-1 text-center">
                                         <p className="text-gray-500 text-xs font-bold uppercase">Equivalente</p>
@@ -244,6 +235,15 @@ export function POS({ tableId, onBack }) {
                                         <p className="text-sm text-gray-400">USD</p>
                                     </div>
                                 </div>
+
+                                {/* Discount Button */}
+                                <button
+                                    onClick={() => setShowDiscountModal(true)}
+                                    className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl border-2 border-dashed border-orange-300 text-orange-600 hover:bg-orange-50 transition-colors"
+                                >
+                                    <Percent className="w-5 h-5" />
+                                    <span className="font-bold">{discountData.discountValue > 0 ? 'Modificar Descuento' : 'Aplicar Descuento'}</span>
+                                </button>
 
                                 {/* Payment Method Selector */}
                                 <div>
@@ -321,7 +321,7 @@ export function POS({ tableId, onBack }) {
                             </div>
                         ) : (
                             <div className="p-8 flex flex-col items-center">
-                                <Ticket order={lastOrder} business={business} />
+                                <Ticket order={lastOrder} business={business} orderType={tableId} />
 
                                 <div className="flex gap-4 w-full mt-4">
                                     <button
@@ -343,6 +343,89 @@ export function POS({ tableId, onBack }) {
                 </div>
             )}
 
+            {/* Discount Modal */}
+            {showDiscountModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 bg-orange-500 text-white flex justify-between items-center">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <Percent className="w-6 h-6" />
+                                Aplicar Descuento
+                            </h2>
+                            <button onClick={() => setShowDiscountModal(false)} className="hover:bg-white/20 p-2 rounded-full transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div className="bg-gray-50 p-4 rounded-xl">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-gray-600">Precio Original:</span>
+                                    <span className="text-xl font-bold text-gray-800">${discountData.originalCop.toLocaleString()}</span>
+                                </div>
+                                {discountData.discountValue > 0 && (
+                                    <div className="flex justify-between items-center text-red-500">
+                                        <span>Descuento actual:</span>
+                                        <span className="font-bold">-{discountData.discountPercent.toFixed(1)}% (${discountData.discountValue.toLocaleString()})</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">
+                                    Nuevo Precio Final (COP)
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span className="text-gray-500 font-bold text-lg">$</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        autoFocus
+                                        value={discountFinalPrice}
+                                        onChange={e => setDiscountFinalPrice(e.target.value)}
+                                        className="input-field pl-10 text-xl font-bold"
+                                        placeholder={String(discountData.originalCop)}
+                                    />
+                                </div>
+                            </div>
+
+                            {discountFinalPrice && parseFloat(discountFinalPrice) > 0 && (
+                                <div className="bg-green-50 p-4 rounded-xl border border-green-200">
+                                    <div className="text-center">
+                                        <p className="text-sm text-green-600 font-bold uppercase mb-1">Nuevo Descuento</p>
+                                        <p className="text-2xl font-bold text-red-600">
+                                            -${(discountData.originalCop - parseFloat(discountFinalPrice)).toLocaleString()}
+                                            <span className="text-sm ml-2">
+                                                ({(((discountData.originalCop - parseFloat(discountFinalPrice)) / discountData.originalCop) * 100).toFixed(1)}%)
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3">
+                                {discountData.discountValue > 0 && (
+                                    <button
+                                        onClick={handleClearDiscount}
+                                        className="flex-1 btn-secondary py-3"
+                                    >
+                                        Quitar Descuento
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleApplyDiscount}
+                                    disabled={!discountFinalPrice || parseFloat(discountFinalPrice) >= discountData.originalCop || parseFloat(discountFinalPrice) <= 0}
+                                    className="flex-1 btn-primary py-3 disabled:opacity-50"
+                                >
+                                    Aplicar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Left: Product Grid (Same as before) */}
             <div className="flex-1 flex flex-col gap-6">
                 {/* Header Section */}
@@ -352,8 +435,22 @@ export function POS({ tableId, onBack }) {
                             <div className="flex items-center gap-4">
                                 <button onClick={onBack} className="btn-secondary p-2 h-10 w-10 text-lg">←</button>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-800">Cuenta de: <span className="text-primary capitalize">{tableId.replace('-', ' ')}</span></h2>
-                                    <p className="text-gray-500 text-sm">Añade productos a la cuenta de la mesa.</p>
+                                    {tableId.startsWith('mesa-') ? (
+                                        <>
+                                            <h2 className="text-2xl font-bold text-gray-800">Mesa <span className="text-primary">{tableId.replace('mesa-', '')}</span></h2>
+                                            <p className="text-gray-500 text-sm">Añade productos a la cuenta de la mesa.</p>
+                                        </>
+                                    ) : tableId === 'para-llevar' ? (
+                                        <>
+                                            <h2 className="text-2xl font-bold text-gray-800"><span className="text-blue-600">Para Llevar</span></h2>
+                                            <p className="text-gray-500 text-sm">Venta directa sin mesa.</p>
+                                        </>
+                                    ) : tableId === 'domicilio' ? (
+                                        <>
+                                            <h2 className="text-2xl font-bold text-gray-800"><span className="text-purple-600">Domicilio</span></h2>
+                                            <p className="text-gray-500 text-sm">Pedido para entrega a domicilio.</p>
+                                        </>
+                                    ) : null}
                                 </div>
                             </div>
                         ) : (
@@ -439,7 +536,13 @@ export function POS({ tableId, onBack }) {
                         <span>Orden Actual</span>
                     </h2>
                     {tableId ? (
-                         <p className="text-primary-light/80 text-sm mt-1 capitalize">Cuenta de {tableId.replace('-', ' ')}</p>
+                        tableId.startsWith('mesa-') ? (
+                            <p className="text-primary-light/80 text-sm mt-1">Mesa {tableId.replace('mesa-', '')}</p>
+                        ) : tableId === 'para-llevar' ? (
+                            <p className="text-primary-light/80 text-sm mt-1">Para Llevar</p>
+                        ) : tableId === 'domicilio' ? (
+                            <p className="text-primary-light/80 text-sm mt-1">Domicilio</p>
+                        ) : null
                     ) : (
                         <p className="text-primary-light/80 text-sm mt-1">{cart.length} ítems en el carrito</p>
                     )}

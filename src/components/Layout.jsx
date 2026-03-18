@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Coffee, Settings, ShoppingCart, TrendingUp, Calculator, Menu, X, Utensils, LogOut, Users } from 'lucide-react';
+import { Coffee, Settings, ShoppingCart, TrendingUp, Calculator, Menu, X, Utensils, LogOut, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 
@@ -14,7 +14,6 @@ export function Layout({ children, activeTab, setActiveTab }) {
         { id: 'pos', label: 'Pedidos', icon: ShoppingCart, roles: ['admin', 'waiter'] },
         { id: 'kitchen', label: 'Cocina', icon: Utensils, roles: ['admin', 'cook'] },
         { id: 'menu', label: 'Menú', icon: Coffee, roles: ['admin'] },
-        { id: 'history', label: 'Historial', icon: LayoutDashboard, roles: ['admin', 'waiter'] },
         { id: 'finance', label: 'Contabilidad', icon: TrendingUp, roles: ['admin'] },
         { id: 'escandallo', label: 'Escandallo', icon: Calculator, roles: ['admin'] },
         { id: 'users', label: 'Usuarios', icon: Users, roles: ['admin'] },

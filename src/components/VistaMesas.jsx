@@ -1,5 +1,5 @@
 import React from 'react';
-import { Utensils } from 'lucide-react';
+import { Utensils, ShoppingBag, Truck } from 'lucide-react';
 import { useOrders } from '../context/OrdersContext';
 import { useSettings } from '../context/SettingsContext';
 
@@ -35,9 +35,44 @@ export function VistaMesas({ onSelectTable }) {
         <div>
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h2 className="text-3xl font-bold text-gray-800">Gestión de Mesas</h2>
-                    <p className="text-gray-500">Selecciona una mesa para ver o añadir a la cuenta.</p>
+                    <h2 className="text-3xl font-bold text-gray-800">Gestión de Pedidos</h2>
+                    <p className="text-gray-500">Selecciona una mesa o inicia una venta directa.</p>
                 </div>
+            </div>
+
+            {/* Venta Directa / Para Llevar */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <button
+                    onClick={() => onSelectTable('para-llevar')}
+                    className="card p-6 text-left flex items-center gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 hover:border-blue-400 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                >
+                    <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <Truck className="w-7 h-7" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-xl text-gray-800">Para Llevar</h3>
+                        <span className="text-sm font-bold text-blue-600">Venta Directa</span>
+                        <p className="text-xs text-gray-500 mt-1">Iniciar pedido sin asignar mesa</p>
+                    </div>
+                </button>
+
+                <button
+                    onClick={() => onSelectTable('domicilio')}
+                    className="card p-6 text-left flex items-center gap-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 hover:border-purple-400 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                >
+                    <div className="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                        <ShoppingBag className="w-7 h-7" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-xl text-gray-800">Domicilio</h3>
+                        <span className="text-sm font-bold text-purple-600">Entrega a Domicilio</span>
+                        <p className="text-xs text-gray-500 mt-1">Pedidos para entrega a domicilio</p>
+                    </div>
+                </button>
+            </div>
+
+            <div className="mb-6">
+                <h3 className="text-xl font-bold text-gray-700 mb-4">Mesas del Restaurante</h3>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">

@@ -49,7 +49,7 @@ function MainApp() {
           </div>
         );
       default:
-        return <POS />;
+        return <PedidosRouter />;
     }
   };
 
