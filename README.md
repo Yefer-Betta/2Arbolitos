@@ -1,16 +1,97 @@
-# React + Vite
+# 2Arbolitos - Sistema POS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema de Punto de Venta (POS) para restaurantes con gestión de pedidos, cocina, finanzas y más.
 
-Currently, two official plugins are available:
+## Estructura
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+2Arbolitos/
+├── backend/          # API Server (Express + Prisma + MySQL)
+│   └── src/
+│       ├── index.js  # Servidor principal
+│       ├── routes/   # Endpoints API
+│       └── db/       # Cliente Prisma
+│
+├── frontend/         # Aplicación Web (React + Vite)
+│   └── src/
+│       ├── components/  # Componentes React
+│       ├── context/     # Estado global
+│       └── lib/         # Utilidades (API)
+│
+└── package.json      # Scripts de inicio
+```
 
-## React Compiler
+## Inicio Rápido
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Requisitos
 
-## Expanding the ESLint configuration
+- Node.js 18+
+- MySQL 8.0+
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Instalación
+
+```bash
+# Instalar dependencias de ambos
+npm run install:all
+
+# O individualmente:
+cd backend && npm install
+cd frontend && npm install
+```
+
+### Desarrollo
+
+```bash
+# Iniciar ambos (backend + frontend)
+npm run dev
+
+# Solo backend (puerto 3001)
+npm run dev:backend
+
+# Solo frontend (puerto 5173)
+npm run dev:frontend
+```
+
+### Producción
+
+```bash
+# Build del frontend
+npm run build
+
+# Iniciar servidor (sirve frontend estático en puerto 3001)
+npm start
+```
+
+## Puertos
+
+| Servicio | Puerto | URL |
+|----------|--------|-----|
+| API | 3001 | http://localhost:3001 |
+| Frontend Dev | 5173 | http://localhost:5173 |
+| Frontend Prod | 3001 | http://localhost:3001 |
+
+## Usuarios por defecto
+
+- Admin: `admin` / `123`
+- Mesero: `mesero` / `123`
+- Cocina: `cocina` / `123`
+
+## Características
+
+- Gestión de pedidos y mesas
+- Vista de cocina en tiempo real
+- Control de inventario y escandallos
+- Reportes financieros y cierre de día
+- Sistema de backup/restauración
+- Aplicación progresiva (PWA)
+- Sincronización en tiempo real con base de datos
+
+## Tecnologías
+
+- **Frontend:** React 19, Vite, TailwindCSS, PWA
+- **Backend:** Express, Prisma, MySQL
+- **Herramientas:** ESLint, Prettier
+
+## Licencia
+
+MIT
