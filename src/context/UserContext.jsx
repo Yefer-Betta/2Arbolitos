@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { getData, setData } from '../lib/api.js';
 
-// Simulación de una base de datos de usuarios. En una app real, esto podría ser más seguro.
 const INITIAL_USERS = [
     { id: 1, username: 'admin', password: '123', role: 'admin', name: 'Administrador' },
     { id: 2, username: 'mesero', password: '123', role: 'waiter', name: 'Mesero Principal' },
@@ -19,13 +19,30 @@ export function UserProvider({ children }) {
             return INITIAL_USERS;
         }
     });
+    const [loaded, setLoaded] = useState(false);
 
     const [currentUser, setCurrentUser] = useState(() => {
-        // WARNING: Storing user data in sessionStorage is not secure for production.
-        // This is for demonstration purposes in a local-only application.
         const storedUser = sessionStorage.getItem('currentUser');
         return storedUser ? JSON.parse(storedUser) : null;
     });
+
+    useEffect(() => {
+        getData('users').then((data) => {
+            if (Array.isArray(data) && data.length > 0) {
+                const mergedUsers = data.map(serverUser => {
+                    const localUser = INITIAL_USERS.find(u => u.username === serverUser.username);
+                    return {
+                        ...serverUser,
+                        password: serverUser.password || localUser?.password || '123'
+                    };
+                });
+                setUsers(mergedUsers);
+            } else {
+                setUsers(INITIAL_USERS);
+            }
+            setLoaded(true);
+        });
+    }, []);
 
     const login = (username, password) => {
         const user = users.find(u => u.username === username && u.password === password);
@@ -56,8 +73,9 @@ export function UserProvider({ children }) {
     };
 
     useEffect(() => {
-        localStorage.setItem('users', JSON.stringify(users));
-    }, [users]);
+        if (!loaded) return;
+        setData('users', users);
+    }, [users, loaded]);
 
     const value = {
         currentUser,

@@ -45,7 +45,7 @@ export function Finance() {
                 >
                     ← Volver a Finanzas
                 </button>
-                <EndOfDayReport />
+                <EndOfDayReport date={new Date()} />
             </div>
         )
     }

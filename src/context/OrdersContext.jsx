@@ -1,29 +1,49 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getData, setData } from '../lib/api.js';
 
 const OrdersContext = createContext();
 
 export function OrdersProvider({ children }) {
     const [orders, setOrders] = useState(() => {
-        const saved = localStorage.getItem('orders');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = localStorage.getItem('orders');
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
     });
     const [activeTables, setActiveTables] = useState(() => {
-        const saved = localStorage.getItem('activeTables');
-        return saved ? JSON.parse(saved) : {};
-    });
-
-    useEffect(() => {
-        localStorage.setItem('orders', JSON.stringify(orders));
-    }, [orders]);
-
-    useEffect(() => {
         try {
-            localStorage.setItem('activeTables', JSON.stringify(activeTables));
-        } catch (error) {
-            console.error("Error al guardar las mesas activas en localStorage", error);
+            const saved = localStorage.getItem('activeTables');
+            return saved ? JSON.parse(saved) : {};
+        } catch {
+            return {};
         }
-    }, [activeTables]);
+    });
+    const [loaded, setLoaded] = useState(false);
+
+    useEffect(() => {
+        Promise.all([getData('orders'), getData('activeTables')]).then(([ordersData, tablesData]) => {
+            setOrders(Array.isArray(ordersData) ? ordersData : []);
+            setActiveTables(tablesData && typeof tablesData === 'object' ? tablesData : {});
+            setLoaded(true);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!loaded) return;
+        setData('orders', orders);
+    }, [orders, loaded]);
+
+    useEffect(() => {
+        if (!loaded) return;
+        try {
+            setData('activeTables', activeTables);
+        } catch (error) {
+            console.error("Error al guardar las mesas activas", error);
+        }
+    }, [activeTables, loaded]);
 
     const addOrder = (order) => {
         const newOrder = {

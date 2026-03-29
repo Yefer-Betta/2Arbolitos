@@ -2,26 +2,27 @@ import React, { useMemo } from 'react';
 import { useOrders } from '../context/OrdersContext';
 import { formatCurrency, formatDate } from '../lib/utils';
 
-const EndOfDayReport = ({ date }) => {
+const EndOfDayReport = ({ date: dateProp }) => {
   const { orders: purchases } = useOrders();
+  const date = dateProp ? new Date(dateProp) : new Date();
 
   // OPTIMIZATION:
   // Usamos useMemo para calcular los datos del reporte. Este bloque de código
   // solo se volverá a ejecutar si 'purchases' o 'date' cambian.
   // Esto evita recálculos costosos en cada re-renderizado.
   const reportData = useMemo(() => {
+    const orderDate = (p) => p.date || p.timestamp;
     const todaysPurchases = purchases.filter(
-      p => new Date(p.timestamp).toDateString() === date.toDateString()
+      p => new Date(orderDate(p)).toDateString() === date.toDateString()
     );
 
-    const totalSold = todaysPurchases.reduce((sum, p) => sum + p.total, 0);
+    const totalSold = todaysPurchases.reduce((sum, p) => sum + (p.totalCop ?? p.total ?? 0), 0);
 
     const paymentMethodTotals = todaysPurchases.reduce((acc, purchase) => {
-      const { paymentMethod, total } = purchase;
-      if (!acc[paymentMethod]) {
-        acc[paymentMethod] = 0;
-      }
-      acc[paymentMethod] += total;
+      const method = purchase.payment?.method ?? purchase.paymentMethod ?? 'N/A';
+      const total = purchase.totalCop ?? purchase.total ?? 0;
+      if (!acc[method]) acc[method] = 0;
+      acc[method] += total;
       return acc;
     }, {});
 
@@ -89,9 +90,9 @@ const EndOfDayReport = ({ date }) => {
                     <tr key={purchase.id} className="hover:bg-gray-100">
                       {/* NUEVA CARACTERÍSTICA: Mostrando el ID de la compra */}
                       <td className="py-2 px-4 border-b font-mono text-sm">{purchase.id}</td>
-                      <td className="py-2 px-4 border-b">{new Date(purchase.timestamp).toLocaleTimeString()}</td>
-                      <td className="py-2 px-4 border-b">{purchase.paymentMethod}</td>
-                      <td className="py-2 px-4 border-b text-right">{formatCurrency(purchase.total)}</td>
+                      <td className="py-2 px-4 border-b">{new Date(purchase.date || purchase.timestamp).toLocaleTimeString()}</td>
+                      <td className="py-2 px-4 border-b">{purchase.payment?.method?.replace('_', ' ') ?? purchase.paymentMethod ?? 'N/A'}</td>
+                      <td className="py-2 px-4 border-b text-right">{formatCurrency(purchase.totalCop ?? purchase.total ?? 0)}</td>
                     </tr>
                   ))}
                 </tbody>

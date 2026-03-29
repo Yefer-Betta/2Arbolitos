@@ -3,6 +3,13 @@ import { useOrders } from '../context/OrdersContext';
 import { useFinance } from '../context/FinanceContext';
 import { Clock, DollarSign, Calendar, TrendingUp, Download, History as HistoryIcon } from 'lucide-react';
 import { utils, writeFile } from 'xlsx';
+import { PARA_LLEVAR_ID } from './VistaMesas';
+
+function orderOriginLabel(order) {
+    if (!order.tableId) return '—';
+    if (order.tableId === PARA_LLEVAR_ID) return 'Para llevar';
+    return order.tableId.replace('mesa-', 'Mesa ');
+}
 
 export function History() {
     const { orders } = useOrders();
@@ -22,6 +29,7 @@ export function History() {
         const data = currentShiftOrders.map(order => ({
             Fecha: new Date(order.date).toLocaleDateString(),
             Hora: new Date(order.date).toLocaleTimeString(),
+            Origen: orderOriginLabel(order),
             Items: order.items.map(i => `${i.quantity}x ${i.product.name}`).join(', '),
             'Total COP': order.totalCop,
             'Total USD': order.totalUsd,
@@ -76,6 +84,7 @@ export function History() {
                         <thead className="bg-surface border-b border-gray-200">
                             <tr>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha / Hora</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Origen</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Detalle del Pedido</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Total COP</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Total USD</th>
@@ -85,7 +94,7 @@ export function History() {
                         <tbody className="divide-y divide-gray-100 bg-white">
                             {currentShiftOrders.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-12 text-center text-gray-400">
+                                    <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
                                         <div className="flex flex-col items-center gap-2">
                                             <Calendar className="w-8 h-8 opacity-20" />
                                             No hay ventas en este turno.
@@ -100,6 +109,11 @@ export function History() {
                                                 <span className="font-bold text-gray-900 group-hover:text-primary transition-colors">{new Date(order.date).toLocaleDateString()}</span>
                                                 <span className="text-xs text-gray-400">{new Date(order.date).toLocaleTimeString()}</span>
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium">
+                                                {orderOriginLabel(order)}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600">
                                             <div className="max-w-md">

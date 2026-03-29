@@ -1,31 +1,56 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getData, setData } from '../lib/api.js';
 
 const FinanceContext = createContext();
 
+const defaultLastClosure = new Date(0).toISOString();
+
 export function FinanceProvider({ children }) {
     const [expenses, setExpenses] = useState(() => {
-        const saved = localStorage.getItem('expenses');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = localStorage.getItem('expenses');
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
     });
-
     const [closures, setClosures] = useState(() => {
-        const saved = localStorage.getItem('closures');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = localStorage.getItem('closures');
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
     });
-
     const [lastClosureDate, setLastClosureDate] = useState(() => {
-        return localStorage.getItem('lastClosureDate') || new Date(0).toISOString(); // Default to epoch if new
+        return localStorage.getItem('lastClosureDate') || defaultLastClosure;
     });
+    const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
-        localStorage.setItem('expenses', JSON.stringify(expenses));
-    }, [expenses]);
+        Promise.all([
+            getData('expenses'),
+            getData('closures'),
+            getData('lastClosureDate'),
+        ]).then(([expensesData, closuresData, lastDate]) => {
+            setExpenses(Array.isArray(expensesData) ? expensesData : []);
+            setClosures(Array.isArray(closuresData) ? closuresData : []);
+            setLastClosureDate(lastDate ?? defaultLastClosure);
+            setLoaded(true);
+        });
+    }, []);
 
     useEffect(() => {
-        localStorage.setItem('closures', JSON.stringify(closures));
-        localStorage.setItem('lastClosureDate', lastClosureDate);
-    }, [closures, lastClosureDate]);
+        if (!loaded) return;
+        setData('expenses', expenses);
+    }, [expenses, loaded]);
+
+    useEffect(() => {
+        if (!loaded) return;
+        setData('closures', closures);
+        setData('lastClosureDate', lastClosureDate);
+    }, [closures, lastClosureDate, loaded]);
 
     const addExpense = (expense) => {
         const newExpense = {

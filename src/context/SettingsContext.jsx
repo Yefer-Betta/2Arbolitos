@@ -1,37 +1,51 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getData, setData } from '../lib/api.js';
+
+const DEFAULT_BUSINESS = {
+    name: '2Arbolitos',
+    nit: '',
+    address: '',
+    phone: '',
+    message: '¡Gracias por su compra!',
+    logo: '',
+    invoiceLogo: ''
+};
 
 const SettingsContext = createContext();
 
 export function SettingsProvider({ children }) {
-    // Exchange Rate State
     const [exchangeRate, setExchangeRate] = useState(() => {
         const saved = localStorage.getItem('exchangeRate');
-        return saved ? parseFloat(saved) : 4000; // Default fallback
+        return saved ? parseFloat(saved) : 4000;
     });
-
-    // Business Info State
     const [business, setBusiness] = useState(() => {
-        const saved = localStorage.getItem('business');
-        return saved ? JSON.parse(saved) : {
-            name: '2Arbolitos',
-            nit: '',
-            address: '',
-            phone: '',
-            message: '¡Gracias por su compra!',
-            logo: '',
-            invoiceLogo: ''
-        };
+        try {
+            const saved = localStorage.getItem('business');
+            return saved ? JSON.parse(saved) : DEFAULT_BUSINESS;
+        } catch {
+            return DEFAULT_BUSINESS;
+        }
     });
-
-    // Persistence
-    useEffect(() => {
-        localStorage.setItem('exchangeRate', exchangeRate.toString());
-    }, [exchangeRate]);
+    const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
-        localStorage.setItem('business', JSON.stringify(business));
-    }, [business]);
+        Promise.all([getData('exchangeRate'), getData('business')]).then(([rate, biz]) => {
+            if (typeof rate === 'number' && !Number.isNaN(rate)) setExchangeRate(rate);
+            if (biz && typeof biz === 'object') setBusiness({ ...DEFAULT_BUSINESS, ...biz });
+            setLoaded(true);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!loaded) return;
+        setData('exchangeRate', exchangeRate);
+    }, [exchangeRate, loaded]);
+
+    useEffect(() => {
+        if (!loaded) return;
+        setData('business', business);
+    }, [business, loaded]);
 
     const value = {
         exchangeRate,

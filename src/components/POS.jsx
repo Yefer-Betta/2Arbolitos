@@ -3,6 +3,7 @@ import { useMenu } from '../context/MenuContext';
 import { useSettings } from '../context/SettingsContext';
 import { useOrders } from '../context/OrdersContext';
 import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Utensils, X, Printer, Calculator, Check, Receipt, Smartphone, Banknote, DollarSign } from 'lucide-react';
+import { PARA_LLEVAR_ID } from './VistaMesas';
 import { cn } from '../lib/utils';
 
 function Ticket({ order, business }) {
@@ -179,6 +180,7 @@ export function POS({ tableId, onBack }) {
         const received = parseFloat(amountReceived) || (paymentMethod === 'nequi' ? totals.cop : 0);
 
         const orderData = {
+            tableId: tableId || null,
             items: cart,
             totalCop: totals.cop,
             totalUsd: totals.usd,
@@ -352,8 +354,16 @@ export function POS({ tableId, onBack }) {
                             <div className="flex items-center gap-4">
                                 <button onClick={onBack} className="btn-secondary p-2 h-10 w-10 text-lg">←</button>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-800">Cuenta de: <span className="text-primary capitalize">{tableId.replace('-', ' ')}</span></h2>
-                                    <p className="text-gray-500 text-sm">Añade productos a la cuenta de la mesa.</p>
+                                    <h2 className="text-2xl font-bold text-gray-800">
+                                        {tableId === PARA_LLEVAR_ID ? (
+                                            <>Pedido: <span className="text-primary">Para llevar</span></>
+                                        ) : (
+                                            <>Cuenta de: <span className="text-primary capitalize">{tableId.replace('-', ' ')}</span></>
+                                        )}
+                                    </h2>
+                                    <p className="text-gray-500 text-sm">
+                                        {tableId === PARA_LLEVAR_ID ? 'Añade productos al pedido para llevar.' : 'Añade productos a la cuenta de la mesa.'}
+                                    </p>
                                 </div>
                             </div>
                         ) : (
@@ -438,8 +448,10 @@ export function POS({ tableId, onBack }) {
                         <ShoppingCart className="w-6 h-6" />
                         <span>Orden Actual</span>
                     </h2>
-                    {tableId ? (
-                         <p className="text-primary-light/80 text-sm mt-1 capitalize">Cuenta de {tableId.replace('-', ' ')}</p>
+                    {tableId === PARA_LLEVAR_ID ? (
+                        <p className="text-primary-light/80 text-sm mt-1">Pedido para llevar · {cart.length} ítems</p>
+                    ) : tableId ? (
+                        <p className="text-primary-light/80 text-sm mt-1 capitalize">Cuenta de {tableId.replace('-', ' ')}</p>
                     ) : (
                         <p className="text-primary-light/80 text-sm mt-1">{cart.length} ítems en el carrito</p>
                     )}

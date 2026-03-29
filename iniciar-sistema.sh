@@ -17,8 +17,13 @@ if [ ! -d "node_modules" ]; then
     exit
 fi
 
-# Iniciar el servidor de desarrollo, exponerlo a la red (--host)
-# y abrir el navegador.
-echo "BUSCA LA LINEA 'Network:' en los mensajes del servidor que se abre."
-echo "Esa es la direccion para los celulares (Ej: http://192.168.1.5:4173)"
-npm run preview -- --host --open
+# Construir si no existe dist (para modo servidor)
+if [ ! -d "dist" ]; then
+    echo "[AVISO] No hay build. Construyendo..."
+    npm run build
+fi
+
+# Iniciar servidor Node: sirve app + API para que PC y celulares estén sincronizados
+echo "En la consola verás la URL para este equipo y para la red."
+echo "Abre esa URL en el celular (mismo WiFi) para atender desde el móvil."
+npm run start
