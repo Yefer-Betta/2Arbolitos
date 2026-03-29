@@ -102,8 +102,8 @@ export function History() {
                                     </td>
                                 </tr>
                             ) : (
-                                currentShiftOrders.map((order, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50 transition-colors group">
+                                currentShiftOrders.map((order) => (
+                                    <tr key={order.id} className="hover:bg-gray-50 transition-colors group">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-gray-900 group-hover:text-primary transition-colors">{new Date(order.date).toLocaleDateString()}</span>
@@ -117,8 +117,8 @@ export function History() {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600">
                                             <div className="max-w-md">
-                                                {order.items.map((item, idx) => (
-                                                    <span key={idx} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs mr-1 mb-1 border border-gray-200">
+                                                {order.items.map((item, itemIdx) => (
+                                                    <span key={`${order.id}-${itemIdx}`} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs mr-1 mb-1 border border-gray-200">
                                                         <b>{item.quantity}</b>x {item.product.name}
                                                     </span>
                                                 ))}
