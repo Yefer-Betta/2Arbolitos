@@ -3,31 +3,11 @@ import { useOrders } from '../context/OrdersContext';
 import { useFinance } from '../context/FinanceContext';
 import { formatCurrency, formatDate } from '../lib/utils';
 
-<<<<<<< HEAD
-const EndOfDayReport = ({ date: dateProp }) => {
-  const { orders: purchases } = useOrders();
-  const date = dateProp ? new Date(dateProp) : new Date();
-=======
 const EndOfDayReport = () => {
   const { orders } = useOrders();
   const { lastClosureDate, expenses } = useFinance();
->>>>>>> 6259618a47a04f4138f27f761fe9179394de04e3
 
   const reportData = useMemo(() => {
-<<<<<<< HEAD
-    const orderDate = (p) => p.date || p.timestamp;
-    const todaysPurchases = purchases.filter(
-      p => new Date(orderDate(p)).toDateString() === date.toDateString()
-    );
-
-    const totalSold = todaysPurchases.reduce((sum, p) => sum + (p.totalCop ?? p.total ?? 0), 0);
-
-    const paymentMethodTotals = todaysPurchases.reduce((acc, purchase) => {
-      const method = purchase.payment?.method ?? purchase.paymentMethod ?? 'N/A';
-      const total = purchase.totalCop ?? purchase.total ?? 0;
-      if (!acc[method]) acc[method] = 0;
-      acc[method] += total;
-=======
     const closureDate = new Date(lastClosureDate);
     
     // Show ALL orders since last closure (not just today)
@@ -51,7 +31,6 @@ const EndOfDayReport = () => {
       }
       acc[method].cop += order.totalCop;
       acc[method].usd += order.totalUsd;
->>>>>>> 6259618a47a04f4138f27f761fe9179394de04e3
       return acc;
     }, {});
 
@@ -145,17 +124,7 @@ const EndOfDayReport = () => {
                     <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase text-right">Pago</th>
                   </tr>
                 </thead>
-<<<<<<< HEAD
-                <tbody>
-                  {reportData.todaysPurchases.map((purchase) => (
-                    <tr key={purchase.id} className="hover:bg-gray-100">
-                      {/* NUEVA CARACTERÍSTICA: Mostrando el ID de la compra */}
-                      <td className="py-2 px-4 border-b font-mono text-sm">{purchase.id}</td>
-                      <td className="py-2 px-4 border-b">{new Date(purchase.date || purchase.timestamp).toLocaleTimeString()}</td>
-                      <td className="py-2 px-4 border-b">{purchase.payment?.method?.replace('_', ' ') ?? purchase.paymentMethod ?? 'N/A'}</td>
-                      <td className="py-2 px-4 border-b text-right">{formatCurrency(purchase.totalCop ?? purchase.total ?? 0)}</td>
-=======
-                <tbody className="divide-y divide-gray-100">
+<tbody className="divide-y divide-gray-100">
                   {reportData.filteredOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 text-sm text-gray-600">
@@ -177,7 +146,6 @@ const EndOfDayReport = () => {
                       <td className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase">
                         {order.payment?.method?.replace(/_/g, ' ') || 'N/A'}
                       </td>
->>>>>>> 6259618a47a04f4138f27f761fe9179394de04e3
                     </tr>
                   ))}
                 </tbody>
