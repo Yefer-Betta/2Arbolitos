@@ -45,63 +45,53 @@ if not exist "dist\" (
     )
 )
 
+echo.
 echo [1/3] Verificando MySQL...
-set MYSQL_RUNNING=0
-set MYSQL_PATH=
 
-:: Buscar MySQL en XAMPP
-if exist "C:\xampp\mysql\bin\mysql.exe" (
-    set MYSQL_PATH=C:\xampp\mysql\bin
-    :: Intentar conexion
-    "C:\xampp\mysql\bin\mysql.exe" -u root -e "SELECT 1" >nul 2>&1
-    if %errorlevel% equ 0 (
-        set MYSQL_RUNNING=1
-        echo [OK] MySQL (XAMPP) esta corriendo
-    ) else (
-        echo [AVISO] MySQL esta instalado pero no esta corriendo
-        echo Por favor inicia MySQL desde XAMPP Control Panel
-        echo.
-        set /p START_MYSQL="Quieres que intente iniciar MySQL? (S/N): "
-        if /i "!START_MYSQL!"=="S" (
-            if exist "C:\xampp\xampp-control.exe" (
-                start "" "C:\xampp\xampp-control.exe"
-                echo [INFO] Por favor inicia MySQL desde el panel y luego presiona una tecla
-                pause
-            ) else (
-                echo [ERROR] No se encontro XAMPP Control Panel
-                pause
-                exit /b 1
-            )
+:: Intentar verificar MySQL de diferentes formas
+set MYSQL_OK=0
+
+:: Intentar con mysql directo
+mysql -u root -e "SELECT 1" 2>nul
+if %errorlevel% equ 0 (
+    set MYSQL_OK=1
+    echo [OK] MySQL esta corriendo
+)
+
+:: Si no funciona, intentar con XAMPP
+if %MYSQL_OK% equ 0 (
+    if exist "C:\xampp\mysql\bin\mysql.exe" (
+        "C:\xampp\mysql\bin\mysql.exe" -u root -e "SELECT 1" 2>nul
+        if %errorlevel% equ 0 (
+            set MYSQL_OK=1
+            echo [OK] MySQL (XAMPP) esta corriendo
         )
     )
 )
 
-:: Buscar MySQL en WAMP
-if exist "C:\wamp\bin\mysql" (
-    if !MYSQL_RUNNING! equ 0 (
-        for /f "delims=" %%i in ('dir /b "C:\wamp\bin\mysql\mysql*.*" 2^>nul') do set "MYSQL_PATH=C:\wamp\bin\mysql\%%i\bin"
-        "!MYSQL_PATH!\mysql.exe" -u root -e "SELECT 1" >nul 2>&1
+:: Si no funciona, intentar con WAMP
+if %MYSQL_OK% equ 0 (
+    for /f "delims=" %%i in ('dir /b "C:\wamp\bin\mysql\mysql*.*" 2^>nul') do (
+        "C:\wamp\bin\mysql\%%i\bin\mysql.exe" -u root -e "SELECT 1" 2>nul
         if !errorlevel! equ 0 (
-            set MYSQL_RUNNING=1
+            set MYSQL_OK=1
             echo [OK] MySQL (WAMP) esta corriendo
         )
     )
 )
 
-:: Si no esta corriendo, intentar otras formas o avisar
-if %MYSQL_RUNNING% equ 0 (
+if %MYSQL_OK% equ 0 (
     echo.
     echo [AVISO] No se detecto MySQL corriendo
     echo El sistema intentara iniciar de todas formas...
-    echo Si hay errores de conexion, verifica MySQL
+    echo IMPORTANTE: Asegurate de que MySQL este corriendo en XAMPP o WAMP
     echo.
 )
 
 echo.
 echo [2/3] Iniciando Backend (Puerto 3001)...
-cd server
-start "2Arbolitos Backend" cmd /k "npm run dev"
-cd ..
+start "2Arbolitos Backend" cmd /k "cd /d "%~dp0server" && npm run dev"
+timeout /t 2 /nobreak >nul
 
 echo.
 echo [3/3] Iniciando Frontend (Puerto 5173)...
@@ -113,6 +103,8 @@ echo.
 echo ========================================
 echo   Sistema iniciado correctamente
 echo ========================================
+echo.
+echo Revisa las ventanas abiertas para ver los errores
 echo.
 echo URLs de acceso:
 echo   - Frontend: http://localhost:5173
