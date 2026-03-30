@@ -1,58 +1,61 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { getData, setData } from '../lib/api.js';
-
-const INITIAL_USERS = [
-    { id: 1, username: 'admin', password: '123', role: 'admin', name: 'Administrador' },
-    { id: 2, username: 'mesero', password: '123', role: 'waiter', name: 'Mesero Principal' },
-    { id: 3, username: 'cocina', password: '123', role: 'cook', name: 'Jefe de Cocina' },
-];
+import { apiGet, syncManager } from '../lib/api.js';
 
 const UserContext = createContext();
 
 export function UserProvider({ children }) {
-    const [users, setUsers] = useState(() => {
-        try {
-            const storedUsers = localStorage.getItem('users');
-            return storedUsers ? JSON.parse(storedUsers) : INITIAL_USERS;
-        } catch {
-            return INITIAL_USERS;
-        }
-    });
-    const [loaded, setLoaded] = useState(false);
-
     const [currentUser, setCurrentUser] = useState(() => {
         const storedUser = sessionStorage.getItem('currentUser');
-        return storedUser ? JSON.parse(storedUser) : null;
+        const storedToken = localStorage.getItem('token');
+        if (storedUser && storedToken) {
+            return JSON.parse(storedUser);
+        }
+        return null;
     });
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        getData('users').then((data) => {
-            if (Array.isArray(data) && data.length > 0) {
-                const mergedUsers = data.map(serverUser => {
-                    const localUser = INITIAL_USERS.find(u => u.username === serverUser.username);
-                    return {
-                        ...serverUser,
-                        password: serverUser.password || localUser?.password || '123'
-                    };
-                });
-                setUsers(mergedUsers);
-            } else {
-                setUsers(INITIAL_USERS);
-            }
-            setLoaded(true);
-        });
+        checkAuth();
     }, []);
 
-    const login = (username, password) => {
-        const user = users.find(u => u.username === username && u.password === password);
-        if (user) {
-            const userToStore = { username: user.username, role: user.role, name: user.name };
-            setCurrentUser(userToStore);
-            sessionStorage.setItem('currentUser', JSON.stringify(userToStore));
-            return true;
+    const checkAuth = async () => {
+        const token = localStorage.getItem('token');
+        if (token && syncManager.isOnline) {
+            try {
+                const data = await apiGet('/auth/verify');
+                if (data.user) {
+                    setCurrentUser(data.user);
+                    sessionStorage.setItem('currentUser', JSON.stringify(data.user));
+                }
+            } catch (e) {
+                console.warn('Token invalid or expired');
+                logout();
+            }
         }
-        return false;
+        setIsLoading(false);
+    };
+
+    const login = async (username, password) => {
+        if (syncManager.isOnline) {
+            try {
+                const response = await syncManager.fetchFromAPI('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password }),
+                });
+
+                if (response.token && response.user) {
+                    localStorage.setItem('token', response.token);
+                    setCurrentUser(response.user);
+                    sessionStorage.setItem('currentUser', JSON.stringify(response.user));
+                    return { success: true, user: response.user };
+                }
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        } else {
+            return { success: false, error: 'No hay conexión. El login requiere internet.' };
+        }
     };
 
     const logout = () => {
@@ -60,32 +63,12 @@ export function UserProvider({ children }) {
         sessionStorage.removeItem('currentUser');
     };
 
-    const addUser = (user) => {
-        setUsers(prevUsers => [...prevUsers, { ...user, id: Date.now() }]);
-    };
-
-    const updateUser = (id, updatedUser) => {
-        setUsers(prevUsers => prevUsers.map(u => (u.id === id ? { ...u, ...updatedUser } : u)));
-    };
-
-    const deleteUser = (id) => {
-        setUsers(prevUsers => prevUsers.filter(u => u.id !== id));
-    };
-
-    useEffect(() => {
-        if (!loaded) return;
-        setData('users', users);
-    }, [users, loaded]);
-
     const value = {
         currentUser,
-        users,
         login,
         logout,
-        addUser,
-        updateUser,
-        deleteUser,
         isAuthenticated: !!currentUser,
+        isLoading,
     };
 
     return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

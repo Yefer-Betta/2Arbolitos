@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getData, setData } from '../lib/api.js';
+import { apiGet, apiPost, setData, getData, syncManager } from '../lib/api.js';
 
 const DEFAULT_BUSINESS = {
     name: '2Arbolitos',
@@ -15,43 +15,93 @@ const DEFAULT_BUSINESS = {
 const SettingsContext = createContext();
 
 export function SettingsProvider({ children }) {
-    const [exchangeRate, setExchangeRate] = useState(() => {
-        const saved = localStorage.getItem('exchangeRate');
-        return saved ? parseFloat(saved) : 4000;
-    });
-    const [business, setBusiness] = useState(() => {
-        try {
-            const saved = localStorage.getItem('business');
-            return saved ? JSON.parse(saved) : DEFAULT_BUSINESS;
-        } catch {
-            return DEFAULT_BUSINESS;
-        }
-    });
+    const [exchangeRate, setExchangeRate] = useState(4000);
+    const [business, setBusiness] = useState(DEFAULT_BUSINESS);
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
-        Promise.all([getData('exchangeRate'), getData('business')]).then(([rate, biz]) => {
-            if (typeof rate === 'number' && !Number.isNaN(rate)) setExchangeRate(rate);
-            if (biz && typeof biz === 'object') setBusiness({ ...DEFAULT_BUSINESS, ...biz });
-            setLoaded(true);
-        });
+        loadSettings();
     }, []);
 
-    useEffect(() => {
-        if (!loaded) return;
-        setData('exchangeRate', exchangeRate);
-    }, [exchangeRate, loaded]);
+    const loadSettings = async () => {
+        try {
+            let localRate = await getData('exchangeRate');
+            let localBusiness = await getData('business');
 
-    useEffect(() => {
-        if (!loaded) return;
-        setData('business', business);
-    }, [business, loaded]);
+            if (syncManager.isOnline) {
+                try {
+                    const serverSettings = await apiGet('/settings');
+                    
+                    if (serverSettings.exchangeRate) {
+                        localRate = serverSettings.exchangeRate;
+                        await setData('exchangeRate', serverSettings.exchangeRate);
+                    }
+                    if (serverSettings.business) {
+                        localBusiness = { ...DEFAULT_BUSINESS, ...serverSettings.business };
+                        await setData('business', localBusiness);
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch settings from server:', e);
+                }
+            }
+
+            if (typeof localRate === 'number' && !Number.isNaN(localRate)) {
+                setExchangeRate(localRate);
+            }
+            if (localBusiness && typeof localBusiness === 'object') {
+                setBusiness({ ...DEFAULT_BUSINESS, ...localBusiness });
+            }
+            
+            setLoaded(true);
+        } catch (error) {
+            console.error('Error loading settings:', error);
+            setLoaded(true);
+        }
+    };
+
+    const updateExchangeRate = async (newRate) => {
+        setExchangeRate(newRate);
+        localStorage.setItem('exchangeRate', String(newRate));
+        await setData('exchangeRate', newRate);
+
+        if (syncManager.isOnline) {
+            try {
+                await apiPost('/settings', {
+                    key: 'exchangeRate',
+                    value: newRate,
+                    type: 'number',
+                });
+            } catch (e) {
+                console.warn('Settings saved locally');
+            }
+        }
+    };
+
+    const updateBusiness = async (newBusiness) => {
+        const updatedBusiness = { ...business, ...newBusiness };
+        setBusiness(updatedBusiness);
+        localStorage.setItem('business', JSON.stringify(updatedBusiness));
+        await setData('business', updatedBusiness);
+
+        if (syncManager.isOnline) {
+            try {
+                await apiPost('/settings', {
+                    key: 'business',
+                    value: updatedBusiness,
+                    type: 'object',
+                });
+            } catch (e) {
+                console.warn('Settings saved locally');
+            }
+        }
+    };
 
     const value = {
         exchangeRate,
-        setExchangeRate,
+        setExchangeRate: updateExchangeRate,
         business,
-        setBusiness
+        setBusiness: updateBusiness,
+        loaded,
     };
 
     return (

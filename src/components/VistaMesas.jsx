@@ -78,35 +78,6 @@ export function VistaMesas({ onSelectTable }) {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {/* Opción Para llevar */}
-                <button
-                    type="button"
-                    onClick={() => onSelectTable(PARA_LLEVAR_ID)}
-                    className="card p-6 text-left flex flex-col justify-between group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-400"
-                >
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600">
-                            <ShoppingBag className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-xl text-gray-800">Para llevar</h3>
-                            <span className={`text-sm font-bold ${activeTables[PARA_LLEVAR_ID]?.length ? 'text-emerald-600' : 'text-gray-500'}`}>
-                                {activeTables[PARA_LLEVAR_ID]?.length ? 'Con pedido' : 'Sin pedido'}
-                            </span>
-                        </div>
-                    </div>
-                    <div className="mt-auto pt-4 border-t border-gray-100">
-                        {activeTables[PARA_LLEVAR_ID]?.length > 0 ? (
-                            <div className="text-right">
-                                <div className="text-2xl font-bold text-primary">${calculateTableTotal(activeTables[PARA_LLEVAR_ID]).cop.toLocaleString()}</div>
-                                <div className="text-xs font-medium text-gray-400">Total pedido</div>
-                            </div>
-                        ) : (
-                            <p className="text-gray-400 text-sm">Haz clic para iniciar un pedido para llevar.</p>
-                        )}
-                    </div>
-                </button>
-
                 {Array.from({ length: TOTAL_TABLES }, (_, i) => i + 1).map(tableNumber => {
                     const tableId = `mesa-${tableNumber}`;
                     const tableOrder = activeTables[tableId];

@@ -1,45 +1,38 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getData, setData } from '../lib/api.js';
+import { getData, setData, syncManager } from '../lib/api.js';
 
 const FinanceContext = createContext();
 
 const defaultLastClosure = new Date(0).toISOString();
 
 export function FinanceProvider({ children }) {
-    const [expenses, setExpenses] = useState(() => {
-        try {
-            const saved = localStorage.getItem('expenses');
-            return saved ? JSON.parse(saved) : [];
-        } catch {
-            return [];
-        }
-    });
-    const [closures, setClosures] = useState(() => {
-        try {
-            const saved = localStorage.getItem('closures');
-            return saved ? JSON.parse(saved) : [];
-        } catch {
-            return [];
-        }
-    });
-    const [lastClosureDate, setLastClosureDate] = useState(() => {
-        return localStorage.getItem('lastClosureDate') || defaultLastClosure;
-    });
+    const [expenses, setExpenses] = useState([]);
+    const [closures, setClosures] = useState([]);
+    const [lastClosureDate, setLastClosureDate] = useState(defaultLastClosure);
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
-        Promise.all([
-            getData('expenses'),
-            getData('closures'),
-            getData('lastClosureDate'),
-        ]).then(([expensesData, closuresData, lastDate]) => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            const [expensesData, closuresData, lastDate] = await Promise.all([
+                getData('expenses'),
+                getData('closures'),
+                getData('lastClosureDate'),
+            ]);
+
             setExpenses(Array.isArray(expensesData) ? expensesData : []);
             setClosures(Array.isArray(closuresData) ? closuresData : []);
-            setLastClosureDate(lastDate ?? defaultLastClosure);
+            setLastClosureDate(lastDate || defaultLastClosure);
             setLoaded(true);
-        });
-    }, []);
+        } catch (error) {
+            console.error('Error loading finance data:', error);
+            setLoaded(true);
+        }
+    };
 
     useEffect(() => {
         if (!loaded) return;
@@ -52,17 +45,23 @@ export function FinanceProvider({ children }) {
         setData('lastClosureDate', lastClosureDate);
     }, [closures, lastClosureDate, loaded]);
 
-    const addExpense = (expense) => {
+    const addExpense = async (expense) => {
         const newExpense = {
             ...expense,
             id: crypto.randomUUID(),
             date: new Date().toISOString()
         };
-        setExpenses([newExpense, ...expenses]);
+        setExpenses(prev => [newExpense, ...prev]);
+
+        await syncManager.addToQueue({
+            type: 'CREATE',
+            endpoint: '/expenses',
+            data: newExpense,
+        });
     };
 
     const deleteExpense = (id) => {
-        setExpenses(expenses.filter(e => e.id !== id));
+        setExpenses(prev => prev.filter(e => e.id !== id));
     };
 
     const closeDay = (summary) => {
@@ -71,7 +70,7 @@ export function FinanceProvider({ children }) {
             date: new Date().toISOString(),
             ...summary
         };
-        setClosures([newClosure, ...closures]);
+        setClosures(prev => [newClosure, ...prev]);
         setLastClosureDate(new Date().toISOString());
     };
 
@@ -81,7 +80,8 @@ export function FinanceProvider({ children }) {
         deleteExpense,
         closures,
         lastClosureDate,
-        closeDay
+        closeDay,
+        loaded,
     };
 
     return (
