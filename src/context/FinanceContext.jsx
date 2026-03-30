@@ -18,15 +18,28 @@ export function FinanceProvider({ children }) {
 
     const loadData = async () => {
         try {
-            const [expensesData, closuresData, lastDate] = await Promise.all([
+            const [expensesData, closuresData, lastDate, localOrders] = await Promise.all([
                 getData('expenses'),
                 getData('closures'),
                 getData('lastClosureDate'),
+                getData('orders'),
             ]);
 
             setExpenses(Array.isArray(expensesData) ? expensesData : []);
             setClosures(Array.isArray(closuresData) ? closuresData : []);
             setLastClosureDate(lastDate || defaultLastClosure);
+
+            if (syncManager.isOnline) {
+                try {
+                    const serverOrders = await syncManager.fetchFromAPI('/orders');
+                    if (Array.isArray(serverOrders) && serverOrders.length > 0) {
+                        await setData('orders', serverOrders);
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch orders from server:', e);
+                }
+            }
+
             setLoaded(true);
         } catch (error) {
             console.error('Error loading finance data:', error);

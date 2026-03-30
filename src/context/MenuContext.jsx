@@ -29,8 +29,11 @@ export function MenuProvider({ children }) {
                     ]);
 
                     if (Array.isArray(serverProducts) && serverProducts.length > 0) {
-                        localProducts = serverProducts;
-                        await setData('products', serverProducts);
+                        localProducts = serverProducts.map(p => ({
+                            ...p,
+                            category: p.category?.name || p.categoryId || ''
+                        }));
+                        await setData('products', localProducts);
                     }
                     if (Array.isArray(serverCategories) && serverCategories.length > 0) {
                         localCategories = serverCategories;
