@@ -95,17 +95,25 @@ export function OrdersProvider({ children }) {
 
     if (syncManager.isOnline) {
       try {
+        const transformedItems = order.items.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          unitPrice: item.product.price,
+          totalPrice: item.product.price * item.quantity,
+          notes: item.notes || null,
+        }));
+
         await apiPost('/orders', {
           tableId: order.tableId,
           orderType: order.orderType,
-          items: order.items,
+          items: transformedItems,
           exchangeRate: order.exchangeRate,
           discountValue: order.discountValue,
           discountPercent: order.discountPercent,
           payment: order.payment,
         });
       } catch (e) {
-        console.warn('Order saved locally, will sync later');
+        console.warn('Order saved locally, will sync later:', e);
       }
     } else {
       await syncManager.addToQueue({
@@ -131,7 +139,10 @@ export function OrdersProvider({ children }) {
 
     if (syncManager.isOnline) {
       try {
-        await apiPost(`/orders/${orderId}/status`, { status });
+        await syncManager.fetchFromAPI(`/orders/${orderId}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status }),
+        });
       } catch (e) {
         console.warn('Status update queued for sync');
       }

@@ -111,32 +111,44 @@ export const orderController = {
 
   async createOrder(req, res) {
     try {
-      const { tableId, orderType, items, exchangeRate, discountValue, discountPercent, notes } = req.body;
-      const userId = req.user.id;
+      const { tableId, orderType, items, exchangeRate, discountValue, discountPercent, notes, payment } = req.body;
+      
+      let userId = req.user?.id;
+      if (!userId) {
+        const defaultUser = await prisma.user.findFirst({ where: { role: 'WAITER' } });
+        userId = defaultUser?.id;
+      }
+
+      if (!userId) {
+        return res.status(400).json({ error: 'No hay usuario disponible' });
+      }
 
       if (!items || items.length === 0) {
         return res.status(400).json({ error: 'El pedido debe tener al menos un producto' });
       }
 
+      const rate = exchangeRate || 4000;
       let totalCop = 0;
       let totalUsd = 0;
 
       const orderItems = items.map(item => {
-        const unitPrice = item.product.isUsd 
-          ? item.product.price * exchangeRate 
-          : item.product.price;
+        const price = item.unitPrice || item.product?.price || 0;
+        const isUsd = item.product?.isUsd || false;
         
+        const unitPrice = isUsd ? price * rate : price;
         const totalPrice = unitPrice * item.quantity;
 
-        if (item.product.isUsd) {
-          totalUsd += item.product.price * item.quantity;
+        if (isUsd) {
+          totalUsd += item.quantity * price;
           totalCop += totalPrice;
         } else {
           totalCop += totalPrice;
-          totalUsd += item.product.price * item.quantity / exchangeRate;
+          totalUsd += totalPrice / rate;
         }
 
         return {
+          productId: item.productId || item.product?.id,
+          quantity: item.quantity,
           productId: item.product.id,
           quantity: item.quantity,
           unitPrice: item.product.price,
