@@ -177,7 +177,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo y | call npx prisma db push --force
+call npx prisma db push --force-reset
 if %errorlevel% neq 0 (
     echo [ERROR] Fallo al sincronizar schema con MySQL
     pause

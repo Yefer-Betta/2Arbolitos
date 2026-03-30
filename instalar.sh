@@ -133,7 +133,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "y" | npx prisma db push --force
+npx prisma db push --force-reset
 if [ $? -ne 0 ]; then
     echo "[ERROR] Fallo al sincronizar schema con MySQL"
     exit 1
