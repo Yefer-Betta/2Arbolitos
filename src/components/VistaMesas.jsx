@@ -1,9 +1,5 @@
 import React from 'react';
-<<<<<<< HEAD
-import { Utensils, ShoppingBag } from 'lucide-react';
-=======
 import { Utensils, ShoppingBag, Truck } from 'lucide-react';
->>>>>>> 6259618a47a04f4138f27f761fe9179394de04e3
 import { useOrders } from '../context/OrdersContext';
 import { useSettings } from '../context/SettingsContext';
 
