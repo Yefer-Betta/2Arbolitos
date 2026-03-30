@@ -69,6 +69,35 @@ export function Finance() {
         return acc;
     }, { cash_cop: 0, cash_usd: 0, nequi: 0, debit: 0 });
 
+    const filteredSales = orders.filter(order => {
+        const orderDate = new Date(order.date).toISOString().split('T')[0];
+        if (orderDate !== salesDateFilter) return false;
+        if (salesTypeFilter !== 'all') {
+            if (salesTypeFilter === 'mesa' && !order.orderType?.startsWith('mesa-')) return false;
+            if (salesTypeFilter === 'para-llevar' && order.orderType !== 'para-llevar') return false;
+            if (salesTypeFilter === 'domicilio' && order.orderType !== 'domicilio') return false;
+        }
+        if (salesSearchId && !order.id?.toLowerCase().includes(salesSearchId.toLowerCase())) return false;
+        return true;
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const filteredSalesTotal = filteredSales.reduce((sum, o) => sum + (o.totalCop || 0), 0);
+
+    const countedCopVal = parseFloat(countedCash) || 0;
+    const countedUsdVal = parseFloat(countedUsd) || 0;
+    const countedNequiVal = parseFloat(countedNequi) || 0;
+    const countedDebitVal = parseFloat(countedDebit) || 0;
+
+    const differences = {
+        cash_cop: countedCopVal - salesByMethod.cash_cop,
+        cash_usd: countedUsdVal - salesByMethod.cash_usd,
+        nequi: countedNequiVal - salesByMethod.nequi,
+        debit: countedDebitVal - salesByMethod.debit,
+    };
+
+    const hasDifference = Object.values(differences).some(d => d !== 0);
+    const totalDifference = differences.cash_cop + (differences.cash_usd * exchangeRate) + differences.nequi + differences.debit;
+
     return (
         <div className="space-y-6">
             {/* Header */}
