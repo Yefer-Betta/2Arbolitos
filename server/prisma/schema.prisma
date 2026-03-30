@@ -91,7 +91,8 @@ model Order {
   updatedAt     DateTime    @updatedAt
   completedAt   DateTime?
 
-  items OrderItem[]
+  items     OrderItem[]
+  payment   Payment?
 
   @@map("orders")
 }
@@ -127,7 +128,8 @@ model OrderItem {
 
 model Payment {
   id            String        @id @default(uuid())
-  orderId       String
+  orderId       String        @unique
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
   method        PaymentMethod
   currency      String        @default("COP")
   amount        Float
