@@ -1,27 +1,17 @@
 {
   "name": "2arbolitos",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview --host",
-    "start": "node server/index.js",
-    "server": "node server/index.js",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "preview": "vite preview --host"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
     "clsx": "^2.1.1",
-    "cors": "^2.8.5",
-    "express": "^4.22.1",
     "lucide-react": "^0.563.0",
-    "prisma": "^5.22.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwind-merge": "^3.4.0",
