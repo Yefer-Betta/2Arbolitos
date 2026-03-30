@@ -1,5 +1,5 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal
 title Sistema 2Arbolitos - Iniciando
 color 0A
 
@@ -10,112 +10,87 @@ echo.
 
 cd /d "%~dp0"
 
-:: Verificar que las dependencias del frontend esten instaladas
-if not exist "node_modules\" (
+echo [INFO] Verificando dependencias...
+
+:: Verificar frontend
+if not exist "node_modules" (
     echo [ERROR] Dependencias del frontend no instaladas.
     echo Por favor ejecuta INSTALAR.bat primero
     pause
     exit /b 1
 )
+echo [OK] Frontend instalado
 
-:: Verificar que las dependencias del server esten instaladas
-if not exist "server\node_modules\" (
+:: Verificar server
+if not exist "server\node_modules" (
     echo [ERROR] Dependencias del server no instaladas.
     echo Por favor ejecuta INSTALAR.bat primero
     pause
     exit /b 1
 )
+echo [OK] Server instalado
 
-:: Verificar que la base de datos este configurada
+:: Verificar configuracion
 if not exist "server\.env" (
     echo [ERROR] Configuracion del servidor no encontrada.
     echo Por favor ejecuta INSTALAR.bat primero
     pause
     exit /b 1
 )
+echo [OK] Configuracion encontrada
 
-:: Verificar que el build exista
-if not exist "dist\" (
-    echo [AVISO] No hay build. Construyendo frontend...
+:: Verificar build
+if not exist "dist" (
+    echo [AVISO] No hay build. Construyendo...
     call npm run build
-    if %errorlevel% neq 0 (
-        echo [ERROR] Fallo la construccion del frontend
+    if errorlevel 1 (
+        echo [ERROR] Fallo la construccion
         pause
         exit /b 1
     )
 )
+echo [OK] Build listo
 
 echo.
 echo [1/3] Verificando MySQL...
 
-:: Intentar verificar MySQL de diferentes formas
-set MYSQL_OK=0
-
-:: Intentar con mysql directo
+:: Verificar si mysql esta disponible
 mysql -u root -e "SELECT 1" 2>nul
-if %errorlevel% equ 0 (
-    set MYSQL_OK=1
+if errorlevel 1 (
+    echo [AVISO] MySQL no esta en PATH o no esta corriendo
+    echo El sistema intentara iniciar de todas formas...
+    echo Asegurate de tener MySQL corriendo en XAMPP o WAMP
+) else (
     echo [OK] MySQL esta corriendo
 )
 
-:: Si no funciona, intentar con XAMPP
-if %MYSQL_OK% equ 0 (
-    if exist "C:\xampp\mysql\bin\mysql.exe" (
-        "C:\xampp\mysql\bin\mysql.exe" -u root -e "SELECT 1" 2>nul
-        if %errorlevel% equ 0 (
-            set MYSQL_OK=1
-            echo [OK] MySQL (XAMPP) esta corriendo
-        )
-    )
-)
-
-:: Si no funciona, intentar con WAMP
-if %MYSQL_OK% equ 0 (
-    for /f "delims=" %%i in ('dir /b "C:\wamp\bin\mysql\mysql*.*" 2^>nul') do (
-        "C:\wamp\bin\mysql\%%i\bin\mysql.exe" -u root -e "SELECT 1" 2>nul
-        if !errorlevel! equ 0 (
-            set MYSQL_OK=1
-            echo [OK] MySQL (WAMP) esta corriendo
-        )
-    )
-)
-
-if %MYSQL_OK% equ 0 (
-    echo.
-    echo [AVISO] No se detecto MySQL corriendo
-    echo El sistema intentara iniciar de todas formas...
-    echo IMPORTANTE: Asegurate de que MySQL este corriendo en XAMPP o WAMP
-    echo.
-)
+echo.
+echo [2/3] Iniciando Backend...
+echo [INFO] Se abrira una nueva ventana para el backend
+start cmd /k "cd /d "%~dp0server" && npm run dev"
 
 echo.
-echo [2/3] Iniciando Backend (Puerto 3001)...
-start "2Arbolitos Backend" cmd /k "cd /d "%~dp0server" && npm run dev"
-timeout /t 2 /nobreak >nul
+echo [3/3] Iniciando Frontend...
+echo [INFO] Se abrira una nueva ventana para el frontend
+start cmd /k "npm run dev"
 
-echo.
-echo [3/3] Iniciando Frontend (Puerto 5173)...
-start "2Arbolitos Frontend" cmd /k "npm run dev"
-
-timeout /t 3 /nobreak >nul
+ping -n 4 127.0.0.1 >nul
 
 echo.
 echo ========================================
 echo   Sistema iniciado correctamente
 echo ========================================
 echo.
-echo Revisa las ventanas abiertas para ver los errores
+echo REVISA LAS VENTANAS ABIERTAS
 echo.
-echo URLs de acceso:
-echo   - Frontend: http://localhost:5173
-echo   - Backend API: http://localhost:3001
-echo.
-echo Si abres estas URLs en otros dispositivos de tu red,
-echo asegurate de que esten conectados al mismo WiFi
+echo URLs:
+echo   Frontend: http://localhost:5173
+echo   Backend: http://localhost:3001
 echo.
 echo Credenciales:
-echo   Admin: admin / admin123
-echo   Mesero: mesero / waiter123
-echo   Cocina: cocina / cook123
+echo   admin / admin123
+echo   mesero / waiter123
+echo   cocina / cook123
 echo.
-pause
+echo Presiona una tecla para salir...
+pause >nul
