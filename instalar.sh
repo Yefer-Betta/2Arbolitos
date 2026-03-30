@@ -92,10 +92,12 @@ echo "[OK] Configuracion guardada en server/.env"
 echo
 
 echo "[4/6] Conectando a MySQL y creando base de datos..."
-mysql -h "$DB_HOST" -u "$DB_USER" ${DB_PASS:+-p"$DB_PASS"} -e "CREATE DATABASE IF NOT EXISTS 2arbolitos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null
+echo "[INFO] Eliminando base de datos existente (si hay) para recrear con nuevo schema..."
+mysql -h "$DB_HOST" -u "$DB_USER" ${DB_PASS:+-p"$DB_PASS"} -e "DROP DATABASE IF EXISTS 2arbolitos;" 2>/dev/null
+mysql -h "$DB_HOST" -u "$DB_USER" ${DB_PASS:+-p"$DB_PASS"} -e "CREATE DATABASE 2arbolitos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null
 
 if [ $? -eq 0 ]; then
-    echo "[OK] Base de datos creada/verificada"
+    echo "[OK] Base de datos creada desde cero"
 else
     echo "[ERROR] No se pudo crear la base de datos"
     echo "Verifica que MySQL este corriendo y las credenciales sean correctas"
@@ -131,7 +133,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-npx prisma db push
+echo "y" | npx prisma db push --force
 if [ $? -ne 0 ]; then
     echo "[ERROR] Fallo al sincronizar schema con MySQL"
     exit 1

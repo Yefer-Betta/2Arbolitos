@@ -119,10 +119,12 @@ echo [OK] Configuracion guardada en server\.env
 echo.
 
 echo [4/6] Conectando a MySQL y creando base de datos...
+echo [INFO] Eliminando base de datos existente (si hay) para recrear con nuevo schema...
 if %MYSQL_FOUND% equ 1 (
-    "%MYSQL_PATH%\mysql.exe" -u %DB_USER% -p%DB_PASS% -e "CREATE DATABASE IF NOT EXISTS 2arbolitos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>nul
+    "%MYSQL_PATH%\mysql.exe" -u %DB_USER% -p%DB_PASS% -e "DROP DATABASE IF EXISTS 2arbolitos;" 2>nul
+    "%MYSQL_PATH%\mysql.exe" -u %DB_USER% -p%DB_PASS% -e "CREATE DATABASE 2arbolitos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>nul
     if %errorlevel% equ 0 (
-        echo [OK] Base de datos creada/verificada
+        echo [OK] Base de datos creada desde cero
     ) else (
         echo [ERROR] No se pudo crear la base de datos
         echo Verifica que MySQL este corriendo y las credenciales sean correctas
@@ -131,7 +133,8 @@ if %MYSQL_FOUND% equ 1 (
     )
 ) else (
     echo [INFO] Conectando al servidor MySQL remoto...
-    mysql -h %DB_HOST% -u %DB_USER% -p%DB_PASS% -e "CREATE DATABASE IF NOT EXISTS 2arbolitos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>nul
+    mysql -h %DB_HOST% -u %DB_USER% -p%DB_PASS% -e "DROP DATABASE IF EXISTS 2arbolitos;" 2>nul
+    mysql -h %DB_HOST% -u %DB_USER% -p%DB_PASS% -e "CREATE DATABASE 2arbolitos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>nul
     if %errorlevel% equ 0 (
         echo [OK] Base de datos creada/verificada
     ) else (
@@ -174,7 +177,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-call npx prisma db push
+echo y | call npx prisma db push --force
 if %errorlevel% neq 0 (
     echo [ERROR] Fallo al sincronizar schema con MySQL
     pause
