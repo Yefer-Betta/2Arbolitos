@@ -60,7 +60,14 @@ export function Finance() {
     const totalExpenses = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
     const netBalance = totalSalesCOP - totalExpenses;
 
-
+    const salesByMethod = currentOrders.reduce((acc, order) => {
+        const method = order.payment?.method || order.paymentMethod || 'cash_cop';
+        if (method === 'cash_cop') acc.cash_cop += order.totalCop || 0;
+        else if (method === 'cash_usd') acc.cash_usd += order.totalUsd || 0;
+        else if (method === 'nequi') acc.nequi += order.totalCop || 0;
+        else acc.debit += order.totalCop || 0;
+        return acc;
+    }, { cash_cop: 0, cash_usd: 0, nequi: 0, debit: 0 });
 
     return (
         <div className="space-y-6">
