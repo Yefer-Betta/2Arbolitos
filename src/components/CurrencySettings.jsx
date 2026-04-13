@@ -3,16 +3,18 @@ import { useSettings } from '../context/SettingsContext';
 import { useOrders } from '../context/OrdersContext';
 import { useFinance } from '../context/FinanceContext';
 import { useMenu } from '../context/MenuContext';
-import { DollarSign, RefreshCw, Building, Save, Download, Upload, Database, AlertTriangle } from 'lucide-react';
+import { syncManager } from '../lib/api.js';
+import { DollarSign, RefreshCw, Building, Save, Download, Upload, Database, AlertTriangle, Wifi, WifiOff, RefreshCw as SyncIcon } from 'lucide-react';
 
 export function CurrencySettings() {
     const { exchangeRate, setExchangeRate, business, setBusiness } = useSettings();
-    const { orders } = useOrders();
+    const { orders, syncNow } = useOrders();
     const { expenses, closures } = useFinance();
     const { products } = useMenu();
 
     const [localBusiness, setLocalBusiness] = useState(business);
     const [isSaved, setIsSaved] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     const handleRateChange = (e) => {
         const value = parseFloat(e.target.value);
@@ -32,6 +34,18 @@ export function CurrencySettings() {
         setBusiness(localBusiness);
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 3000);
+    };
+
+    const handleManualSync = async () => {
+        setIsSyncing(true);
+        await syncManager.syncNow();
+        await Promise.all([
+            syncManager.fetchFromAPI('/orders'),
+            syncManager.fetchFromAPI('/settings'),
+            syncManager.fetchFromAPI('/products?active=true'),
+        ]);
+        setIsSyncing(false);
+        window.location.reload();
     };
 
     // Backup System
@@ -115,9 +129,58 @@ export function CurrencySettings() {
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl">
-            {/* Left Column */}
-            <div className="space-y-8">
+        <div className="space-y-8">
+            {/* Sincronización - Ahora al inicio */}
+            <div className="card p-6 sm:p-8 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
+                <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="p-3 bg-blue-100 rounded-xl text-blue-600">
+                        <SyncIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg sm:text-xl font-bold text-gray-800">Sincronización</h2>
+                        <p className="text-sm text-blue-600 font-medium">Estado de conexión</p>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 border border-blue-100">
+                    <div className="flex items-center justify-between mb-2 sm:mb-4">
+                        <div className="flex items-center gap-2">
+                            {syncManager.isOnline ? (
+                                <>
+                                    <Wifi className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                                    <span className="text-xs sm:text-sm font-medium text-gray-700">Conectado</span>
+                                </>
+                            ) : (
+                                <>
+                                    <WifiOff className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+                                    <span className="text-xs sm:text-sm font-medium text-gray-700">Sin conexión</span>
+                                </>
+                            )}
+                        </div>
+                        <div className="text-[10px] sm:text-xs text-gray-500">
+                            Cambios pendientes: {syncManager.getPendingCount()}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-2 sm:space-y-3">
+                    <p className="text-xs sm:text-sm text-gray-600">
+                        La sincronización automática ocurre cada 5 segundos cuando hay conexión.
+                    </p>
+                    <button
+                        onClick={handleManualSync}
+                        disabled={!syncManager.isOnline || isSyncing}
+                        className="w-full btn-primary bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base py-2 sm:py-3"
+                    >
+                        <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                        {isSyncing ? 'Sincronizando...' : 'Forzar Sincronización'}
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 w-full max-w-6xl">
+                {/* Left Column */}
+                <div className="space-y-6 sm:space-y-8">
                 {/* Exchange Rate */}
                 <div className="card p-8">
                     <div className="flex items-center gap-3 mb-6">
@@ -207,7 +270,7 @@ export function CurrencySettings() {
             </div>
 
             {/* Right: Business Info */}
-            <div className="card p-8 relative overflow-hidden">
+            <div className="card p-6 sm:p-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none"></div>
                 <div className="flex items-center gap-3 mb-6 relative">
                     <div className="p-3 bg-primary/10 rounded-xl text-primary">
@@ -319,6 +382,7 @@ export function CurrencySettings() {
                         </button>
                     </div>
                 </form>
+            </div>
             </div>
         </div>
     );
