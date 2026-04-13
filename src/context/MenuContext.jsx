@@ -11,6 +11,14 @@ export function MenuProvider({ children }) {
 
     useEffect(() => {
         loadData();
+        
+        const syncInterval = setInterval(() => {
+            if (syncManager.isOnline) {
+                loadData();
+            }
+        }, 5000);
+        
+        return () => clearInterval(syncInterval);
     }, []);
 
     const loadData = async () => {

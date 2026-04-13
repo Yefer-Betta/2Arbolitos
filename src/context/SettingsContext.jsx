@@ -21,6 +21,14 @@ export function SettingsProvider({ children }) {
 
     useEffect(() => {
         loadSettings();
+        
+        const syncInterval = setInterval(() => {
+            if (syncManager.isOnline) {
+                loadSettings();
+            }
+        }, 5000);
+        
+        return () => clearInterval(syncInterval);
     }, []);
 
     const loadSettings = async () => {

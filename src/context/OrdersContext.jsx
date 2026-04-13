@@ -12,6 +12,14 @@ export function OrdersProvider({ children }) {
 
   useEffect(() => {
     loadData();
+    
+    const syncInterval = setInterval(() => {
+      if (syncManager.isOnline) {
+        loadData();
+      }
+    }, 5000);
+    
+    return () => clearInterval(syncInterval);
   }, []);
 
   useEffect(() => {
