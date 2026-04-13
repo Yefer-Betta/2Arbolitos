@@ -204,72 +204,72 @@ export function POS({ tableId, onBack }) {
         <div className="flex flex-col md:flex-row h-[calc(100vh-theme(spacing.32))] gap-6 relative">
             {/* Checkout Modal Overlay */}
             {isCheckoutOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 bg-primary text-white flex justify-between items-center">
-                            <h2 className="text-2xl font-bold flex items-center gap-2">
-                                {showRecipe ? <Check className="w-6 h-6" /> : <CreditCard className="w-6 h-6" />}
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md sm:max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[95vh] overflow-y-auto">
+                        <div className="p-4 sm:p-6 bg-primary text-white flex justify-between items-center sticky top-0">
+                            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                                {showRecipe ? <Check className="w-5 h-5 sm:w-6 sm:h-6" /> : <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />}
                                 {showRecipe ? '¡Venta Exitosa!' : 'Finalizar Compra'}
                             </h2>
-                            <button onClick={closeCheckout} className="hover:bg-white/20 p-2 rounded-full transition-colors">
-                                <X className="w-6 h-6" />
+                            <button onClick={closeCheckout} className="hover:bg-white/20 p-1 sm:p-2 rounded-full transition-colors">
+                                <X className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         </div>
 
                         {!showRecipe ? (
-                            <div className="p-8 space-y-6">
+                            <div className="p-4 sm:p-8 space-y-4 sm:space-y-6">
                                 {/* Totals Display */}
-                                <div className="flex gap-4 p-4 bg-surface rounded-2xl border border-primary/10">
-                                    <div className="flex-1 text-center border-r border-gray-200">
-                                        <p className="text-gray-500 text-xs font-bold uppercase">Total a Pagar</p>
-                                        <p className="text-3xl font-bold text-primary">${totals.cop.toLocaleString()}</p>
-                                        <p className="text-sm text-gray-400">COP</p>
+                                <div className="flex gap-2 sm:gap-4 p-3 sm:p-4 bg-surface rounded-xl sm:rounded-2xl border border-primary/10">
+                                    <div className="flex-1 text-center border-r border-gray-200 py-2">
+                                        <p className="text-gray-500 text-[10px] sm:text-xs font-bold uppercase">Total a Pagar</p>
+                                        <p className="text-xl sm:text-3xl font-bold text-primary">${totals.cop.toLocaleString()}</p>
+                                        <p className="text-xs sm:text-sm text-gray-400">COP</p>
                                         {discountData.discountValue > 0 && (
-                                            <p className="text-xs text-red-500 font-bold mt-1">
+                                            <p className="text-[10px] sm:text-xs text-red-500 font-bold mt-1">
                                                 -{discountData.discountPercent.toFixed(1)}% (${discountData.discountValue.toLocaleString()})
                                             </p>
                                         )}
                                     </div>
-                                    <div className="flex-1 text-center">
-                                        <p className="text-gray-500 text-xs font-bold uppercase">Equivalente</p>
-                                        <p className="text-3xl font-bold text-secondary">${totals.usd.toFixed(2)}</p>
-                                        <p className="text-sm text-gray-400">USD</p>
+                                    <div className="flex-1 text-center py-2">
+                                        <p className="text-gray-500 text-[10px] sm:text-xs font-bold uppercase">Equivalente</p>
+                                        <p className="text-xl sm:text-3xl font-bold text-secondary">${totals.usd.toFixed(2)}</p>
+                                        <p className="text-xs sm:text-sm text-gray-400">USD</p>
                                     </div>
                                 </div>
 
                                 {/* Discount Button */}
                                 <button
                                     onClick={() => setShowDiscountModal(true)}
-                                    className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl border-2 border-dashed border-orange-300 text-orange-600 hover:bg-orange-50 transition-colors"
+                                    className="w-full flex items-center justify-center gap-2 py-2 px-3 sm:px-4 rounded-lg sm:rounded-xl border-2 border-dashed border-orange-300 text-orange-600 hover:bg-orange-50 transition-colors text-sm"
                                 >
-                                    <Percent className="w-5 h-5" />
+                                    <Percent className="w-4 h-4 sm:w-5 sm:h-5" />
                                     <span className="font-bold">{discountData.discountValue > 0 ? 'Modificar Descuento' : 'Aplicar Descuento'}</span>
                                 </button>
 
                                 {/* Payment Method Selector */}
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Método de Pago</label>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">Método de Pago</label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                         <button
                                             onClick={() => { setPaymentMethod('cash_cop'); setAmountReceived(''); }}
-                                            className={cn("p-3 rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_cop' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-200 hover:bg-gray-50')}
+                                            className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_cop' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-200 hover:bg-gray-50')}
                                         >
-                                            <Banknote className="w-5 h-5" />
-                                            <span className="text-xs font-bold">Efectivo COP</span>
+                                            <Banknote className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            <span className="text-[10px] sm:text-xs font-bold">Efectivo COP</span>
                                         </button>
                                         <button
                                             onClick={() => { setPaymentMethod('cash_usd'); setAmountReceived(''); }}
-                                            className={cn("p-3 rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_usd' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-200 hover:bg-gray-50')}
+                                            className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_usd' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-200 hover:bg-gray-50')}
                                         >
-                                            <DollarSign className="w-5 h-5" />
-                                            <span className="text-xs font-bold">Efectivo USD</span>
+                                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            <span className="text-[10px] sm:text-xs font-bold">Efectivo USD</span>
                                         </button>
                                         <button
                                             onClick={() => { setPaymentMethod('nequi'); setAmountReceived(String(totals.cop)); }}
-                                            className={cn("p-3 rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'nequi' ? 'bg-purple-50 border-purple-500 text-purple-700' : 'border-gray-200 hover:bg-gray-50')}
+                                            className={cn("col-span-2 sm:col-span-1 p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'nequi' ? 'bg-purple-50 border-purple-500 text-purple-700' : 'border-gray-200 hover:bg-gray-50')}
                                         >
-                                            <Smartphone className="w-5 h-5" />
-                                            <span className="text-xs font-bold">Nequi / Dig.</span>
+                                            <Smartphone className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            <span className="text-[10px] sm:text-xs font-bold">Nequi / Digital</span>
                                         </button>
                                     </div>
                                 </div>
@@ -277,7 +277,7 @@ export function POS({ tableId, onBack }) {
                                 {/* Payment Input */}
                                 {paymentMethod !== 'nequi' && (
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
                                             Monto Recibido ({paymentMethod === 'cash_usd' ? 'USD' : 'COP'})
                                         </label>
                                         <div className="relative">
@@ -289,7 +289,7 @@ export function POS({ tableId, onBack }) {
                                                 autoFocus
                                                 value={amountReceived}
                                                 onChange={e => setAmountReceived(e.target.value)}
-                                                className="input-field pl-8 text-lg font-bold"
+                                                className="input-field pl-8 text-base sm:text-lg font-bold py-3 sm:py-2"
                                                 placeholder="0"
                                             />
                                         </div>
@@ -299,15 +299,15 @@ export function POS({ tableId, onBack }) {
                                 {/* Change Calculation */}
                                 {paymentMethod !== 'nequi' && (
                                     <div className={cn(
-                                        "p-4 rounded-xl flex justify-between items-center transition-colors",
+                                        "p-3 sm:p-4 rounded-xl flex justify-between items-center transition-colors",
                                         change >= 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
                                     )}>
-                                        <span className="font-bold text-sm uppercase flex items-center gap-2">
-                                            <Calculator className="w-4 h-4" />
+                                        <span className="font-bold text-xs sm:text-sm uppercase flex items-center gap-2">
+                                            <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
                                             {change >= 0 ? 'Vueltos' : 'Faltante'}
                                         </span>
-                                        <span className="text-2xl font-bold">
-                                            ${Math.abs(change).toLocaleString()} <span className="text-xs opacity-70">{paymentMethod === 'cash_usd' ? 'USD' : 'COP'}</span>
+                                        <span className="text-lg sm:text-2xl font-bold">
+                                            ${Math.abs(change).toLocaleString()} <span className="text-[10px] sm:text-xs opacity-70">{paymentMethod === 'cash_usd' ? 'USD' : 'COP'}</span>
                                         </span>
                                     </div>
                                 )}
@@ -315,27 +315,29 @@ export function POS({ tableId, onBack }) {
                                 <button
                                     onClick={handleFinalizeSale}
                                     disabled={(paymentMethod !== 'nequi' && change < 0) || (paymentMethod !== 'nequi' && !amountReceived)}
-                                    className="w-full btn-primary py-4 text-lg shadow-xl disabled:opacity-50 disabled:shadow-none"
+                                    className="w-full btn-primary py-3 sm:py-4 text-base sm:text-lg shadow-xl disabled:opacity-50 disabled:shadow-none"
                                 >
                                     Confirmar y Facturar
                                 </button>
                             </div>
                         ) : (
-                            <div className="p-8 flex flex-col items-center">
-                                <Ticket order={lastOrder} business={business} orderType={tableId} />
+                            <div className="p-4 sm:p-8 flex flex-col items-center">
+                                <div className="max-h-[50vh] overflow-y-auto">
+                                    <Ticket order={lastOrder} business={business} orderType={tableId} />
+                                </div>
 
-                                <div className="flex gap-4 w-full mt-4">
+                                <div className="flex gap-2 sm:gap-4 w-full mt-3 sm:mt-4">
                                     <button
                                         onClick={() => window.print()}
-                                        className="flex-1 btn-secondary flex items-center justify-center gap-2"
+                                        className="flex-1 btn-secondary flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 text-sm"
                                     >
-                                        <Printer className="w-5 h-5" /> Imprimir
+                                        <Printer className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">Imprimir</span>
                                     </button>
                                     <button
-                                        onClick={closeCheckout} // This will now clear the table and go back
-                                        className="flex-1 btn-primary flex items-center justify-center gap-2"
+                                        onClick={closeCheckout}
+                                        className="flex-1 btn-primary flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 text-sm"
                                     >
-                                        <Plus className="w-5 h-5" /> Nueva Orden
+                                        <Plus className="w-4 h-4 sm:w-5 sm:h-5" /> Nueva Orden
                                     </button>
                                 </div>
                             </div>
@@ -346,26 +348,26 @@ export function POS({ tableId, onBack }) {
 
             {/* Discount Modal */}
             {showDiscountModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 bg-orange-500 text-white flex justify-between items-center">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
-                                <Percent className="w-6 h-6" />
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-4 sm:p-6 bg-orange-500 text-white flex justify-between items-center">
+                            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                                <Percent className="w-5 h-5 sm:w-6 sm:h-6" />
                                 Aplicar Descuento
                             </h2>
-                            <button onClick={() => setShowDiscountModal(false)} className="hover:bg-white/20 p-2 rounded-full transition-colors">
-                                <X className="w-6 h-6" />
+                            <button onClick={() => setShowDiscountModal(false)} className="hover:bg-white/20 p-1 sm:p-2 rounded-full transition-colors">
+                                <X className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-6">
-                            <div className="bg-gray-50 p-4 rounded-xl">
+                        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                            <div className="bg-gray-50 p-3 sm:p-4 rounded-xl">
                                 <div className="flex justify-between items-center mb-2">
-                                    <span className="text-gray-600">Precio Original:</span>
-                                    <span className="text-xl font-bold text-gray-800">${discountData.originalCop.toLocaleString()}</span>
+                                    <span className="text-gray-600 text-sm">Precio Original:</span>
+                                    <span className="text-lg sm:text-xl font-bold text-gray-800">${discountData.originalCop.toLocaleString()}</span>
                                 </div>
                                 {discountData.discountValue > 0 && (
-                                    <div className="flex justify-between items-center text-red-500">
+                                    <div className="flex justify-between items-center text-red-500 text-sm">
                                         <span>Descuento actual:</span>
                                         <span className="font-bold">-{discountData.discountPercent.toFixed(1)}% (${discountData.discountValue.toLocaleString()})</span>
                                     </div>
@@ -373,7 +375,7 @@ export function POS({ tableId, onBack }) {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">
+                                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
                                     Nuevo Precio Final (COP)
                                 </label>
                                 <div className="relative">
@@ -385,19 +387,19 @@ export function POS({ tableId, onBack }) {
                                         autoFocus
                                         value={discountFinalPrice}
                                         onChange={e => setDiscountFinalPrice(e.target.value)}
-                                        className="input-field pl-10 text-xl font-bold"
+                                        className="input-field pl-10 text-base sm:text-xl font-bold py-2 sm:py-3"
                                         placeholder={String(discountData.originalCop)}
                                     />
                                 </div>
                             </div>
 
                             {discountFinalPrice && parseFloat(discountFinalPrice) > 0 && (
-                                <div className="bg-green-50 p-4 rounded-xl border border-green-200">
+                                <div className="bg-green-50 p-3 sm:p-4 rounded-xl border border-green-200">
                                     <div className="text-center">
-                                        <p className="text-sm text-green-600 font-bold uppercase mb-1">Nuevo Descuento</p>
-                                        <p className="text-2xl font-bold text-red-600">
+                                        <p className="text-xs sm:text-sm text-green-600 font-bold uppercase mb-1">Nuevo Descuento</p>
+                                        <p className="text-xl sm:text-2xl font-bold text-red-600">
                                             -${(discountData.originalCop - parseFloat(discountFinalPrice)).toLocaleString()}
-                                            <span className="text-sm ml-2">
+                                            <span className="text-xs sm:text-sm ml-2">
                                                 ({(((discountData.originalCop - parseFloat(discountFinalPrice)) / discountData.originalCop) * 100).toFixed(1)}%)
                                             </span>
                                         </p>
@@ -405,19 +407,19 @@ export function POS({ tableId, onBack }) {
                                 </div>
                             )}
 
-                            <div className="flex gap-3">
+                            <div className="flex gap-2 sm:gap-3">
                                 {discountData.discountValue > 0 && (
                                     <button
                                         onClick={handleClearDiscount}
-                                        className="flex-1 btn-secondary py-3"
+                                        className="flex-1 btn-secondary py-2 sm:py-3 text-sm"
                                     >
-                                        Quitar Descuento
+                                        Quitar
                                     </button>
                                 )}
                                 <button
                                     onClick={handleApplyDiscount}
                                     disabled={!discountFinalPrice || parseFloat(discountFinalPrice) >= discountData.originalCop || parseFloat(discountFinalPrice) <= 0}
-                                    className="flex-1 btn-primary py-3 disabled:opacity-50"
+                                    className="flex-1 btn-primary py-2 sm:py-3 text-sm disabled:opacity-50"
                                 >
                                     Aplicar
                                 </button>
@@ -530,38 +532,38 @@ export function POS({ tableId, onBack }) {
             </div>
 
             {/* Right: Cart */}
-            <div className="w-full md:w-[400px] bg-white rounded-3xl shadow-xl flex flex-col h-full overflow-hidden border border-black/5">
-                <div className="p-6 bg-primary text-white">
-                    <h2 className="text-xl font-bold flex items-center gap-3">
-                        <ShoppingCart className="w-6 h-6" />
+            <div className="w-full md:w-[350px] lg:w-[400px] bg-white rounded-2xl lg:rounded-3xl shadow-xl flex flex-col h-full overflow-hidden border border-black/5">
+                <div className="p-4 lg:p-6 bg-primary text-white">
+                    <h2 className="text-lg lg:text-xl font-bold flex items-center gap-2 lg:gap-3">
+                        <ShoppingCart className="w-5 h-5 lg:w-6 lg:h-6" />
                         <span>Orden Actual</span>
                     </h2>
-{tableId ? (
+                    {tableId ? (
                         tableId.startsWith('mesa-') ? (
-                            <p className="text-primary-light/80 text-sm mt-1">Mesa {tableId.replace('mesa-', '')}</p>
+                            <p className="text-primary-light/80 text-xs lg:text-sm mt-1">Mesa {tableId.replace('mesa-', '')}</p>
                         ) : tableId === 'para-llevar' ? (
-                            <p className="text-primary-light/80 text-sm mt-1">Para Llevar</p>
+                            <p className="text-primary-light/80 text-xs lg:text-sm mt-1">Para Llevar</p>
                         ) : tableId === 'domicilio' ? (
-                            <p className="text-primary-light/80 text-sm mt-1">Domicilio</p>
+                            <p className="text-primary-light/80 text-xs lg:text-sm mt-1">Domicilio</p>
                         ) : null
                     ) : (
-                        <p className="text-primary-light/80 text-sm mt-1">{cart.length} ítems en el carrito</p>
+                        <p className="text-primary-light/80 text-xs lg:text-sm mt-1">{cart.length} ítems</p>
                     )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-3 lg:space-y-4">
                     {cart.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-gray-300 gap-4">
-                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
-                                <ShoppingCart className="w-10 h-10 opacity-50" />
+                        <div className="h-full flex flex-col items-center justify-center text-gray-300 gap-3 lg:gap-4">
+                            <div className="w-14 lg:w-20 h-14 lg:h-20 bg-gray-50 rounded-full flex items-center justify-center">
+                                <ShoppingCart className="w-7 lg:w-10 h-7 lg:h-10 opacity-50" />
                             </div>
-                            <p className="font-medium">El carrito está vacío</p>
+                            <p className="font-medium text-sm">El carrito está vacío</p>
                         </div>
                     ) : (
                         cart.map(item => (
-                            <div key={item.product.id} className="flex gap-4 items-center p-3 hover:bg-gray-50 rounded-2xl transition-colors group border border-transparent hover:border-gray-100">
+                            <div key={item.product.id} className="flex gap-2 lg:gap-4 items-center p-2 lg:p-3 hover:bg-gray-50 rounded-xl lg:rounded-2xl transition-colors group border border-transparent hover:border-gray-100">
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-gray-800 text-sm truncate">{item.product.name}</h4>
+                                    <h4 className="font-bold text-gray-800 text-xs lg:text-sm truncate">{item.product.name}</h4>
                                     <p className="text-xs text-secondary font-bold">
                                         {item.product.isUsd
                                             ? `$${item.product.price.toFixed(2)} USD`
@@ -570,19 +572,19 @@ export function POS({ tableId, onBack }) {
                                     </p>
                                 </div>
 
-                                <div className="flex items-center gap-3 bg-surface rounded-xl px-2 py-1">
+                                <div className="flex items-center gap-1 lg:gap-2 bg-surface rounded-lg lg:rounded-xl px-1 lg:px-2 py-1">
                                     <button
                                         onClick={() => updateQuantity(item.product.id, -1)}
-                                        className="w-6 h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-red-500 hover:scale-110 transition-all"
+                                        className="w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-red-500 hover:scale-110 transition-all"
                                     >
-                                        <Minus className="w-3 h-3" />
+                                        <Minus className="w-2 lg:w-3 h-2 lg:h-3" />
                                     </button>
-                                    <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
+                                    <span className="text-xs lg:text-sm font-bold w-4 text-center">{item.quantity}</span>
                                     <button
                                         onClick={() => updateQuantity(item.product.id, 1)}
-                                        className="w-6 h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-green-600 hover:scale-110 transition-all"
+                                        className="w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-green-600 hover:scale-110 transition-all"
                                     >
-                                        <Plus className="w-3 h-3" />
+                                        <Plus className="w-2 lg:w-3 h-2 lg:h-3" />
                                     </button>
                                 </div>
 
@@ -597,43 +599,43 @@ export function POS({ tableId, onBack }) {
                     )}
                 </div>
 
-                <div className="p-6 bg-surface space-y-5">
-                    <div className="space-y-3">
-                        <div className="flex justify-between text-sm text-gray-600">
+                <div className="p-4 lg:p-6 bg-surface space-y-3 lg:space-y-5">
+                    <div className="space-y-2 lg:space-y-3">
+                        <div className="flex justify-between text-xs lg:text-sm text-gray-600">
                             <span>Subtotal COP</span>
                             <span className="font-medium">${totals.cop.toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between text-sm text-gray-600">
+                        <div className="flex justify-between text-xs lg:text-sm text-gray-600">
                             <span>Subtotal USD</span>
                             <span className="font-medium">${totals.usd.toFixed(2)}</span>
                         </div>
 
-                        <div className="h-px bg-gray-200 my-2"></div>
+                        <div className="h-px bg-gray-200 my-1 lg:my-2"></div>
 
                         <div className="flex justify-between items-end">
-                            <span className="font-bold text-gray-800">Total</span>
+                            <span className="font-bold text-gray-800 text-sm">Total</span>
                             <div className="text-right">
-                                <div className="text-3xl font-bold text-primary">${totals.cop.toLocaleString()}</div>
-                                <div className="text-sm text-secondary font-bold">${totals.usd.toFixed(2)} USD</div>
+                                <div className="text-2xl lg:text-3xl font-bold text-primary">${totals.cop.toLocaleString()}</div>
+                                <div className="text-xs lg:text-sm text-secondary font-bold">${totals.usd.toFixed(2)} USD</div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-2 lg:gap-3">
                         <button
                             onClick={clearCart}
                             disabled={cart.length === 0}
-                            className="col-span-1 px-4 py-3 text-red-500 bg-white border border-red-100 rounded-xl hover:bg-red-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                            className="col-span-1 px-2 lg:px-4 py-2 lg:py-3 text-red-500 bg-white border border-red-100 rounded-xl hover:bg-red-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleInitiateCheckout}
                             disabled={cart.length === 0}
-                            className="col-span-2 px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary-light font-bold shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 transform active:scale-95"
+                            className="col-span-2 px-2 lg:px-4 py-2 lg:py-3 bg-primary text-white rounded-xl hover:bg-primary-light font-bold shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 lg:gap-2 text-sm transform active:scale-95"
                         >
-                            <CreditCard className="w-5 h-5" />
-                            Pagar
+                            <CreditCard className="w-4 lg:w-5 h-4 lg:h-5" />
+                            <span>Pagar</span>
                         </button>
                     </div>
                 </div>
