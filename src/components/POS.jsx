@@ -146,7 +146,6 @@ export function POS({ tableId, onBack }) {
             exchangeRateSnapshot: exchangeRate,
             date: new Date().toISOString(),
             orderType: getOrderType(),
-            tableId: tableId,
             // Discount data
             originalPriceCop: discountData.originalCop,
             originalPriceUsd: discountData.originalUsd,

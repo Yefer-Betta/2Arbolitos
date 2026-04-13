@@ -10,7 +10,7 @@ export function UserManager() {
         name: '',
         username: '',
         password: '',
-        role: 'waiter',
+        role: 'WAITER',
     });
 
     const handleOpenForm = (user = null) => {
@@ -20,11 +20,11 @@ export function UserManager() {
                 name: user.name,
                 username: user.username,
                 password: '', // Do not show existing password
-                role: user.role,
+                role: user.role.toUpperCase(),
             });
         } else {
             setEditingUser(null);
-            setFormData({ name: '', username: '', password: '', role: 'waiter' });
+            setFormData({ name: '', username: '', password: '', role: 'WAITER' });
         }
         setIsFormOpen(true);
     };
@@ -90,9 +90,9 @@ export function UserManager() {
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Rol</label>
                             <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="input-field">
-                                <option value="admin">Administrador</option>
-                                <option value="waiter">Mesero</option>
-                                <option value="cook">Cocinero</option>
+                                <option value="ADMIN">Administrador</option>
+                                <option value="WAITER">Mesero</option>
+                                <option value="COOK">Cocinero</option>
                             </select>
                         </div>
                         <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t">
@@ -119,11 +119,11 @@ export function UserManager() {
                                 <td className="px-6 py-4 font-medium">{user.name}</td>
                                 <td className="px-6 py-4 text-gray-600">{user.username}</td>
                                 <td className="px-6 py-4">
-                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary">{user.role}</span>
+                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary">{user.role.toUpperCase()}</span>
                                 </td>
                                 <td className="px-6 py-4 text-right space-x-2">
                                     <button onClick={() => handleOpenForm(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
-                                    {user.role !== 'admin' && (
+                                    {user.role.toUpperCase() !== 'ADMIN' && (
                                         <button onClick={() => { if (confirm(`¿Seguro que quieres eliminar a ${user.name}?`)) deleteUser(user.id) }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                                     )}
                                 </td>

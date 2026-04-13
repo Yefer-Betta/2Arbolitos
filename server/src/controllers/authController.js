@@ -48,6 +48,9 @@ export const authController = {
 
   async register(req, res) {
     try {
+      console.log(' register - Body:', req.body);
+      console.log(' register - User:', req.user);
+      
       const { username, password, name, role } = req.body;
 
       if (!username || !password || !name) {
@@ -81,7 +84,8 @@ export const authController = {
       });
     } catch (error) {
       console.error('Error en registro:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+      console.error('Stack:', error.stack);
+      res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
     }
   },
 

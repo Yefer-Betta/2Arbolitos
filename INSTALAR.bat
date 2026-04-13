@@ -16,7 +16,7 @@ pause
 cd /d "%~dp0"
 
 echo.
-echo [1/6] Verificando Node.js...
+echo [1/7] Verificando Node.js...
 node --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Node.js no esta instalado
@@ -33,7 +33,7 @@ echo [OK] Node.js detectado:
 node --version
 echo.
 
-echo [2/6] Verificando MySQL...
+echo [2/7] Verificando MySQL...
 set MYSQL_FOUND=0
 set MYSQL_PATH=
 set DB_HOST=localhost
@@ -93,7 +93,19 @@ if %MYSQL_FOUND% equ 0 (
 )
 
 echo.
-echo [3/6] Actualizando configuracion de base de datos...
+echo [3/6] Obteniendo IP local del equipo...
+
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "ipv4" ^| findstr "192.168"') do (
+    set LOCAL_IP=%%a
+    goto :got_ip
+)
+:set LOCAL_IP=127.0.0.1
+:got_ip
+
+echo [OK] IP detectada: %LOCAL_IP%
+echo.
+
+echo [4/6] Actualizando configuracion de base de datos...
 
 :: Generar DATABASE_URL
 set "DATABASE_URL=mysql://%DB_USER%"
@@ -118,7 +130,13 @@ echo FRONTEND_URL=http://localhost:5173 >> server\.env
 echo [OK] Configuracion guardada en server\.env
 echo.
 
-echo [4/6] Conectando a MySQL y creando base de datos...
+:: Escribir configuracion del frontend
+echo # Frontend - URL del API > .env
+echo VITE_API_URL=http://%LOCAL_IP%:3001/api >> .env
+echo [OK] Configuracion del frontend guardada en .env
+echo.
+
+echo [5/6] Conectando a MySQL y creando base de datos...
 echo [INFO] Eliminando base de datos existente (si hay) para recrear con nuevo schema...
 if %MYSQL_FOUND% equ 1 (
     "%MYSQL_PATH%\mysql.exe" -u %DB_USER% -p%DB_PASS% -e "DROP DATABASE IF EXISTS 2arbolitos;" 2>nul
@@ -146,7 +164,7 @@ if %MYSQL_FOUND% equ 1 (
 )
 echo.
 
-echo [5/6] Instalando dependencias...
+echo [6/6] Instalando dependencias...
 echo.
 echo Instalando frontend...
 call npm install
@@ -168,7 +186,7 @@ if %errorlevel% neq 0 (
 cd ..
 echo.
 
-echo [6/6] Configurando base de datos...
+echo [7/7] Configurando base de datos...
 cd server
 call npx prisma generate
 if %errorlevel% neq 0 (

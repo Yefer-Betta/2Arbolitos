@@ -1,4 +1,10 @@
-const API_URL = 'http://localhost:3001/api';
+function getServerAPI() {
+  const hostname = window.location.hostname;
+  const port = 3001;
+  return `http://${hostname}:${port}/api`;
+}
+
+const API_URL = getServerAPI();
 const SYNC_INTERVAL = 10000;
 
 class SyncManager {

@@ -37,19 +37,18 @@ if not exist "server\.env" (
     pause
     exit /b 1
 )
-echo [OK] Configuracion encontrada
+echo [OK] Configuracion del servidor encontrada
 
-:: Verificar build
-if not exist "dist" (
-    echo [AVISO] No hay build. Construyendo...
-    call npm run build
-    if errorlevel 1 (
-        echo [ERROR] Fallo la construccion
-        pause
-        exit /b 1
-    )
+:: Verificar configuracion del frontend
+if not exist ".env" (
+    echo [AVISO] Configuracion del frontend no encontrada.
+    echo Usando valores por defecto (localhost)
 )
-echo [OK] Build listo
+echo [OK] Verificacion completada
+
+:: Verificar build (opcional para desarrollo)
+echo [INFO] Modo desarrollo - no requiere build
+echo [OK] Ejecutando en modo desarrollo
 
 echo.
 echo [1/3] Verificando MySQL...
@@ -83,9 +82,22 @@ echo ========================================
 echo.
 echo REVISA LAS VENTANAS ABIERTAS
 echo.
+
+:: Obtener IP local
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "ipv4" ^| findstr "192.168"') do (
+    set LOCAL_IP=%%a
+    goto :show_ip
+)
+set LOCAL_IP=localhost
+:show_ip
+
 echo URLs:
-echo   Frontend: http://localhost:5173
-echo   Backend: http://localhost:3001
+echo   Frontend Local:    http://localhost:5173
+echo   Frontend Red:     http://%LOCAL_IP%:5173
+echo   Backend:          http://%LOCAL_IP%:3001/api
+echo.
+echo   COPIAR Y PEGAR EN NAVEGADOR DE OTROS DISPOSITIVOS:
+echo   http://%LOCAL_IP%:5173
 echo.
 echo Credenciales:
 echo   admin / admin123
