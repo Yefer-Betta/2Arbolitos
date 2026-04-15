@@ -1,5 +1,13 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.88.33:3001/api';
+const API_URL = 'http://192.168.88.33:3001/api';
 const SYNC_INTERVAL = 5000;
+
+function generateId() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 class SyncManager {
   constructor() {
@@ -9,6 +17,9 @@ class SyncManager {
     this.listeners = [];
     this.syncInterval = null;
     this.lastSyncTimestamp = null;
+
+    // Limpiar cola inmediatamente al iniciar
+    this.clearPendingChanges();
 
     this.init();
   }
@@ -56,8 +67,35 @@ class SyncManager {
   loadPendingChanges() {
     try {
       const saved = localStorage.getItem('pendingChanges');
-      this.pendingChanges = saved ? JSON.parse(saved) : [];
+      if (!saved) {
+        this.pendingChanges = [];
+        return;
+      }
+      
+      let changes = JSON.parse(saved);
+      
+      // Limpiar pedidos antiguos (más de 1 hora) para evitar errores de sincronización
+      const ONE_HOUR = 60 * 60 * 1000;
+      const now = Date.now();
+      changes = changes.filter(c => {
+        const age = now - new Date(c.timestamp).getTime();
+        // Limpiar si es antiguo O si los datos no tienen estructura correcta
+        if (age >= ONE_HOUR) return false;
+        if (c.data?.items?.length > 0) {
+          // Verificar que items tenga estructura correcta (productId en lugar de product)
+          const firstItem = c.data.items[0];
+          return firstItem && firstItem.productId && !firstItem.product;
+        }
+        return false;
+      });
+      
+      // Siempre guardar cambios limpiados
+      localStorage.setItem('pendingChanges', JSON.stringify(changes));
+      
+      this.pendingChanges = changes;
     } catch (e) {
+      // Si hay error de parseo, limpiar todo
+      localStorage.setItem('pendingChanges', '[]');
       this.pendingChanges = [];
     }
   }
@@ -69,7 +107,7 @@ class SyncManager {
   async addToQueue(operation) {
     const operationWithTimestamp = {
       ...operation,
-      id: crypto.randomUUID(),
+      id: generateId(),
       timestamp: new Date().toISOString(),
     };
 
@@ -200,8 +238,9 @@ class SyncManager {
   }
 
   clearPendingChanges() {
+    // Limpiar TODA la cola - start fresh
     this.pendingChanges = [];
-    this.savePendingChanges();
+    localStorage.setItem('pendingChanges', '[]');
     this.notifyListeners('change', 0);
   }
 

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiPut, apiDelete, setData, getData, syncManager } from '../lib/api.js';
 
 const UserContext = createContext();
@@ -20,29 +20,7 @@ export function UserProvider({ children }) {
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        checkAuth();
-        loadUsers();
-
-        const syncInterval = setInterval(() => {
-            if (syncManager.isOnline) {
-                loadUsers();
-            }
-        }, 3000);
-
-        const unsubscribe = syncManager.addListener((event, data) => {
-            if (event === 'syncComplete' || event === 'timestamp') {
-                loadUsers();
-            }
-        });
-
-        return () => {
-            clearInterval(syncInterval);
-            unsubscribe();
-        };
-    }, []);
-
-    const checkAuth = async () => {
+    const checkAuth = useCallback(async () => {
         const token = localStorage.getItem('token');
         if (token && syncManager.isOnline) {
             try {
@@ -51,15 +29,15 @@ export function UserProvider({ children }) {
                     setCurrentUser(data.user);
                     sessionStorage.setItem('currentUser', JSON.stringify(data.user));
                 }
-            } catch (e) {
+            } catch {
                 console.warn('Token invalid or expired');
                 logout();
             }
         }
         setIsLoading(false);
-    };
+    }, []);
 
-    const loadUsers = async () => {
+    const loadUsers = useCallback(async () => {
         try {
             const data = await apiGet('/auth/users');
             if (data && Array.isArray(data)) {
@@ -72,7 +50,29 @@ export function UserProvider({ children }) {
         } catch (error) {
             console.error('Error loading users:', error);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        checkAuth();
+        loadUsers();
+
+        const syncInterval = setInterval(() => {
+            if (syncManager.isOnline) {
+                loadUsers();
+            }
+        }, 3000);
+
+        const unsubscribe = syncManager.addListener((event) => {
+            if (event === 'syncComplete' || event === 'timestamp') {
+                loadUsers();
+            }
+        });
+
+        return () => {
+            clearInterval(syncInterval);
+            unsubscribe();
+        };
+    }, [checkAuth, loadUsers]);
 
     const login = async (username, password) => {
         if (syncManager.isOnline) {
@@ -112,8 +112,8 @@ export function UserProvider({ children }) {
                 }
             }
             return { success: false, error: 'No hay conexión o token' };
-        } catch (error) {
-            return { success: false, error: error.message };
+        } catch {
+            return { success: false, error: 'Error de conexión' };
         }
     };
 
@@ -128,8 +128,8 @@ export function UserProvider({ children }) {
                 }
             }
             return { success: false, error: 'No hay conexión o token' };
-        } catch (error) {
-            return { success: false, error: error.message };
+        } catch {
+            return { success: false, error: 'Error de conexión' };
         }
     };
 
@@ -144,8 +144,8 @@ export function UserProvider({ children }) {
                 }
             }
             return { success: false, error: 'No hay conexión o token' };
-        } catch (error) {
-            return { success: false, error: error.message };
+        } catch {
+            return { success: false, error: 'Error de conexión' };
         }
     };
 

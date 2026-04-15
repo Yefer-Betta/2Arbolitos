@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, getData, setData, syncManager } from '../lib/api.js';
+import { generateId } from '../lib/utils.js';
 
 const FinanceContext = createContext();
 
@@ -12,33 +13,11 @@ export function FinanceProvider({ children }) {
     const [lastClosureDate, setLastClosureDate] = useState(defaultLastClosure);
     const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    loadData();
-
-    const syncInterval = setInterval(() => {
-      if (syncManager.isOnline) {
-        loadData();
-      }
-    }, 3000);
-
-    const unsubscribe = syncManager.addListener((event, data) => {
-      if (event === 'syncComplete' || event === 'timestamp') {
-        loadData();
-      }
-    });
-
-    return () => {
-      clearInterval(syncInterval);
-      unsubscribe();
-    };
-  }, []);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
-            const [expensesData, closuresData, serverOrders, lastDate] = await Promise.all([
+            const [expensesData, closuresData, lastDate] = await Promise.all([
                 apiGet('/expenses'),
                 apiGet('/closures'),
-                apiGet('/orders'),
                 getData('lastClosureDate'),
             ]);
 
@@ -51,7 +30,28 @@ export function FinanceProvider({ children }) {
             console.error('Error loading finance data:', error);
             setLoaded(true);
         }
+    }, []);
+
+  useEffect(() => {
+    loadData();
+
+    const syncInterval = setInterval(() => {
+      if (syncManager.isOnline) {
+        loadData();
+      }
+    }, 3000);
+
+    const unsubscribe = syncManager.addListener((event) => {
+      if (event === 'syncComplete' || event === 'timestamp') {
+        loadData();
+      }
+    });
+
+    return () => {
+      clearInterval(syncInterval);
+      unsubscribe();
     };
+  }, [loadData]);
 
     useEffect(() => {
         if (!loaded) return;
@@ -67,7 +67,7 @@ export function FinanceProvider({ children }) {
     const addExpense = async (expense) => {
         const newExpense = {
             ...expense,
-            id: crypto.randomUUID(),
+            id: generateId(),
             date: new Date().toISOString()
         };
         setExpenses(prev => [newExpense, ...prev]);
@@ -81,7 +81,7 @@ export function FinanceProvider({ children }) {
 
     const closeDay = (summary) => {
         const newClosure = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             date: new Date().toISOString(),
             ...summary
         };

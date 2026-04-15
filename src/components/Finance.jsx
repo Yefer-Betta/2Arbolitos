@@ -50,6 +50,43 @@ export function Finance() {
         setIsAdding(false);
     };
 
+    const getTypeLabel = (orderType) => {
+        if (orderType?.startsWith('mesa-')) return 'Mesa';
+        if (orderType === 'para-llevar') return 'Para Llevar';
+        if (orderType === 'domicilio') return 'Domicilio';
+        return 'General';
+    };
+
+    const resetCloseForm = () => {
+        setCountedCash('');
+        setCountedUsd('');
+        setCountedNequi('');
+        setCountedDebit('');
+        setObservations('');
+    };
+
+    const handleConfirmClose = () => {
+        closeDay({
+            orderCount: currentOrders.length,
+            totalSalesCOP,
+            totalSalesUSD,
+            totalExpenses,
+            salesByMethod,
+            countedCash: parseFloat(countedCash) || 0,
+            countedUsd: parseFloat(countedUsd) || 0,
+            countedNequi: parseFloat(countedNequi) || 0,
+            countedDebit: parseFloat(countedDebit) || 0,
+            totalDifference,
+            observations,
+        });
+        setShowCloseModal(false);
+        resetCloseForm();
+    };
+
+    const handlePrint = (order) => {
+        setReprintOrder(order);
+    };
+
     // Filter by Current Shift
     const currentExpenses = expenses.filter(e => new Date(e.date) > new Date(lastClosureDate));
     const currentOrders = orders.filter(o => new Date(o.date) > new Date(lastClosureDate));
@@ -657,16 +694,16 @@ export function Finance() {
                                         Diferencias Detectadas
                                     </h4>
                                     <div className="space-y-2">
-                                        {Object.entries(differences).map(([method, diff]) => (
-                                            diff !== 0 && (
-                                                <div key={method} className="flex justify-between">
-                                                    <span className="text-gray-600 capitalize">{method.replace('_', ' ')}:</span>
-                                                    <span className={cn("font-bold", diff >= 0 ? "text-green-600" : "text-red-600")}>
-                                                        {diff >= 0 ? '+' : ''}{method === 'cash_usd' ? `$${diff.toFixed(2)}` : formatCurrency(diff)}
-                                                    </span>
-                                                </div>
-                                            )
-                                        ))}
+                                        {Object.entries(differences)
+    .filter(([, diff]) => diff !== 0)
+    .map(([method, diff]) => (
+        <div key={method} className="flex justify-between">
+            <span className="text-gray-600 capitalize">{method.replace('_', ' ')}:</span>
+            <span className={cn("font-bold", diff >= 0 ? "text-green-600" : "text-red-600")}>
+                {diff >= 0 ? '+' : ''}{method === 'cash_usd' ? `$${diff.toFixed(2)}` : formatCurrency(diff)}
+            </span>
+        </div>
+    ))}
                                         <div className="border-t pt-2 mt-2 flex justify-between font-bold">
                                             <span>Total Diferencia:</span>
                                             <span className={totalDifference >= 0 ? "text-green-600" : "text-red-600"}>

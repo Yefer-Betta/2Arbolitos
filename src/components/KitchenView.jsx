@@ -11,7 +11,7 @@ export function KitchenView() {
         // Muestra los pedidos pendientes desde el último cierre de caja
         return orders
             .filter(
-                o => new Date(o.date) > new Date(lastClosureDate) && o.status === 'pending'
+                o => new Date(o.date) > new Date(lastClosureDate) && o.status === 'PENDING'
             )
             .sort((a, b) => new Date(b.date) - new Date(a.date)); // Muestra los más recientes primero
     }, [orders, lastClosureDate]);

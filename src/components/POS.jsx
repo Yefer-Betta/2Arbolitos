@@ -81,9 +81,9 @@ export function POS({ tableId, onBack }) {
             return sum + (isUsd ? price * qty : (price / exchangeRate) * qty);
         }, 0);
 
-        const finalPrice = parseFloat(discountFinalPrice) || 0;
-        const discountValue = originalCop - finalPrice;
-        const discountPercent = originalCop > 0 ? ((discountValue / originalCop) * 100) : 0;
+        const finalPrice = discountFinalPrice ? parseFloat(discountFinalPrice) : 0;
+        const discountValue = finalPrice > 0 ? originalCop - finalPrice : 0;
+        const discountPercent = originalCop > 0 && finalPrice > 0 ? ((discountValue / originalCop) * 100) : 0;
         
         // Calculate USD equivalent of final price
         const finalUsd = finalPrice / exchangeRate;
@@ -92,11 +92,11 @@ export function POS({ tableId, onBack }) {
         return {
             originalCop,
             originalUsd,
-            finalCop: finalPrice,
-            finalUsd,
-            discountValue: Math.max(0, discountValue),
-            discountPercent: Math.max(0, discountPercent),
-            discountUsd: Math.max(0, discountUsd)
+            finalCop: finalPrice > 0 ? finalPrice : originalCop,
+            finalUsd: finalPrice > 0 ? finalPrice / exchangeRate : originalUsd,
+            discountValue: discountValue,
+            discountPercent: discountPercent,
+            discountUsd: discountUsd
         };
     }, [cart, exchangeRate, discountFinalPrice]);
 

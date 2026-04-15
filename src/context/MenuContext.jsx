@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiGet, apiPost, setData, getData, syncManager } from '../lib/api.js';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { apiGet, apiPost, apiPut, apiDelete, setData, getData, syncManager } from '../lib/api.js';
+import { generateId } from '../lib/utils.js';
 
 const MenuContext = createContext();
 
@@ -9,28 +10,7 @@ export function MenuProvider({ children }) {
     const [categories, setCategories] = useState([]);
     const [loaded, setLoaded] = useState(false);
 
-    useEffect(() => {
-        loadData();
-        
-        const syncInterval = setInterval(() => {
-            if (syncManager.isOnline) {
-                loadData();
-            }
-        }, 3000);
-        
-        const unsubscribe = syncManager.addListener((event, data) => {
-            if (event === 'syncComplete' || event === 'timestamp') {
-                loadData();
-            }
-        });
-        
-        return () => {
-            clearInterval(syncInterval);
-            unsubscribe();
-        };
-    }, []);
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             let localProducts = await getData('products');
             let localCategories = await getData('categories');
@@ -54,10 +34,10 @@ export function MenuProvider({ children }) {
                     }
                     if (Array.isArray(serverCategories) && serverCategories.length > 0) {
                         localCategories = serverCategories;
-                        await setData('categories', serverCategories);
+                        await setData('categories', localCategories);
                     }
-                } catch (e) {
-                    console.warn('Could not fetch menu from server:', e);
+                } catch {
+                    console.warn('Could not fetch menu from server');
                 }
             }
 
@@ -68,12 +48,33 @@ export function MenuProvider({ children }) {
             console.error('Error loading menu data:', error);
             setLoaded(true);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        loadData();
+        
+        const syncInterval = setInterval(() => {
+            if (syncManager.isOnline) {
+                loadData();
+            }
+        }, 3000);
+        
+        const unsubscribe = syncManager.addListener((event) => {
+            if (event === 'syncComplete' || event === 'timestamp') {
+                loadData();
+            }
+        });
+        
+        return () => {
+            clearInterval(syncInterval);
+            unsubscribe();
+        };
+    }, [loadData]);
 
     const addProduct = async (product) => {
         const newProduct = { 
             ...product, 
-            id: crypto.randomUUID(), 
+            id: generateId(), 
             createdAt: new Date().toISOString() 
         };
         
@@ -83,7 +84,7 @@ export function MenuProvider({ children }) {
         if (syncManager.isOnline) {
             try {
                 await apiPost('/products', product);
-            } catch (e) {
+            } catch {
                 await syncManager.addToQueue({
                     type: 'CREATE',
                     endpoint: '/products',
@@ -106,8 +107,8 @@ export function MenuProvider({ children }) {
 
         if (syncManager.isOnline) {
             try {
-                await apiPost(`/products/${id}`, updatedData);
-            } catch (e) {
+                await apiPut(`/products/${id}`, updatedData);
+            } catch {
                 await syncManager.addToQueue({
                     type: 'UPDATE',
                     endpoint: '/products',
@@ -130,8 +131,8 @@ export function MenuProvider({ children }) {
 
         if (syncManager.isOnline) {
             try {
-                await apiPost(`/products/${id}`, { active: false });
-            } catch (e) {
+                await apiDelete(`/products/${id}`, id);
+            } catch {
                 await syncManager.addToQueue({
                     type: 'DELETE',
                     endpoint: '/products',
@@ -150,7 +151,7 @@ export function MenuProvider({ children }) {
     const addCategory = async (category) => {
         const newCategory = { 
             ...category, 
-            id: crypto.randomUUID(), 
+            id: generateId(), 
             createdAt: new Date().toISOString() 
         };
         
@@ -160,7 +161,7 @@ export function MenuProvider({ children }) {
         if (syncManager.isOnline) {
             try {
                 await apiPost('/categories', category);
-            } catch (e) {
+            } catch {
                 await syncManager.addToQueue({
                     type: 'CREATE',
                     endpoint: '/categories',

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, setData, getData, syncManager } from '../lib/api.js';
 
 const DEFAULT_BUSINESS = {
@@ -19,65 +19,38 @@ export function SettingsProvider({ children }) {
     const [business, setBusiness] = useState(DEFAULT_BUSINESS);
     const [loaded, setLoaded] = useState(false);
 
-    useEffect(() => {
-        loadSettings();
-        
-        const syncInterval = setInterval(() => {
-            if (syncManager.isOnline) {
-                loadSettings();
-            }
-        }, 3000);
-        
-        const unsubscribe = syncManager.addListener((event, data) => {
-            if (event === 'syncComplete' || event === 'timestamp') {
-                loadSettings();
-            }
-        });
-        
-        return () => {
-            clearInterval(syncInterval);
-            unsubscribe();
-        };
-    }, []);
-
-    const loadSettings = async () => {
+    const loadSettings = useCallback(async () => {
         try {
             let localRate = await getData('exchangeRate');
             let localBusiness = await getData('business');
 
-            if (syncManager.isOnline) {
+if (syncManager.isOnline) {
                 try {
+                    console.log('Fetching settings from server...');
                     const serverSettings = await apiGet('/settings');
+                    console.log('Settings received:', serverSettings);
                     
-                    if (serverSettings?.exchangeRate) {
-                        const localTimestamp = typeof localRate === 'object' ? localRate._syncTimestamp : null;
-                        const serverTimestamp = serverSettings._syncTimestamp;
-                        
-                        if (!localTimestamp || (serverTimestamp && serverTimestamp > localTimestamp)) {
-                            localRate = serverSettings.exchangeRate;
-                            await setData('exchangeRate', {
-                                value: serverSettings.exchangeRate,
-                                _syncTimestamp: serverTimestamp
-                            });
-                        } else {
-                            localRate = typeof localRate === 'object' ? localRate.value : localRate;
-                        }
+                    const exchangeRate = serverSettings?.exchangeRate;
+                    const business = serverSettings?.business;
+                    
+                    if (exchangeRate !== undefined) {
+                        const newRate = typeof exchangeRate === 'number' ? exchangeRate : (exchangeRate?.value || exchangeRate);
+                        localRate = newRate;
+                        await setData('exchangeRate', {
+                            value: newRate,
+                            _syncTimestamp: new Date().toISOString()
+                        });
                     }
                     
-                    if (serverSettings?.business) {
-                        const localTimestamp = localBusiness?._syncTimestamp;
-                        const serverTimestamp = serverSettings._syncTimestamp;
-                        
-                        if (!localTimestamp || (serverTimestamp && serverTimestamp > localTimestamp)) {
-                            localBusiness = { ...DEFAULT_BUSINESS, ...serverSettings.business };
-                            await setData('business', {
-                                ...localBusiness,
-                                _syncTimestamp: serverTimestamp
-                            });
-                        }
+                    if (business) {
+                        localBusiness = { ...DEFAULT_BUSINESS, ...business };
+                        await setData('business', {
+                            ...localBusiness,
+                            _syncTimestamp: new Date().toISOString()
+                        });
                     }
-                } catch (e) {
-                    console.warn('Could not fetch settings from server:', e);
+                } catch (err) {
+                    console.error('Error fetching settings:', err);
                 }
             }
 
@@ -97,7 +70,28 @@ export function SettingsProvider({ children }) {
             console.error('Error loading settings:', error);
             setLoaded(true);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        loadSettings();
+        
+        const syncInterval = setInterval(() => {
+            if (syncManager.isOnline) {
+                loadSettings();
+            }
+        }, 3000);
+        
+        const unsubscribe = syncManager.addListener((event) => {
+            if (event === 'syncComplete' || event === 'timestamp') {
+                loadSettings();
+            }
+        });
+        
+        return () => {
+            clearInterval(syncInterval);
+            unsubscribe();
+        };
+    }, [loadSettings]);
 
     const updateExchangeRate = async (newRate) => {
         setExchangeRate(newRate);
@@ -111,7 +105,7 @@ export function SettingsProvider({ children }) {
                     value: newRate,
                     type: 'number',
                 });
-            } catch (e) {
+            } catch {
                 console.warn('Settings saved locally');
             }
         }
@@ -130,7 +124,7 @@ export function SettingsProvider({ children }) {
                     value: updatedBusiness,
                     type: 'object',
                 });
-            } catch (e) {
+            } catch {
                 console.warn('Settings saved locally');
             }
         }

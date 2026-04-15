@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, setData, getData, syncManager } from '../lib/api.js';
+import { generateId } from '../lib/utils.js';
 
 const OrdersContext = createContext();
 
@@ -10,37 +11,7 @@ export function OrdersProvider({ children }) {
   const [loaded, setLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  useEffect(() => {
-    loadData();
-    
-    const syncInterval = setInterval(() => {
-      if (syncManager.isOnline) {
-        loadData();
-      }
-    }, 3000);
-    
-    const unsubscribe = syncManager.addListener((event, data) => {
-      if (event === 'syncComplete' || event === 'timestamp') {
-        loadData();
-      }
-    });
-    
-    return () => {
-      clearInterval(syncInterval);
-      unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = syncManager.addListener((event, data) => {
-      if (event === 'syncing') {
-        setIsSyncing(data);
-      }
-    });
-    return unsubscribe;
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [ordersData, tablesData] = await Promise.all([
         getData('orders'),
@@ -72,67 +43,124 @@ export function OrdersProvider({ children }) {
             localTables = tableOrders;
             await setData('activeTables', tableOrders);
           }
-        } catch (e) {
-          console.warn('Could not fetch from server, using local data:', e);
+        } catch {
+          console.warn('Could not fetch from server, using local data');
         }
       }
 
       setOrders(localOrders);
-      setActiveTables(localTables);
+      
+      // NUNCA sobrescribir activeTables durante carga de datos - mantener lo que el usuario tiene
+      // El usuario puede tener productos en el carrito que no queremos perder
+      console.log('LOAD: Finished loading, NOT overwriting activeTables');
       setLoaded(true);
     } catch (error) {
       console.error('Error loading orders data:', error);
       setLoaded(true);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    
+    const syncInterval = setInterval(() => {
+      if (syncManager.isOnline) {
+        loadData();
+      }
+    }, 3000);
+    
+    const unsubscribe = syncManager.addListener((event) => {
+      if (event === 'syncComplete' || event === 'timestamp') {
+        loadData();
+      }
+    });
+    
+    return () => {
+      clearInterval(syncInterval);
+      unsubscribe();
+    };
+  }, [loadData]);
+
+  useEffect(() => {
+    const unsubscribe = syncManager.addListener((event, data) => {
+      if (event === 'syncing') {
+        setIsSyncing(data);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const addOrder = async (order) => {
     const newOrder = {
       ...order,
-      id: crypto.randomUUID(),
+      id: generateId(),
       date: new Date().toISOString(),
       status: 'PENDING',
     };
 
     setOrders(prev => [newOrder, ...prev]);
 
-    if (activeTables[order.tableId]) {
-      setActiveTables(prev => {
-        const newTables = { ...prev };
-        delete newTables[order.tableId];
-        return newTables;
-      });
-    }
+    // NO limpiamos la mesa inmediatamente - esperamos a que el sync sea exitoso
+    console.log('ORDER_CREATE: Order created locally, tableId:', order.tableId);
 
     await setData('orders', [newOrder, ...orders]);
 
+    // Always transform items BEFORE trying to sync
+    const originalItems = order.items || [];
+    console.log('ORDER_CREATE: Original items count:', originalItems.length);
+    console.log('ORDER_CREATE: First item structure:', originalItems[0]);
+
+    const transformedItems = originalItems.map(item => ({
+      productId: item.product?.id || item.productId,
+      quantity: item.quantity,
+      unitPrice: item.product?.price || item.unitPrice || 0,
+      totalPrice: (item.product?.price || item.unitPrice || 0) * item.quantity,
+      notes: item.notes || null,
+    }));
+
+    console.log('ORDER_CREATE: Transformed items:', JSON.stringify(transformedItems));
+
+    const orderDataForServer = {
+      tableId: order.tableId,
+      orderType: order.orderType,
+      items: transformedItems,
+      exchangeRate: order.exchangeRateSnapshot || order.exchangeRate || 4000,
+      discountValue: order.discountValue || 0,
+      discountPercent: order.discountPercent || 0,
+      payment: order.payment,
+    };
+
+    console.log('ORDER_CREATE: Full order data:', orderDataForServer);
+
     if (syncManager.isOnline) {
       try {
-        const transformedItems = order.items.map(item => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-          unitPrice: item.product.price,
-          totalPrice: item.product.price * item.quantity,
-          notes: item.notes || null,
-        }));
-
-        await apiPost('/orders', {
-          tableId: order.tableId,
-          orderType: order.orderType,
-          items: transformedItems,
-          exchangeRate: order.exchangeRate,
-          discountValue: order.discountValue,
-          discountPercent: order.discountPercent,
-          payment: order.payment,
-        });
+        console.log('ORDER_CREATE: Attempting to sync...');
+        await apiPost('/orders', orderDataForServer);
+        console.log('ORDER_CREATE: Sync successful! Limpiando mesa:', order.tableId);
+        
+        // Limpiar la mesa SOLO después de sync exitoso
+        if (order.tableId) {
+          setActiveTables(prevTables => {
+            const newTables = { ...prevTables };
+            delete newTables[order.tableId];
+            return newTables;
+          });
+          await setData('activeTables', { ...activeTables, [order.tableId]: undefined });
+        }
       } catch (e) {
-        console.warn('Order saved locally, will sync later:', e);
+        console.warn('ORDER_CREATE: Sync failed, saving locally:', e.message);
+        await syncManager.addToQueue({
+          type: 'CREATE',
+          endpoint: '/orders',
+          data: orderDataForServer,
+        });
       }
     } else {
+      console.log('ORDER_CREATE: Offline, saving to queue');
       await syncManager.addToQueue({
         type: 'CREATE',
         endpoint: '/orders',
-        data: { ...newOrder, items: order.items },
+        data: orderDataForServer,
       });
     }
 
@@ -156,7 +184,7 @@ export function OrdersProvider({ children }) {
           method: 'PUT',
           body: JSON.stringify({ status }),
         });
-      } catch (e) {
+      } catch {
         console.warn('Status update queued for sync');
       }
     } else {
@@ -169,22 +197,29 @@ export function OrdersProvider({ children }) {
   };
 
   const agregarPlatilloAMesa = (idMesa, platillo) => {
+    console.log('AGREGAR: Adding product to mesa:', idMesa, platillo.name);
+    console.log('AGREGAR: Current tables before:', JSON.stringify(activeTables));
+    
     setActiveTables(prevTables => {
       const currentTableOrder = prevTables[idMesa] || [];
+      console.log('AGREGAR: Current order for mesa:', currentTableOrder.length, 'items');
       const existingProductIndex = currentTableOrder.findIndex(item => item.product.id === platillo.id);
 
       let newTableOrder;
       if (existingProductIndex > -1) {
+        console.log('AGREGAR: Product already exists, increasing quantity');
         newTableOrder = currentTableOrder.map((item, index) =>
           index === existingProductIndex
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
+        console.log('AGREGAR: New product, adding to cart');
         newTableOrder = [...currentTableOrder, { product: platillo, quantity: 1 }];
       }
 
       const newTables = { ...prevTables, [idMesa]: newTableOrder };
+      console.log('AGREGAR: New tables:', JSON.stringify(newTables));
       setData('activeTables', newTables);
       return newTables;
     });
