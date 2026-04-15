@@ -67,7 +67,7 @@ export function OrdersProvider({ children }) {
       if (syncManager.isOnline) {
         loadData();
       }
-    }, 3000);
+    }, 1000);
     
     const unsubscribe = syncManager.addListener((event) => {
       if (event === 'syncComplete' || event === 'timestamp') {
