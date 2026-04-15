@@ -26,9 +26,18 @@ export function SettingsProvider({ children }) {
             if (syncManager.isOnline) {
                 loadSettings();
             }
-        }, 5000);
+        }, 3000);
         
-        return () => clearInterval(syncInterval);
+        const unsubscribe = syncManager.addListener((event, data) => {
+            if (event === 'syncComplete' || event === 'timestamp') {
+                loadSettings();
+            }
+        });
+        
+        return () => {
+            clearInterval(syncInterval);
+            unsubscribe();
+        };
     }, []);
 
     const loadSettings = async () => {
@@ -40,13 +49,32 @@ export function SettingsProvider({ children }) {
                 try {
                     const serverSettings = await apiGet('/settings');
                     
-                    if (serverSettings.exchangeRate) {
-                        localRate = serverSettings.exchangeRate;
-                        await setData('exchangeRate', serverSettings.exchangeRate);
+                    if (serverSettings?.exchangeRate) {
+                        const localTimestamp = typeof localRate === 'object' ? localRate._syncTimestamp : null;
+                        const serverTimestamp = serverSettings._syncTimestamp;
+                        
+                        if (!localTimestamp || (serverTimestamp && serverTimestamp > localTimestamp)) {
+                            localRate = serverSettings.exchangeRate;
+                            await setData('exchangeRate', {
+                                value: serverSettings.exchangeRate,
+                                _syncTimestamp: serverTimestamp
+                            });
+                        } else {
+                            localRate = typeof localRate === 'object' ? localRate.value : localRate;
+                        }
                     }
-                    if (serverSettings.business) {
-                        localBusiness = { ...DEFAULT_BUSINESS, ...serverSettings.business };
-                        await setData('business', localBusiness);
+                    
+                    if (serverSettings?.business) {
+                        const localTimestamp = localBusiness?._syncTimestamp;
+                        const serverTimestamp = serverSettings._syncTimestamp;
+                        
+                        if (!localTimestamp || (serverTimestamp && serverTimestamp > localTimestamp)) {
+                            localBusiness = { ...DEFAULT_BUSINESS, ...serverSettings.business };
+                            await setData('business', {
+                                ...localBusiness,
+                                _syncTimestamp: serverTimestamp
+                            });
+                        }
                     }
                 } catch (e) {
                     console.warn('Could not fetch settings from server:', e);
@@ -55,9 +83,13 @@ export function SettingsProvider({ children }) {
 
             if (typeof localRate === 'number' && !Number.isNaN(localRate)) {
                 setExchangeRate(localRate);
+            } else if (typeof localRate === 'object' && localRate?.value) {
+                setExchangeRate(localRate.value);
             }
+            
             if (localBusiness && typeof localBusiness === 'object') {
-                setBusiness({ ...DEFAULT_BUSINESS, ...localBusiness });
+                const { _syncTimestamp, ...businessData } = localBusiness;
+                setBusiness({ ...DEFAULT_BUSINESS, ...businessData });
             }
             
             setLoaded(true);

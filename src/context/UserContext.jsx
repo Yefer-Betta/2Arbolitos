@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { apiGet, apiPost, setData, getData, syncManager } from '../lib/api.js';
+import { apiGet, apiPost, apiPut, apiDelete, setData, getData, syncManager } from '../lib/api.js';
 
 const UserContext = createContext();
 
@@ -23,6 +23,23 @@ export function UserProvider({ children }) {
     useEffect(() => {
         checkAuth();
         loadUsers();
+
+        const syncInterval = setInterval(() => {
+            if (syncManager.isOnline) {
+                loadUsers();
+            }
+        }, 3000);
+
+        const unsubscribe = syncManager.addListener((event, data) => {
+            if (event === 'syncComplete' || event === 'timestamp') {
+                loadUsers();
+            }
+        });
+
+        return () => {
+            clearInterval(syncInterval);
+            unsubscribe();
+        };
     }, []);
 
     const checkAuth = async () => {
@@ -44,25 +61,14 @@ export function UserProvider({ children }) {
 
     const loadUsers = async () => {
         try {
-            let localUsers = await getData('users');
-            localUsers = Array.isArray(localUsers) ? localUsers : [];
-
-            if (syncManager.isOnline) {
-                try {
-                    const token = localStorage.getItem('token');
-                    if (token) {
-                        const serverUsers = await syncManager.fetchFromAPI('/auth/users');
-                        if (Array.isArray(serverUsers) && serverUsers.length > 0) {
-                            localUsers = serverUsers;
-                            await setData('users', serverUsers);
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Could not fetch users from server:', e);
-                }
+            const data = await apiGet('/auth/users');
+            if (data && Array.isArray(data)) {
+                setUsers(data);
+                await setData('users', data);
+            } else {
+                const local = await getData('users');
+                setUsers(Array.isArray(local) ? local : []);
             }
-
-            setUsers(localUsers);
         } catch (error) {
             console.error('Error loading users:', error);
         }
@@ -100,12 +106,8 @@ export function UserProvider({ children }) {
             if (syncManager.isOnline) {
                 const token = localStorage.getItem('token');
                 if (token) {
-                    const newUser = await syncManager.fetchFromAPI('/auth/register', {
-                        method: 'POST',
-                        body: JSON.stringify(userData),
-                    });
+                    const newUser = await apiPost('/auth/register', userData);
                     setUsers(prev => [...prev, newUser]);
-                    await setData('users', [...users, newUser]);
                     return { success: true };
                 }
             }
@@ -120,12 +122,8 @@ export function UserProvider({ children }) {
             if (syncManager.isOnline) {
                 const token = localStorage.getItem('token');
                 if (token) {
-                    const updatedUser = await syncManager.fetchFromAPI(`/auth/users/${id}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(userData),
-                    });
+                    const updatedUser = await apiPut(`/auth/users/${id}`, userData);
                     setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updatedUser } : u));
-                    await setData('users', users.map(u => u.id === id ? { ...u, ...updatedUser } : u));
                     return { success: true };
                 }
             }
@@ -140,11 +138,8 @@ export function UserProvider({ children }) {
             if (syncManager.isOnline) {
                 const token = localStorage.getItem('token');
                 if (token) {
-                    await syncManager.fetchFromAPI(`/auth/users/${id}`, {
-                        method: 'DELETE',
-                    });
+                    await apiDelete('/auth/users', id);
                     setUsers(prev => prev.filter(u => u.id !== id));
-                    await setData('users', users.filter(u => u.id !== id));
                     return { success: true };
                 }
             }

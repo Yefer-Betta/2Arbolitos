@@ -17,17 +17,24 @@ export function OrdersProvider({ children }) {
       if (syncManager.isOnline) {
         loadData();
       }
-    }, 5000);
+    }, 3000);
     
-    return () => clearInterval(syncInterval);
+    const unsubscribe = syncManager.addListener((event, data) => {
+      if (event === 'syncComplete' || event === 'timestamp') {
+        loadData();
+      }
+    });
+    
+    return () => {
+      clearInterval(syncInterval);
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
     const unsubscribe = syncManager.addListener((event, data) => {
       if (event === 'syncing') {
         setIsSyncing(data);
-      } else if (event === 'syncComplete') {
-        loadData();
       }
     });
     return unsubscribe;
@@ -45,19 +52,17 @@ export function OrdersProvider({ children }) {
 
       if (syncManager.isOnline) {
         try {
-          const serverOrders = await apiGet('/orders');
-          const serverTables = await apiGet('/tables');
+          const [serverOrders, serverTables] = await Promise.all([
+            apiGet('/orders'),
+            apiGet('/tables'),
+          ]);
           
           if (Array.isArray(serverOrders) && serverOrders.length > 0) {
             localOrders = serverOrders;
             await setData('orders', serverOrders);
           }
 
-          const activeTableIds = serverTables
-            ?.filter(t => t.isOccupied && t.currentOrder)
-            ?.map(t => ({ id: t.id, order: t.currentOrder.items })) || {};
-
-          if (Object.keys(activeTableIds).length > 0) {
+          if (serverTables && Array.isArray(serverTables)) {
             const tableOrders = {};
             serverTables
               .filter(t => t.isOccupied && t.currentOrder)

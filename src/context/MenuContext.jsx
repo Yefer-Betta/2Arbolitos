@@ -16,9 +16,18 @@ export function MenuProvider({ children }) {
             if (syncManager.isOnline) {
                 loadData();
             }
-        }, 5000);
+        }, 3000);
         
-        return () => clearInterval(syncInterval);
+        const unsubscribe = syncManager.addListener((event, data) => {
+            if (event === 'syncComplete' || event === 'timestamp') {
+                loadData();
+            }
+        });
+        
+        return () => {
+            clearInterval(syncInterval);
+            unsubscribe();
+        };
     }, []);
 
     const loadData = async () => {

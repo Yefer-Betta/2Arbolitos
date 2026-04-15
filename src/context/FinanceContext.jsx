@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getData, setData, syncManager } from '../lib/api.js';
+import { apiGet, apiPost, getData, setData, syncManager } from '../lib/api.js';
 
 const FinanceContext = createContext();
 
@@ -12,33 +12,39 @@ export function FinanceProvider({ children }) {
     const [lastClosureDate, setLastClosureDate] = useState(defaultLastClosure);
     const [loaded, setLoaded] = useState(false);
 
-    useEffect(() => {
+  useEffect(() => {
+    loadData();
+
+    const syncInterval = setInterval(() => {
+      if (syncManager.isOnline) {
         loadData();
-    }, []);
+      }
+    }, 3000);
+
+    const unsubscribe = syncManager.addListener((event, data) => {
+      if (event === 'syncComplete' || event === 'timestamp') {
+        loadData();
+      }
+    });
+
+    return () => {
+      clearInterval(syncInterval);
+      unsubscribe();
+    };
+  }, []);
 
     const loadData = async () => {
         try {
-            const [expensesData, closuresData, lastDate, localOrders] = await Promise.all([
-                getData('expenses'),
-                getData('closures'),
+            const [expensesData, closuresData, serverOrders, lastDate] = await Promise.all([
+                apiGet('/expenses'),
+                apiGet('/closures'),
+                apiGet('/orders'),
                 getData('lastClosureDate'),
-                getData('orders'),
             ]);
 
             setExpenses(Array.isArray(expensesData) ? expensesData : []);
             setClosures(Array.isArray(closuresData) ? closuresData : []);
             setLastClosureDate(lastDate || defaultLastClosure);
-
-            if (syncManager.isOnline) {
-                try {
-                    const serverOrders = await syncManager.fetchFromAPI('/orders');
-                    if (Array.isArray(serverOrders) && serverOrders.length > 0) {
-                        await setData('orders', serverOrders);
-                    }
-                } catch (e) {
-                    console.warn('Could not fetch orders from server:', e);
-                }
-            }
 
             setLoaded(true);
         } catch (error) {
@@ -65,12 +71,8 @@ export function FinanceProvider({ children }) {
             date: new Date().toISOString()
         };
         setExpenses(prev => [newExpense, ...prev]);
-
-        await syncManager.addToQueue({
-            type: 'CREATE',
-            endpoint: '/expenses',
-            data: newExpense,
-        });
+        
+        await apiPost('/expenses', newExpense);
     };
 
     const deleteExpense = (id) => {

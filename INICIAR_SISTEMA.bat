@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 title Sistema 2Arbolitos - Iniciando
 color 0A
 
@@ -50,6 +50,21 @@ echo [OK] Verificacion completada
 echo [INFO] Modo desarrollo - no requiere build
 echo [OK] Ejecutando en modo desarrollo
 
+:: Detectar IP Local dinamicamente (Soporta 192.168.x.x y 10.x.x.x)
+set LOCAL_IP=localhost
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "ipv4" ^| findstr "192.168 10."') do (
+    for /f "tokens=*" %%b in ("%%a") do (
+        set "TEMP_IP=%%b"
+        set "LOCAL_IP=!TEMP_IP: =!"
+    )
+    goto :found_ip
+)
+:found_ip
+
+:: Actualizar el archivo .env del frontend con la IP detectada
+echo VITE_API_URL=http://%LOCAL_IP%:3001/api> .env
+echo [OK] Configuracion de red actualizada: %LOCAL_IP%
+
 echo.
 echo [1/3] Verificando MySQL...
 
@@ -64,33 +79,27 @@ if errorlevel 1 (
 )
 
 echo.
-echo [2/3] Iniciando Backend...
+echo [2/3] Iniciando Backend (Puerto 3001)...
 echo [INFO] Se abrira una nueva ventana para el backend
-start cmd /k "cd /d "%~dp0server" && npm run dev"
+start "Backend 2Arbolitos" cmd /c "cd /d "%~dp0server" && npm run dev"
 
 echo.
-echo [3/3] Iniciando Frontend...
+echo [3/3] Iniciando Frontend (Puerto 5173)...
 echo [INFO] Se abrira una nueva ventana para el frontend
-start cmd /k "npm run dev"
+:: Usamos --host para que Vite escuche peticiones externas del celular
+start "Frontend 2Arbolitos" cmd /c "npm run dev -- --host --clearScreen false"
+
+:: Intentar abrir los puertos en el Firewall de Windows (solo funciona como admin)
+netsh advfirewall firewall add rule name="2Arbolitos-API" dir=in action=allow protocol=TCP localport=3001 >nul 2>&1
+netsh advfirewall firewall add rule name="2Arbolitos-Web" dir=in action=allow protocol=TCP localport=5173 >nul 2>&1
 
 ping -n 4 127.0.0.1 >nul
 
 echo.
 echo ========================================
-echo   Sistema iniciado correctamente
+echo   SISTEMA LISTO PARA USAR
 echo ========================================
 echo.
-echo REVISA LAS VENTANAS ABIERTAS
-echo.
-
-:: Obtener IP local
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "ipv4" ^| findstr "192.168"') do (
-    set LOCAL_IP=%%a
-    goto :show_ip
-)
-set LOCAL_IP=localhost
-:show_ip
-
 echo URLs:
 echo   Frontend Local:    http://localhost:5173
 echo   Frontend Red:     http://%LOCAL_IP%:5173

@@ -97,6 +97,7 @@ echo [3/6] Obteniendo IP local del equipo...
 
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "ipv4" ^| findstr "192.168"') do (
     set LOCAL_IP=%%a
+    set "LOCAL_IP=!LOCAL_IP: =!"
     goto :got_ip
 )
 :set LOCAL_IP=127.0.0.1
@@ -125,7 +126,7 @@ echo JWT_SECRET=super_secret_jwt_change_this_in_production >> server\.env
 echo JWT_EXPIRES_IN=7d >> server\.env
 echo. >> server\.env
 echo # Frontend (para CORS) >> server\.env
-echo FRONTEND_URL=http://localhost:5173 >> server\.env
+echo FRONTEND_URL=* >> server\.env
 
 echo [OK] Configuracion guardada en server\.env
 echo.

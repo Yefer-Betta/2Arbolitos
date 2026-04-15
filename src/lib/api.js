@@ -83,7 +83,6 @@ export async function apiGet(endpoint) {
   if (syncManager.isOnline) {
     try {
       const data = await syncManager.fetchFromAPI(endpoint);
-      await setData(endpoint, data);
       return data;
     } catch (error) {
       console.warn('API fetch failed, using cached data:', error);

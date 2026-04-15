@@ -1,11 +1,5 @@
-function getServerAPI() {
-  const hostname = window.location.hostname;
-  const port = 3001;
-  return `http://${hostname}:${port}/api`;
-}
-
-const API_URL = getServerAPI();
-const SYNC_INTERVAL = 10000;
+const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.88.33:3001/api';
+const SYNC_INTERVAL = 5000;
 
 class SyncManager {
   constructor() {
@@ -14,6 +8,7 @@ class SyncManager {
     this.syncInProgress = false;
     this.listeners = [];
     this.syncInterval = null;
+    this.lastSyncTimestamp = null;
 
     this.init();
   }
@@ -29,6 +24,8 @@ class SyncManager {
     this.isOnline = true;
     this.notifyListeners('online');
     this.syncNow();
+    this.lastSyncTimestamp = new Date().toISOString();
+    this.notifyListeners('timestamp', this.lastSyncTimestamp);
   }
 
   handleOffline() {
@@ -111,17 +108,21 @@ class SyncManager {
     this.savePendingChanges();
 
     this.syncInProgress = false;
+    this.lastSyncTimestamp = new Date().toISOString();
     this.notifyListeners('syncing', false);
     this.notifyListeners('change', this.pendingChanges.length);
     this.notifyListeners('syncComplete', {
       success: successfulIds.length,
-      failed: failedChanges.length
+      failed: failedChanges.length,
+      timestamp: this.lastSyncTimestamp
     });
+    this.notifyListeners('timestamp', this.lastSyncTimestamp);
 
     return { 
       success: failedChanges.length === 0, 
       synced: successfulIds.length,
-      failed: failedChanges.length 
+      failed: failedChanges.length,
+      timestamp: this.lastSyncTimestamp
     };
   }
 
@@ -202,6 +203,10 @@ class SyncManager {
     this.pendingChanges = [];
     this.savePendingChanges();
     this.notifyListeners('change', 0);
+  }
+
+  getLastSyncTimestamp() {
+    return this.lastSyncTimestamp;
   }
 }
 
