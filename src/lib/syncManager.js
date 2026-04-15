@@ -185,7 +185,12 @@ class SyncManager {
         break;
       case 'UPDATE':
         method = 'PUT';
-        url = `${url}/${data.id || id}`;
+        // Some endpoints like settings and table states don't expect an ID suffix
+        if (endpoint === '/settings' || endpoint === '/tables/state') {
+          url = `${API_URL}${endpoint}`;
+        } else {
+          url = `${url}/${data.id || id}`;
+        }
         break;
       case 'DELETE':
         method = 'DELETE';

@@ -76,7 +76,7 @@ model Table {
 model TableState {
   id        String   @id @default(uuid())
   tableId   String   @unique
-  items     String   @default("[]")
+  items     String   @db.LongText @default("[]")
   updatedAt DateTime @updatedAt
 
   @@map("table_states")

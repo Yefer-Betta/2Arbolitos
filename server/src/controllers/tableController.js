@@ -196,8 +196,8 @@ export const tableController = {
 
       res.json({ success: true, tableId, items: JSON.parse(state.items) });
     } catch (error) {
-      console.error('Error al actualizar estado de mesa:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+      console.error('Error al actualizar estado de mesa:', error, error.stack);
+      res.status(500).json({ error: 'Error interno del servidor', details: error.message });
     }
   },
 
