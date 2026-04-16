@@ -71,37 +71,28 @@ export function OrdersProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    loadData();
+    // Only load data ONCE on mount - NOT on every render
+    if (!loaded) {
+      loadData();
+    }
     
+    // Sync to server every 1 second - but NEVER reload from server
     const syncInterval = setInterval(() => {
-      // Only sync TO server - do NOT reload which overwrites local data
-      if (syncManager.isOnline) {
-        // Sync each active table to server
+      if (syncManager.isOnline && activeTables) {
+        // Sync active tables TO server only
         Object.entries(activeTables).forEach(([tableId, items]) => {
           if (items && items.length > 0) {
             syncTableToServer(tableId, items);
           }
         });
-        console.log('SYNC: Syncing active tables to server');
       }
     }, 1000);
     
-    const unsubscribe = syncManager.addListener((event) => {
-      if (event === 'syncComplete' || event === 'timestamp') {
-        // Just sync, no full reload
-        Object.entries(activeTables).forEach(([tableId, items]) => {
-          if (items && items.length > 0) {
-            syncTableToServer(tableId, items);
-          }
-        });
-      }
-    });
-    
+    // Don't listen to syncComplete - it would cause reload
     return () => {
       clearInterval(syncInterval);
-      unsubscribe();
     };
-  }, [loadData]);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = syncManager.addListener((event, data) => {
