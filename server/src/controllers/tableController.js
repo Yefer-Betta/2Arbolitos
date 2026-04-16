@@ -147,4 +147,70 @@ export const tableController = {
       res.status(500).json({ error: 'Error interno del servidor' });
     }
   },
+
+  // TableState for active table synchronization
+  async getTableStates(req, res) {
+    try {
+      const states = await prisma.tableState.findMany();
+      const result = {};
+      states.forEach(state => {
+        result[state.tableId] = JSON.parse(state.items || '[]');
+      });
+      res.json(result);
+    } catch (error) {
+      console.error('Error al obtener estados de mesas:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
+
+  async getTableState(req, res) {
+    try {
+      const { tableId } = req.params;
+      const state = await prisma.tableState.findUnique({
+        where: { tableId },
+      });
+      if (!state) {
+        return res.json([]);
+      }
+      res.json(JSON.parse(state.items || '[]'));
+    } catch (error) {
+      console.error('Error al obtener estado de mesa:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
+
+  async updateTableState(req, res) {
+    try {
+      const { tableId, items } = req.body;
+      if (!tableId) {
+        return res.status(400).json({ error: 'tableId requerido' });
+      }
+
+      const itemsJson = JSON.stringify(items || []);
+      
+      const state = await prisma.tableState.upsert({
+        where: { tableId },
+        update: { items: itemsJson },
+        create: { tableId, items: itemsJson },
+      });
+
+      res.json({ success: true, tableId, items: JSON.parse(state.items) });
+    } catch (error) {
+      console.error('Error al actualizar estado de mesa:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
+
+  async deleteTableState(req, res) {
+    try {
+      const { tableId } = req.params;
+      await prisma.tableState.delete({
+        where: { tableId },
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error al eliminar estado de mesa:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
 };

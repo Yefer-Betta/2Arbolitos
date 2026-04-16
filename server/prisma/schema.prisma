@@ -73,6 +73,15 @@ model Table {
   @@map("tables")
 }
 
+model TableState {
+  id        String   @id @default(uuid())
+  tableId   String   @unique
+  items     String   @default("[]")
+  updatedAt DateTime @updatedAt
+
+  @@map("table_states")
+}
+
 model Order {
   id            String      @id @default(uuid())
   tableId       String?

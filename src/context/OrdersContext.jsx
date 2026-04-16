@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { apiGet, apiPost, setData, getData, syncManager } from '../lib/api.js';
+import { apiGet, apiPost, apiPut, setData, getData, syncManager } from '../lib/api.js';
 import { generateId } from '../lib/utils.js';
 
 const OrdersContext = createContext();
@@ -23,14 +23,31 @@ export function OrdersProvider({ children }) {
 
       if (syncManager.isOnline) {
         try {
-          const [serverOrders, serverTables] = await Promise.all([
+          const [serverOrders, serverTables, tableStates] = await Promise.all([
             apiGet('/orders'),
             apiGet('/tables'),
+            apiGet('/tables/state'),
           ]);
           
           if (Array.isArray(serverOrders) && serverOrders.length > 0) {
             localOrders = serverOrders;
             await setData('orders', serverOrders);
+          }
+
+          // Load table states from server for synchronized active tables
+          if (tableStates && typeof tableStates === 'object') {
+            const serverActiveTables = {};
+            Object.entries(tableStates).forEach(([tableId, items]) => {
+              if (items && items.length > 0) {
+                serverActiveTables[tableId] = items;
+              }
+            });
+            // Merge with local - keep local if has items, else use server
+            Object.entries(serverActiveTables).forEach(([tableId, items]) => {
+              if (!localTables[tableId] || localTables[tableId].length === 0) {
+                localTables[tableId] = items;
+              }
+            });
           }
 
           if (serverTables && Array.isArray(serverTables)) {
@@ -40,8 +57,12 @@ export function OrdersProvider({ children }) {
               .forEach(t => {
                 tableOrders[`mesa-${t.number}`] = t.currentOrder.items || [];
               });
-            localTables = tableOrders;
-            await setData('activeTables', tableOrders);
+            // Only add if not already set from tableStates
+            Object.entries(tableOrders).forEach(([tableId, items]) => {
+              if (!localTables[tableId]) {
+                localTables[tableId] = items;
+              }
+            });
           }
         } catch {
           console.warn('Could not fetch from server, using local data');
@@ -196,6 +217,14 @@ export function OrdersProvider({ children }) {
     }
   };
 
+  const syncTableToServer = async (idMesa, items) => {
+    try {
+      await apiPut('/tables/state', { tableId: idMesa, items });
+    } catch (e) {
+      console.warn('SYNC: Failed to sync table to server:', e.message);
+    }
+  };
+
   const agregarPlatilloAMesa = (idMesa, platillo) => {
     console.log('AGREGAR: Adding product to mesa:', idMesa, platillo.name);
     console.log('AGREGAR: Current tables before:', JSON.stringify(activeTables));
@@ -221,6 +250,10 @@ export function OrdersProvider({ children }) {
       const newTables = { ...prevTables, [idMesa]: newTableOrder };
       console.log('AGREGAR: New tables:', JSON.stringify(newTables));
       setData('activeTables', newTables);
+      
+      // Sync to server
+      syncTableToServer(idMesa, newTableOrder);
+      
       return newTables;
     });
   };
@@ -246,6 +279,15 @@ export function OrdersProvider({ children }) {
       }
       
       setData('activeTables', newTables);
+      
+      // Sync to server
+      if (newTableOrder.length > 0) {
+        syncTableToServer(idMesa, newTableOrder);
+      } else {
+        // Delete from server if empty
+        syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' }).catch(() => {});
+      }
+      
       return newTables;
     });
   };
@@ -259,6 +301,10 @@ export function OrdersProvider({ children }) {
       const newTables = { ...prevTables };
       delete newTables[idMesa];
       setData('activeTables', newTables);
+      
+      // Sync to server - delete state
+      syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' }).catch(() => {});
+      
       return newTables;
     });
   };
