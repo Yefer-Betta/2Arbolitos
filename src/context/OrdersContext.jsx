@@ -13,19 +13,22 @@ export function OrdersProvider({ children }) {
 
   const loadData = useCallback(async () => {
     try {
+      // ALWAYS load local data first - this is the priority
       const [ordersData, tablesData] = await Promise.all([
         getData('orders'),
         getData('activeTables'),
       ]);
 
       let localOrders = Array.isArray(ordersData) ? ordersData : [];
+      // Local tables are the source of truth - NEVER overwrite
       let localTables = (tablesData && typeof tablesData === 'object') ? tablesData : {};
+
+      console.log('LOAD: Local tables loaded:', JSON.stringify(localTables));
 
       if (syncManager.isOnline) {
         try {
-          const [serverOrders, serverTables, tableStates] = await Promise.all([
+          const [serverOrders, tableStates] = await Promise.all([
             apiGet('/orders'),
-            apiGet('/tables'),
             apiGet('/tables/state'),
           ]);
           
@@ -34,7 +37,7 @@ export function OrdersProvider({ children }) {
             await setData('orders', serverOrders);
           }
 
-          // Load table states from server for synchronized active tables
+          // Merge with server active tables - only ADD new tables, don't overwrite existing
           if (tableStates && typeof tableStates === 'object') {
             const serverActiveTables = {};
             Object.entries(tableStates).forEach(([tableId, items]) => {
@@ -42,41 +45,27 @@ export function OrdersProvider({ children }) {
                 serverActiveTables[tableId] = items;
               }
             });
-            // Merge with local - keep local if has items, else use server
+            
+            // For each server table, if our local is empty but server has data, add it
             Object.entries(serverActiveTables).forEach(([tableId, items]) => {
               if (!localTables[tableId] || localTables[tableId].length === 0) {
+                console.log('LOAD: Merging from server to local - table:', tableId, 'items:', items.length);
                 localTables[tableId] = items;
+                setData('activeTables', localTables);
               }
             });
           }
-
-          if (serverTables && Array.isArray(serverTables)) {
-            const tableOrders = {};
-            serverTables
-              .filter(t => t.isOccupied && t.currentOrder)
-              .forEach(t => {
-                tableOrders[`mesa-${t.number}`] = t.currentOrder.items || [];
-              });
-            // Only add if not already set from tableStates
-            Object.entries(tableOrders).forEach(([tableId, items]) => {
-              if (!localTables[tableId]) {
-                localTables[tableId] = items;
-              }
-            });
-          }
-        } catch {
-          console.warn('Could not fetch from server, using local data');
+        } catch (e) {
+          console.warn('LOAD: Could not fetch from server:', e.message);
         }
       }
 
       setOrders(localOrders);
-      
-      // NUNCA sobrescribir activeTables durante carga de datos - mantener lo que el usuario tiene
-      // El usuario puede tener productos en el carrito que no queremos perder
-      console.log('LOAD: Finished loading, NOT overwriting activeTables');
+      setActiveTables(localTables);
+      console.log('LOAD: Final activeTables:', JSON.stringify(localTables));
       setLoaded(true);
     } catch (error) {
-      console.error('Error loading orders data:', error);
+      console.error('LOAD: Error loading orders data:', error);
       setLoaded(true);
     }
   }, []);
@@ -85,14 +74,26 @@ export function OrdersProvider({ children }) {
     loadData();
     
     const syncInterval = setInterval(() => {
+      // Only sync TO server - do NOT reload which overwrites local data
       if (syncManager.isOnline) {
-        loadData();
+        // Sync each active table to server
+        Object.entries(activeTables).forEach(([tableId, items]) => {
+          if (items && items.length > 0) {
+            syncTableToServer(tableId, items);
+          }
+        });
+        console.log('SYNC: Syncing active tables to server');
       }
     }, 1000);
     
     const unsubscribe = syncManager.addListener((event) => {
       if (event === 'syncComplete' || event === 'timestamp') {
-        loadData();
+        // Just sync, no full reload
+        Object.entries(activeTables).forEach(([tableId, items]) => {
+          if (items && items.length > 0) {
+            syncTableToServer(tableId, items);
+          }
+        });
       }
     });
     
