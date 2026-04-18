@@ -115,7 +115,7 @@ set "DATABASE_URL=%DATABASE_URL%@%DB_HOST%:3306/2arbolitos?schema=public&charset
 
 :: Escribir en .env
 echo # Servidor > server\.env
-echo PORT=3001 >> server\.env
+echo PORT=3002 >> server\.env
 echo NODE_ENV=development >> server\.env
 echo. >> server\.env
 echo # Base de datos MySQL >> server\.env
@@ -133,7 +133,8 @@ echo.
 
 :: Escribir configuracion del frontend
 echo # Frontend - URL del API > .env
-echo VITE_API_URL=http://%LOCAL_IP%:3001/api >> .env
+echo VITE_API_URL=http://%LOCAL_IP%:3002/api >> .env
+echo VITE_API_PROXY_TARGET=http://127.0.0.1:3002 >> .env
 echo [OK] Configuracion del frontend guardada en .env
 echo.
 

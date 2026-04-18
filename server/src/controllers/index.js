@@ -3,3 +3,5 @@ export { productController } from './productController.js';
 export { orderController } from './orderController.js';
 export { tableController } from './tableController.js';
 export { settingsController } from './settingsController.js';
+export { closureController } from './closureController.js';
+export { expenseController } from './expenseController.js';

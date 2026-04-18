@@ -33,6 +33,9 @@ export function POS({ tableId, onBack }) {
     const [showDiscountModal, setShowDiscountModal] = useState(false);
     const [discountFinalPrice, setDiscountFinalPrice] = useState('');
 
+    // Mobile view state
+    const [mobileView, setMobileView] = useState('products');
+
     // Filter products
     const categories = ['Todos', ...new Set(products.map(p => p.category))];
 
@@ -201,7 +204,7 @@ export function POS({ tableId, onBack }) {
 
 
     return (
-        <div className="flex flex-col md:flex-row h-[calc(100vh-theme(spacing.32))] gap-6 relative">
+        <div className="flex flex-col md:flex-row h-full md:h-[calc(100vh-theme(spacing.32))] gap-6 relative pb-20 md:pb-0">
             {/* Checkout Modal Overlay */}
             {isCheckoutOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
@@ -430,7 +433,7 @@ export function POS({ tableId, onBack }) {
             )}
 
             {/* Left: Product Grid (Same as before) */}
-            <div className="flex-1 flex flex-col gap-6">
+            <div className={cn("flex-1 flex flex-col gap-6 h-[calc(100vh-160px)] md:h-auto", mobileView !== 'products' && "hidden md:flex")}>
                 {/* Header Section */}
                 <div className="flex flex-col gap-4">
                     <div>
@@ -532,7 +535,7 @@ export function POS({ tableId, onBack }) {
             </div>
 
             {/* Right: Cart */}
-            <div className="w-full md:w-[350px] lg:w-[400px] bg-white rounded-2xl lg:rounded-3xl shadow-xl flex flex-col h-full overflow-hidden border border-black/5">
+            <div className={cn("w-full md:w-[350px] lg:w-[400px] bg-white rounded-2xl lg:rounded-3xl shadow-xl flex flex-col h-[calc(100vh-140px)] md:h-full overflow-hidden border border-black/5 mt-4 md:mt-0", mobileView !== 'cart' && "hidden md:flex")}>
                 <div className="p-4 lg:p-6 bg-primary text-white">
                     <h2 className="text-lg lg:text-xl font-bold flex items-center gap-2 lg:gap-3">
                         <ShoppingCart className="w-5 h-5 lg:w-6 lg:h-6" />
@@ -639,6 +642,29 @@ export function POS({ tableId, onBack }) {
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* Mobile Bottom Bar */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex gap-3 z-40 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] rounded-t-3xl">
+                <button
+                    onClick={() => setMobileView('products')}
+                    className={cn("flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all", mobileView === 'products' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-gray-100 text-gray-500 hover:bg-gray-200")}
+                >
+                    <Utensils className="w-5 h-5" />
+                    Menú
+                </button>
+                <button
+                    onClick={() => setMobileView('cart')}
+                    className={cn("flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all relative", mobileView === 'cart' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-gray-100 text-gray-500 hover:bg-gray-200")}
+                >
+                    <ShoppingCart className="w-5 h-5" />
+                    Carrito
+                    {cart.length > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+                            {cart.length}
+                        </span>
+                    )}
+                </button>
             </div>
         </div>
     );

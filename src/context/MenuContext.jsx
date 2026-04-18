@@ -28,7 +28,8 @@ export function MenuProvider({ children }) {
                     if (Array.isArray(serverProducts) && serverProducts.length > 0) {
                         localProducts = serverProducts.map(p => ({
                             ...p,
-                            category: p.category?.name || p.categoryId || ''
+                            category: p.category?.name || p.categoryId || '',
+                            categoryId: p.categoryId || ''
                         }));
                         await setData('products', localProducts);
                     }
@@ -72,66 +73,98 @@ export function MenuProvider({ children }) {
     }, [loadData]);
 
     const addProduct = async (product) => {
+        const categoryId = product.categoryId || product.category;
+        
         const newProduct = { 
-            ...product, 
+            ...product,
+            categoryId,
             id: generateId(), 
             createdAt: new Date().toISOString() 
         };
         
-        setProducts(prev => [...prev, newProduct]);
-        await setData('products', [...products, newProduct]);
+        setProducts((prev) => {
+            const next = [...prev, newProduct];
+            void setData('products', next);
+            return next;
+        });
+
+        const productForServer = {
+            name: newProduct.name,
+            categoryId: newProduct.categoryId,
+            price: newProduct.price,
+            isUsd: newProduct.isUsd || false,
+            imageUrl: newProduct.imageUrl || null,
+            description: newProduct.description || null,
+        };
 
         if (syncManager.isOnline) {
             try {
-                await apiPost('/products', product);
+                await apiPost('/products', productForServer);
             } catch {
                 await syncManager.addToQueue({
                     type: 'CREATE',
                     endpoint: '/products',
-                    data: newProduct,
+                    data: productForServer,
                 });
             }
         } else {
             await syncManager.addToQueue({
                 type: 'CREATE',
                 endpoint: '/products',
-                data: newProduct,
+                data: productForServer,
             });
         }
     };
 
     const updateProduct = async (id, updatedData) => {
-        const nextProducts = products.map(p => p.id === id ? { ...p, ...updatedData } : p);
-        setProducts(nextProducts);
-        await setData('products', nextProducts);
+        const categoryId = updatedData.categoryId || updatedData.category;
+        
+        const cleanData = {
+            name: updatedData.name,
+            categoryId: categoryId,
+            price: updatedData.price,
+            isUsd: updatedData.isUsd || false,
+            imageUrl: updatedData.imageUrl || null,
+            description: updatedData.description || null,
+        };
+        
+        setProducts((prev) => {
+            const nextProducts = prev.map((p) =>
+                p.id === id ? { ...p, ...updatedData, categoryId } : p
+            );
+            void setData('products', nextProducts);
+            return nextProducts;
+        });
 
         if (syncManager.isOnline) {
             try {
-                await apiPut(`/products/${id}`, updatedData);
+                await apiPut(`/products/${id}`, cleanData);
             } catch {
                 await syncManager.addToQueue({
                     type: 'UPDATE',
                     endpoint: '/products',
-                    data: { id, ...updatedData },
+                    data: { id, ...cleanData },
                 });
             }
         } else {
             await syncManager.addToQueue({
                 type: 'UPDATE',
                 endpoint: '/products',
-                data: { id, ...updatedData },
+                data: { id, ...cleanData },
             });
         }
     };
 
     const deleteProduct = async (id) => {
-        const nextProducts = products.filter(p => p.id !== id);
-        setProducts(nextProducts);
-        await setData('products', nextProducts);
+        setProducts((prev) => {
+            const nextProducts = prev.filter((p) => p.id !== id);
+            void setData('products', nextProducts);
+            return nextProducts;
+        });
 
         if (syncManager.isOnline) {
             try {
-                await apiDelete(`/products/${id}`, id);
+                await apiDelete('/products', id);
             } catch {
                 await syncManager.addToQueue({
                     type: 'DELETE',
@@ -155,8 +188,11 @@ export function MenuProvider({ children }) {
             createdAt: new Date().toISOString() 
         };
         
-        setCategories(prev => [...prev, newCategory]);
-        await setData('categories', [...categories, newCategory]);
+        setCategories((prev) => {
+            const next = [...prev, newCategory];
+            void setData('categories', next);
+            return next;
+        });
 
         if (syncManager.isOnline) {
             try {

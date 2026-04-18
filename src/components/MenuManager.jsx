@@ -4,7 +4,7 @@ import { useSettings } from '../context/SettingsContext';
 import { Plus, Trash2, Edit2, X, Check, Search, Utensils } from 'lucide-react';
 
 export function MenuManager() {
-    const { products, addProduct, updateProduct, deleteProduct } = useMenu();
+    const { products, categories, addProduct, updateProduct, deleteProduct } = useMenu();
     const { exchangeRate } = useSettings();
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -12,13 +12,13 @@ export function MenuManager() {
     // Form state
     const [formData, setFormData] = useState({
         name: '',
-        category: '',
+        categoryId: '',
         price: '',
         isUsd: false,
     });
 
     const resetForm = () => {
-        setFormData({ name: '', category: '', price: '', isUsd: false });
+        setFormData({ name: '', categoryId: '', price: '', isUsd: false });
         setIsAdding(false);
         setEditingId(null);
     };
@@ -26,7 +26,7 @@ export function MenuManager() {
     const handleEditClick = (product) => {
         setFormData({
             name: product.name,
-            category: product.category,
+            categoryId: product.categoryId,
             price: product.price,
             isUsd: product.isUsd || false,
         });
@@ -36,9 +36,17 @@ export function MenuManager() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        if (!formData.categoryId) {
+            alert('Por favor selecciona una categoría');
+            return;
+        }
+        
         const productData = {
-            ...formData,
+            name: formData.name,
+            categoryId: formData.categoryId,
             price: parseFloat(formData.price),
+            isUsd: formData.isUsd,
         };
 
         if (editingId) {
@@ -107,14 +115,17 @@ export function MenuManager() {
                         </div>
                         <div className="col-span-2 md:col-span-1">
                             <label className="block text-sm font-bold text-gray-700 mb-2">Categoría</label>
-                            <input
+                            <select
                                 required
-                                type="text"
-                                placeholder="Ej. Platos Fuertes"
-                                value={formData.category}
-                                onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                value={formData.categoryId}
+                                onChange={e => setFormData({ ...formData, categoryId: e.target.value })}
                                 className="input-field"
-                            />
+                            >
+                                <option value="">Selecciona categoría</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className="col-span-2 md:col-span-1">

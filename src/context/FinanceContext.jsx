@@ -21,37 +21,44 @@ export function FinanceProvider({ children }) {
                 getData('lastClosureDate'),
             ]);
 
+            const serverClosures = Array.isArray(closuresData) ? closuresData : [];
+            const localClosures = await getData('closures') || [];
+
+            const mergedClosures = mergeClosures(localClosures, serverClosures);
+
             setExpenses(Array.isArray(expensesData) ? expensesData : []);
-            setClosures(Array.isArray(closuresData) ? closuresData : []);
+            setClosures(mergedClosures);
             setLastClosureDate(lastDate || defaultLastClosure);
 
             setLoaded(true);
         } catch (error) {
             console.error('Error loading finance data:', error);
+            const localClosures = await getData('closures') || [];
+            setClosures(localClosures);
             setLoaded(true);
         }
     }, []);
 
-  useEffect(() => {
-    loadData();
-
-    const syncInterval = setInterval(() => {
-      if (syncManager.isOnline) {
+    useEffect(() => {
         loadData();
-      }
-    }, 3000);
 
-    const unsubscribe = syncManager.addListener((event) => {
-      if (event === 'syncComplete' || event === 'timestamp') {
-        loadData();
-      }
-    });
+        const syncInterval = setInterval(() => {
+            if (syncManager.isOnline) {
+                loadData();
+            }
+        }, 3000);
 
-    return () => {
-      clearInterval(syncInterval);
-      unsubscribe();
-    };
-  }, [loadData]);
+        const unsubscribe = syncManager.addListener((event) => {
+            if (event === 'syncComplete' || event === 'timestamp') {
+                loadData();
+            }
+        });
+
+        return () => {
+            clearInterval(syncInterval);
+            unsubscribe();
+        };
+    }, [loadData]);
 
     useEffect(() => {
         if (!loaded) return;
@@ -71,7 +78,7 @@ export function FinanceProvider({ children }) {
             date: new Date().toISOString()
         };
         setExpenses(prev => [newExpense, ...prev]);
-        
+
         await apiPost('/expenses', newExpense);
     };
 
@@ -79,14 +86,39 @@ export function FinanceProvider({ children }) {
         setExpenses(prev => prev.filter(e => e.id !== id));
     };
 
-    const closeDay = (summary) => {
+    const closeDay = async (summary) => {
         const newClosure = {
             id: generateId(),
             date: new Date().toISOString(),
-            ...summary
+            orderCount: summary.orderCount || 0,
+            totalSalesCOP: summary.totalSalesCOP || 0,
+            totalSalesUSD: summary.totalSalesUSD || 0,
+            totalExpenses: summary.totalExpenses || 0,
+            exchangeRate: summary.exchangeRate || 4000,
+            notes: summary.notes || null,
         };
+
         setClosures(prev => [newClosure, ...prev]);
         setLastClosureDate(new Date().toISOString());
+
+        if (syncManager.isOnline) {
+            try {
+                await apiPost('/closures', newClosure);
+            } catch (error) {
+                console.warn('Closure sync failed, queueing for later:', error);
+                await syncManager.addToQueue({
+                    type: 'CREATE',
+                    endpoint: '/closures',
+                    data: newClosure,
+                });
+            }
+        } else {
+            await syncManager.addToQueue({
+                type: 'CREATE',
+                endpoint: '/closures',
+                data: newClosure,
+            });
+        }
     };
 
     const value = {
@@ -112,4 +144,22 @@ export function useFinance() {
         throw new Error('useFinance must be used within a FinanceProvider');
     }
     return context;
+}
+
+function mergeClosures(localClosures, serverClosures) {
+    const closureMap = new Map();
+
+    localClosures.forEach(closure => {
+        closureMap.set(closure.id, closure);
+    });
+
+    serverClosures.forEach(closure => {
+        if (!closureMap.has(closure.id)) {
+            closureMap.set(closure.id, closure);
+        }
+    });
+
+    return Array.from(closureMap.values()).sort((a, b) => {
+        return new Date(b.date) - new Date(a.date);
+    });
 }

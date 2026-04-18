@@ -8,7 +8,7 @@ import { DollarSign, RefreshCw, Building, Save, Download, Upload, Database, Aler
 
 export function CurrencySettings() {
     const { exchangeRate, setExchangeRate, business, setBusiness } = useSettings();
-    const { orders, syncNow } = useOrders();
+    const { orders, syncNow, loadData } = useOrders();
     const { expenses, closures } = useFinance();
     const { products } = useMenu();
 
@@ -38,14 +38,20 @@ export function CurrencySettings() {
 
     const handleManualSync = async () => {
         setIsSyncing(true);
-        await syncManager.syncNow();
-        await Promise.all([
-            syncManager.fetchFromAPI('/orders'),
-            syncManager.fetchFromAPI('/settings'),
-            syncManager.fetchFromAPI('/products?active=true'),
-        ]);
-        setIsSyncing(false);
-        window.location.reload();
+        try {
+            await syncManager.syncNow();
+            await Promise.all([
+                syncManager.fetchFromAPI('/orders'),
+                syncManager.fetchFromAPI('/settings'),
+                syncManager.fetchFromAPI('/products?active=true'),
+                syncManager.fetchFromAPI('/tables/state'),
+            ]);
+            await loadData();
+        } catch (e) {
+            console.error('Sync error:', e);
+        } finally {
+            setIsSyncing(false);
+        }
     };
 
     // Backup System

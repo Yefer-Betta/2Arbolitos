@@ -1,5 +1,20 @@
-const API_URL = 'http://192.168.88.33:3001/api';
 const SYNC_INTERVAL = 5000;
+
+/**
+ * Base de la API: mismo host que la PWA (PC o celular en la red) + /api.
+ * En desarrollo, Vite reenvía /api al backend (vite.config proxy).
+ * Opcional: VITE_API_URL=https://midominio.com/api
+ */
+export function getApiBase() {
+  if (typeof window === 'undefined') {
+    return (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+  }
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && String(envUrl).trim()) {
+    return String(envUrl).replace(/\/$/, '');
+  }
+  return `${window.location.origin}/api`;
+}
 
 function generateId() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -17,9 +32,6 @@ class SyncManager {
     this.listeners = [];
     this.syncInterval = null;
     this.lastSyncTimestamp = null;
-
-    // Limpiar cola inmediatamente al iniciar
-    this.clearPendingChanges();
 
     this.init();
   }
@@ -73,20 +85,13 @@ class SyncManager {
       }
       
       let changes = JSON.parse(saved);
-      
-      // Limpiar pedidos antiguos (más de 1 hora) para evitar errores de sincronización
+
       const ONE_HOUR = 60 * 60 * 1000;
       const now = Date.now();
-      changes = changes.filter(c => {
+      changes = changes.filter((c) => {
         const age = now - new Date(c.timestamp).getTime();
-        // Limpiar si es antiguo O si los datos no tienen estructura correcta
         if (age >= ONE_HOUR) return false;
-        if (c.data?.items?.length > 0) {
-          // Verificar que items tenga estructura correcta (productId en lugar de product)
-          const firstItem = c.data.items[0];
-          return firstItem && firstItem.productId && !firstItem.product;
-        }
-        return false;
+        return true;
       });
       
       // Siempre guardar cambios limpiados
@@ -176,7 +181,8 @@ class SyncManager {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    let url = `${API_URL}${endpoint}`;
+    const base = getApiBase();
+    let url = `${base}${endpoint}`;
     let method = 'POST';
 
     switch (type) {
@@ -187,7 +193,7 @@ class SyncManager {
         method = 'PUT';
         // Some endpoints like settings and table states don't expect an ID suffix
         if (endpoint === '/settings' || endpoint === '/tables/state') {
-          url = `${API_URL}${endpoint}`;
+          url = `${base}${endpoint}`;
         } else {
           url = `${url}/${data.id || id}`;
         }
@@ -225,7 +231,7 @@ class SyncManager {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const response = await fetch(`${getApiBase()}${endpoint}`, {
       ...options,
       headers,
     });

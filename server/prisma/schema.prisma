@@ -166,3 +166,17 @@ model Settings {
 
   @@map("settings")
 }
+
+model Closure {
+  id            String   @id @default(uuid())
+  date         DateTime @default(now())
+  orderCount   Int      @default(0)
+  totalSalesCOP Float    @default(0)
+  totalSalesUSD Float   @default(0)
+  totalExpenses Float   @default(0)
+  exchangeRate Float    @default(4000)
+  notes        String?
+  createdAt   DateTime @default(now())
+
+  @@map("closures")
+}

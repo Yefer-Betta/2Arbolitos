@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "api": "npm run start --prefix server",
+    "dev:full": "concurrently -n vite,api -c cyan,magenta \"npm run dev\" \"npm run api\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview --host"
@@ -24,6 +26,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.24",
+    "concurrently": "^9.1.2",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

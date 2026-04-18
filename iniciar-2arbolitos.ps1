@@ -1,4 +1,4 @@
-$ErrorActionPreference = "SilentlyContinue"
+    $ErrorActionPreference = "SilentlyContinue"
 
 Write-Host ""
 Write-Host "================================== 2ARBOLITOS ==================================" -ForegroundColor Cyan
@@ -13,29 +13,24 @@ function Get-LocalIP {
 $localIP = Get-LocalIP
 $projectPath = $PSScriptRoot
 
-Write-Host "[1/3] Iniciando servidor backend (Puerto 3001)..." -ForegroundColor Yellow
-Start-Process -FilePath "cmd.exe" -ArgumentList "/k cd `"$projectPath\server`" && npm run dev" -WindowStyle Normal -PassThru | Out-Null
+Write-Host "[1/2] Iniciando Vite + API (npm run dev:full, puerto API 3002 por defecto)..." -ForegroundColor Yellow
+Start-Process -FilePath "cmd.exe" -ArgumentList "/k cd /d `"$projectPath`" && npm run dev:full" -WindowStyle Normal -PassThru | Out-Null
 
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 4
 
-Write-Host "[2/3] Iniciando frontend (Puerto 5173)..." -ForegroundColor Yellow
-Start-Process -FilePath "cmd.exe" -ArgumentList "/k cd `"$projectPath`" && npm run dev" -WindowStyle Normal -PassThru | Out-Null
-
-Start-Sleep -Seconds 3
-
-Write-Host "[3/3] Abriendo navegador..." -ForegroundColor Yellow
+Write-Host "[2/2] Abriendo navegador..." -ForegroundColor Yellow
 Start-Process "http://localhost:5173"
 
-$backendURL = "http://localhost:3001"
+$backendURL = "http://localhost:3002"
 $frontendURL = "http://localhost:5173"
 $networkURL = "http://$localIP"
 
 if ($localIP) {
     $networkFrontend = "http://$localIP`:5173"
-    $networkBackend = "http://$localIP`:3001"
+    $networkBackend = "http://$localIP`:3002"
 } else {
     $networkFrontend = "http://192.168.88.33:5173"
-    $networkBackend = "http://192.168.88.33:3001"
+    $networkBackend = "http://192.168.88.33:3002"
 }
 
 Write-Host ""
