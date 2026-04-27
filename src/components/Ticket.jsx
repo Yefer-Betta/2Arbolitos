@@ -18,7 +18,7 @@ export function Ticket({ order, business, orderType }) {
                 {business.nit && <p className="text-xs">NIT: {business.nit}</p>}
                 {business.address && <p className="text-xs">{business.address}</p>}
                 {business.phone && <p className="text-xs">Tel: {business.phone}</p>}
-                <p className="mt-1 text-xs text-gray-500">{new Date(order.date).toLocaleString()}</p>
+                <p className="mt-1 text-xs text-gray-500">{new Date(order.date || order.createdAt).toLocaleString()}</p>
                 <p className="text-xs text-gray-400">#{order.id?.slice(0, 8).toUpperCase()}</p>
             </div>
 

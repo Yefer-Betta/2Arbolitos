@@ -12,7 +12,7 @@ export const orderController = {
       }
 
       if (orderType) {
-        where.orderType = orderType;
+        where.orderType = orderType.toUpperCase();
       }
 
       if (startDate || endDate) {
@@ -132,6 +132,27 @@ export const orderController = {
       let totalCop = 0;
       let totalUsd = 0;
 
+      let dbTableId = tableId;
+      if (tableId && tableId.startsWith('mesa-')) {
+        const tableNumber = parseInt(tableId.split('-')[1]);
+        if (!isNaN(tableNumber)) {
+          try {
+            const table = await prisma.table.findFirst({ where: { number: tableNumber } });
+            if (table) {
+              dbTableId = table.id;
+            } else {
+              console.log('Table not found, using null:', tableNumber);
+              dbTableId = null;
+            }
+          } catch (e) {
+            console.log('Error finding table, using null:', e.message);
+            dbTableId = null;
+          }
+        }
+      } else if (tableId === 'para-llevar' || tableId === 'domicilio') {
+        dbTableId = null;
+      }
+
       const orderItems = [];
       for (const item of items) {
         const price = item.unitPrice || 0;
@@ -179,9 +200,9 @@ export const orderController = {
 
       const order = await prisma.order.create({
         data: {
-          tableId,
+          tableId: dbTableId,
           userId,
-          orderType: orderType || 'MESA',
+          orderType: orderType ? orderType.toUpperCase() : 'MESA',
           totalCop: finalTotalCop,
           totalUsd,
           exchangeRate: exchangeRate || 4000,
@@ -205,10 +226,19 @@ export const orderController = {
         },
       });
 
+      if (tableId) {
+        try {
+          await prisma.tableState.delete({ where: { tableId } });
+        } catch (e) {
+          // Ignorar si el estado no existe
+        }
+      }
+
       res.status(201).json(order);
     } catch (error) {
       console.error('Error al crear pedido:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+      import('fs').then(fs => fs.writeFileSync('C:\\Users\\BettaLion\\Documents\\Proyectos\\Proyecto\\2Arbolitos\\error_log.txt', error.stack || error.toString()));
+      res.status(500).json({ error: 'Error interno del servidor', details: error.message });
     }
   },
 

@@ -17,7 +17,10 @@ export function History() {
 
     // Filter for Current Shift
     const currentShiftOrders = useMemo(() => {
-        return orders.filter(o => new Date(o.date) > new Date(lastClosureDate));
+        return orders.filter(o => {
+            const orderDate = o.date || o.createdAt;
+            return orderDate && new Date(orderDate) > new Date(lastClosureDate);
+        });
     }, [orders, lastClosureDate]);
 
     // Calculate Totals for Current Shift
@@ -26,16 +29,19 @@ export function History() {
 
     // Export Functionality
     const exportToExcel = () => {
-        const data = currentShiftOrders.map(order => ({
-            Fecha: new Date(order.date).toLocaleDateString(),
-            Hora: new Date(order.date).toLocaleTimeString(),
-            Origen: orderOriginLabel(order),
-            Items: order.items.map(i => `${i.quantity}x ${i.product.name}`).join(', '),
-            'Total COP': order.totalCop,
-            'Total USD': order.totalUsd,
-            'Método Pago': order.payment?.method || 'N/A',
-            'Tasa Cambio': order.exchangeRateSnapshot
-        }));
+        const data = currentShiftOrders.map(order => {
+            const orderDate = order.date || order.createdAt;
+            return {
+                Fecha: new Date(orderDate).toLocaleDateString(),
+                Hora: new Date(orderDate).toLocaleTimeString(),
+                Origen: orderOriginLabel(order),
+                Items: order.items.map(i => `${i.quantity}x ${i.product.name}`).join(', '),
+                'Total COP': order.totalCop,
+                'Total USD': order.totalUsd,
+                'Método Pago': order.payment?.method || 'N/A',
+                'Tasa Cambio': order.exchangeRateSnapshot
+            };
+        });
 
         const ws = utils.json_to_sheet(data);
         const wb = utils.book_new();
@@ -106,8 +112,8 @@ export function History() {
                                     <tr key={order.id} className="hover:bg-gray-50 transition-colors group">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-gray-900 group-hover:text-primary transition-colors">{new Date(order.date).toLocaleDateString()}</span>
-                                                <span className="text-xs text-gray-400">{new Date(order.date).toLocaleTimeString()}</span>
+                                                <span className="font-bold text-gray-900 group-hover:text-primary transition-colors">{new Date(order.date || order.createdAt).toLocaleDateString()}</span>
+                                                <span className="text-xs text-gray-400">{new Date(order.date || order.createdAt).toLocaleTimeString()}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">

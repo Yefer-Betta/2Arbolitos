@@ -12,6 +12,7 @@ export function OrdersProvider({ children }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const activeTablesRef = useRef(activeTables);
   activeTablesRef.current = activeTables;
+  const clearedTablesRef = useRef(new Set());
 
   const loadData = useCallback(async () => {
     try {
@@ -29,7 +30,10 @@ export function OrdersProvider({ children }) {
         try {
           const [serverOrders, tableStates] = await Promise.all([
             apiGet('/orders'),
-            apiGet('/tables/state'),
+            syncManager.fetchFromAPI('/tables/state').catch(e => {
+              console.warn('LOAD: Error fetching table states:', e.message);
+              return {};
+            }),
           ]);
           
           if (Array.isArray(serverOrders) && serverOrders.length > 0) {
@@ -42,7 +46,23 @@ export function OrdersProvider({ children }) {
             let hasChanges = false;
             
             Object.entries(tableStates).forEach(([tableId, items]) => {
+              // Skip tables that were just cleared - preserve local cleared state
+              if (clearedTablesRef.current.has(tableId)) {
+                console.log('LOAD: Skipping cleared table from server:', tableId);
+                // Ensure it's removed locally if still present
+                if (localTables[tableId] && localTables[tableId].length > 0) {
+                  delete localTables[tableId];
+                  hasChanges = true;
+                }
+                return;
+              }
+              
+              // Skip empty or invalid items
               if (!items || items.length === 0) return;
+              if (!Array.isArray(items)) {
+                console.warn('LOAD: Invalid items for table:', tableId, typeof items);
+                return;
+              }
               
               const localItem = localTables[tableId];
               const serverTimestamp = items._timestamp || now;
@@ -173,18 +193,20 @@ export function OrdersProvider({ children }) {
             void setData('orders', next);
             return next;
           });
-        }
 
-        if (order.tableId) {
-          setActiveTables((prevTables) => {
-            const newTables = { ...prevTables };
-            delete newTables[order.tableId];
-            void setData('activeTables', newTables);
-            return newTables;
-          });
-          syncManager
-            .fetchFromAPI(`/tables/state/${encodeURIComponent(order.tableId)}`, { method: 'DELETE' })
-            .catch(() => {});
+          if (order.tableId) {
+            setActiveTables((prevTables) => {
+              const newTables = { ...prevTables };
+              delete newTables[order.tableId];
+              void setData('activeTables', newTables);
+              return newTables;
+            });
+            syncManager
+              .fetchFromAPI(`/tables/state/${encodeURIComponent(order.tableId)}`, { method: 'DELETE' })
+              .catch(() => {});
+          }
+        } else {
+          throw new Error('Server did not return valid order');
         }
       } catch (e) {
         console.warn('ORDER_CREATE: Sync failed, saving locally:', e.message);
@@ -314,13 +336,29 @@ const actualizarCantidad = (idMesa, idPlatillo, cantidad) => {
   };
 
   const limpiarMesa = (idMesa) => {
+    // Marcar mesa como limpiada para evitar que loadData la restaure
+    clearedTablesRef.current.add(idMesa);
+    
+    // Forzar sync inmediata después de limpiar
+    const forceSyncAfterClear = async () => {
+      // Mantener el flag por 15 segundos para cubrir múltiples intervalos
+      setTimeout(() => {
+        clearedTablesRef.current.delete(idMesa);
+      }, 15000);
+      
+      // Sincronizar inmediatamente para borrar del servidor
+      try {
+        await syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' });
+      } catch (e) {
+        // ignore - se guardará en cola
+      }
+    };
+    
     setActiveTables(prevTables => {
       const newTables = { ...prevTables };
       delete newTables[idMesa];
       setData('activeTables', newTables);
-      
-      // Sync to server - delete state
-      syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' }).catch(() => {});
+      forceSyncAfterClear();
       
       return newTables;
     });

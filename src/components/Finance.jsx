@@ -88,8 +88,16 @@ export function Finance() {
     };
 
     // Filter by Current Shift
-    const currentExpenses = expenses.filter(e => new Date(e.date) > new Date(lastClosureDate));
-    const currentOrders = orders.filter(o => new Date(o.date) > new Date(lastClosureDate));
+    const currentExpenses = expenses.filter(e => {
+        if (!e?.date) return false;
+        const d = new Date(e.date);
+        return !isNaN(d.getTime()) && d > new Date(lastClosureDate);
+    });
+    const currentOrders = orders.filter(o => {
+        if (!o?.date && !o?.createdAt) return false;
+        const d = new Date(o.date || o.createdAt);
+        return !isNaN(d.getTime()) && d > new Date(lastClosureDate);
+    });
 
     // Calculations
     const totalSalesCOP = currentOrders.reduce((sum, o) => sum + o.totalCop, 0);
@@ -98,17 +106,20 @@ export function Finance() {
     const netBalance = totalSalesCOP - totalExpenses;
 
     const salesByMethod = currentOrders.reduce((acc, order) => {
-        const method = order.payment?.method || order.paymentMethod || 'cash_cop';
-        if (method === 'cash_cop') acc.cash_cop += order.totalCop || 0;
+        const method = order.payment?.method || order.payment?.method?.toLowerCase() || order.paymentMethod || 'cash_cop';
+        const total = order.totalCop || 0;
+        if (method === 'cash_cop') acc.cash_cop += total;
         else if (method === 'cash_usd') acc.cash_usd += order.totalUsd || 0;
-        else if (method === 'nequi') acc.nequi += order.totalCop || 0;
-        else acc.debit += order.totalCop || 0;
+        else if (method === 'nequi') acc.nequi += total;
+        else acc.debit += total;
         return acc;
     }, { cash_cop: 0, cash_usd: 0, nequi: 0, debit: 0 });
 
     const filteredSales = orders.filter(order => {
-        const orderDate = new Date(order.date).toISOString().split('T')[0];
-        if (orderDate !== salesDateFilter) return false;
+        if (!order?.date && !order?.createdAt) return false;
+        const orderDate = new Date(order.date || order.createdAt);
+        if (isNaN(orderDate.getTime())) return false;
+        if (orderDate.toISOString().split('T')[0] !== salesDateFilter) return false;
         if (salesTypeFilter !== 'all') {
             if (salesTypeFilter === 'mesa' && !order.orderType?.startsWith('mesa-')) return false;
             if (salesTypeFilter === 'para-llevar' && order.orderType !== 'para-llevar') return false;
@@ -116,7 +127,7 @@ export function Finance() {
         }
         if (salesSearchId && !order.id?.toLowerCase().includes(salesSearchId.toLowerCase())) return false;
         return true;
-    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+    }).sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
 
     const filteredSalesTotal = filteredSales.reduce((sum, o) => sum + (o.totalCop || 0), 0);
 
@@ -480,7 +491,7 @@ export function Finance() {
                                                     {order.id?.slice(0, 8).toUpperCase()}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-600">
-                                                    {new Date(order.date).toLocaleTimeString()}
+                                                    {new Date(order.date || order.createdAt).toLocaleTimeString()}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className={cn(

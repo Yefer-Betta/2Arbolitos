@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Coffee, Settings, ShoppingCart, TrendingUp, Calculator, Menu, X, Utensils, LogOut, Users, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Coffee, Settings, ShoppingCart, TrendingUp, Calculator, Menu, X, LogOut, Users, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useSettings } from '../context/SettingsContext';
@@ -46,7 +46,6 @@ export function Layout({ children, activeTab, setActiveTab }) {
 
     const allTabs = [
         { id: 'pos', label: 'Pedidos', icon: ShoppingCart, roles: ['ADMIN', 'WAITER'] },
-        { id: 'kitchen', label: 'Cocina', icon: Utensils, roles: ['ADMIN', 'COOK'] },
         { id: 'menu', label: 'Menú', icon: Coffee, roles: ['ADMIN'] },
         { id: 'finance', label: 'Contabilidad', icon: TrendingUp, roles: ['ADMIN'] },
         { id: 'escandallo', label: 'Escandallo', icon: Calculator, roles: ['ADMIN'] },

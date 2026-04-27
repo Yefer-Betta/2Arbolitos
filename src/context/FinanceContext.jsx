@@ -95,7 +95,14 @@ export function FinanceProvider({ children }) {
             totalSalesUSD: summary.totalSalesUSD || 0,
             totalExpenses: summary.totalExpenses || 0,
             exchangeRate: summary.exchangeRate || 4000,
-            notes: summary.notes || null,
+            salesByMethod: summary.salesByMethod || { cash_cop: 0, cash_usd: 0, nequi: 0, debit: 0 },
+            countedCash: summary.countedCash || 0,
+            countedUsd: summary.countedUsd || 0,
+            countedNequi: summary.countedNequi || 0,
+            countedDebit: summary.countedDebit || 0,
+            differences: summary.differences || { cash_cop: 0, cash_usd: 0, nequi: 0, debit: 0 },
+            totalDifference: summary.totalDifference || 0,
+            observations: summary.observations || null,
         };
 
         setClosures(prev => [newClosure, ...prev]);

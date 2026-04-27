@@ -8,7 +8,6 @@ import { Finance } from './components/Finance';
 import Escandallo from './components/Escandallo';
 import { useUser } from './context/UserContext';
 import { LoginScreen } from './components/LoginScreen';
-import { KitchenView } from './components/KitchenView';
 import { UserManager } from './context/UserManager';
 
 export function App() {
@@ -23,15 +22,13 @@ export function App() {
 
 function MainApp() {
   const { currentUser } = useUser();
-  const defaultTab = currentUser.role === 'COOK' ? 'kitchen' : 'pos';
+  const defaultTab = currentUser.role === 'COOK' ? 'pos' : 'pos';
   const [activeTab, setActiveTab] = useState(defaultTab);
 
   const renderContent = () => {
     switch (activeTab) {
       case 'pos':
         return <PedidosRouter />;
-      case 'kitchen':
-        return <KitchenView />;
       case 'menu':
         return <MenuManager />;
       case 'history':
