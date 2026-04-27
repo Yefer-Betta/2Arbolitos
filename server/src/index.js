@@ -2,8 +2,13 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import os from 'os';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { connectDB } from './config/database.js';
 import routes from './routes/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
@@ -46,6 +51,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api', routes);
+
+// Servir el frontend en producción (React/Vite construido)
+const distPath = path.join(__dirname, '../../dist');
+app.use(express.static(distPath));
+
+// Fallback para React Router (cualquier ruta que no sea de API devuelve index.html)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
 
 app.use((err, req, res, next) => {
   console.error('Error:', err);

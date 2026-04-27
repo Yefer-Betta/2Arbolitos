@@ -1,0 +1,10 @@
+PrismaClientKnownRequestError: 
+Invalid `prisma.order.create()` invocation:
+
+
+Foreign key constraint violated: `tableId`
+    at $n.handleRequestError (C:\Users\BettaLion\Documents\Proyectos\Proyecto\2Arbolitos\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\BettaLion\Documents\Proyectos\Proyecto\2Arbolitos\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\BettaLion\Documents\Proyectos\Proyecto\2Arbolitos\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\BettaLion\Documents\Proyectos\Proyecto\2Arbolitos\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async createOrder (file:///C:/Users/BettaLion/Documents/Proyectos/Proyecto/2Arbolitos/server/src/controllers/orderController.js:180:21)

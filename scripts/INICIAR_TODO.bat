@@ -3,9 +3,8 @@ setlocal EnableExtensions EnableDelayedExpansion
 title 2Arbolitos - Inicio completo (Vite + API)
 color 0A
 
-set "PROJ=%~dp0"
-set "PROJ=%PROJ:~0,-1%"
-cd /d "%~dp0"
+set "PROJ=%~dp0.."
+cd /d "%~dp0.."
 
 echo.
 echo ============================================================

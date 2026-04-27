@@ -13,7 +13,7 @@ echo Por favor, mantente conectado a internet
 echo.
 pause
 
-cd /d "%~dp0"
+cd /d "%~dp0.."
 
 echo.
 echo [1/7] Verificando Node.js...

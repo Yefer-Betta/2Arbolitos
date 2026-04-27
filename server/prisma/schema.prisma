@@ -180,3 +180,15 @@ model Closure {
 
   @@map("closures")
 }
+
+model Expense {
+  id          String   @id @default(uuid())
+  description String
+  amount      Float
+  category    String
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("expenses")
+}

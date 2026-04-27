@@ -172,10 +172,15 @@ export const tableController = {
       if (!state) {
         return res.json([]);
       }
-      res.json(JSON.parse(state.items || '[]'));
+      try {
+        res.json(JSON.parse(state.items || '[]'));
+      } catch (parseError) {
+        console.error('Error al parsear items:', parseError, state.items);
+        res.json([]);
+      }
     } catch (error) {
       console.error('Error al obtener estado de mesa:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+      res.json([]);
     }
   },
 
