@@ -153,6 +153,18 @@ export const orderController = {
         dbTableId = null;
       }
 
+      if (dbTableId) {
+        try {
+          const tableExists = await prisma.table.findUnique({ where: { id: dbTableId } });
+          if (!tableExists) {
+            console.log(`Mesa con ID ${dbTableId} no encontrada en la BD, asignando null para evitar error de FK`);
+            dbTableId = null;
+          }
+        } catch (e) {
+          dbTableId = null;
+        }
+      }
+
       const orderItems = [];
       for (const item of items) {
         const price = item.unitPrice || 0;
