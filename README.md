@@ -1,111 +1,136 @@
-# 2Arbolitos — Sistema POS
+# 🌳 2Arbolitos — Sistema POS y Gestión de Restaurante
 
-Sistema de punto de venta para restaurantes: pedidos por mesa, **para llevar**, cocina, finanzas, historial e informes. Incluye API en Node.js con Prisma/MySQL y cliente web en React (Vite), con sincronización entre equipos en la misma red.
+![2Arbolitos Cover](https://via.placeholder.com/1200x300/1A4D2E/FFFFFF?text=2Arbolitos+POS+System)
 
-## Estructura del proyecto
+Sistema avanzado de Punto de Venta (POS) y gestión operativa para restaurantes. Diseñado con una interfaz moderna y táctil para agilizar la toma de pedidos, gestionar el salón, coordinar la cocina y mantener el control financiero del establecimiento. Incluye soporte multi-moneda (COP/USD) y un potente backend.
 
-```
+---
+
+## ✨ Características Principales
+
+*   🛒 **Punto de Venta (POS):** Interfaz ágil e intuitiva (tipo tablet/desktop) para la toma de pedidos rápidos.
+*   🍽️ **Gestión de Órdenes:** Soporte para pedidos por **Mesa**, **Para Llevar** y **Domicilio**.
+*   🪑 **Vista de Mesas (Table Map):** Monitoreo visual del estado de las mesas en tiempo real (Libre, Ocupada, Tiempo de atención).
+*   🧑‍🍳 **Kitchen Display System (KDS):** Tablero tipo Kanban en tiempo real para que la cocina visualice y gestione el estado de las preparaciones (Pendientes, En Preparación, Listos).
+*   💵 **Multi-moneda:** Cobros, cálculo de vueltos e informes duales en Pesos Colombianos (COP) y Dólares (USD), con tasa de cambio ajustable.
+*   📊 **Finanzas y Cierres:** Reportes de cierre de caja (End of Day), control de gastos operativos e historial completo de ventas.
+*   🍔 **Gestión de Menú y Escandallos:** Administrador de productos, categorías, y visualización de costos (recetas/escandallos).
+*   📱 **PWA Ready:** Sincronización cliente-servidor eficiente y optimización PWA.
+
+## 🛠️ Tecnologías
+
+### Frontend (Cliente)
+*   **React 19** + **Vite 7**
+*   **Tailwind CSS 4** para un diseño moderno y responsivo
+*   **Lucide React** para iconografía
+*   **PWA** (Vite PWA Plugin)
+
+### Backend (API)
+*   **Node.js** con **Express.js**
+*   **Prisma ORM** para el modelado y acceso a datos
+*   **MySQL 8** como base de datos relacional principal
+*   **JWT** para autenticación basada en roles (Admin, Cajero, Mesero, Cocina)
+
+---
+
+## 📂 Estructura del Proyecto
+
+```text
 2Arbolitos/
 ├── src/                 # Frontend React (Vite, Tailwind)
-│   ├── components/
-│   ├── context/
-│   └── lib/               # API cliente, syncManager, IndexedDB
-├── server/                # API Express + Prisma
+│   ├── components/      # Vistas principales (POS, KDS, Finanzas, etc.)
+│   ├── context/         # Estado global (Auth, Configuración)
+│   └── lib/             # Lógica cliente, syncManager
+├── server/              # API Express + Prisma
 │   ├── src/
-│   │   ├── routes/
-│   │   └── controllers/
-│   └── prisma/
-├── package.json           # Scripts: dev, api, dev:full
-├── vite.config.js         # Proxy /api → API local
-├── INSTALAR.bat           # Windows: instalación guiada (MySQL, Prisma, build)
-└── INICIAR_TODO.bat       # Windows: deps, .env, Vite + API, navegador
+│   │   ├── routes/      # Endpoints (Orders, Products, Auth, etc.)
+│   │   └── controllers/ # Lógica de negocio
+│   └── prisma/          # Esquema de DB (schema.prisma)
+├── package.json         # Scripts principales (dev, api, dev:full)
+├── INSTALAR.bat         # Windows: Instalación automática y DB setup
+└── INICIAR_TODO.bat     # Windows: Arranque de Frontend + Backend
 ```
 
-## Requisitos
+---
 
-- **Node.js** 18 o superior (LTS recomendado)
-- **MySQL** 8 (o compatible) en ejecución antes de arrancar el API
+## 🚀 Instalación y Despliegue Local
 
-## Instalación
+### Requisitos Previos
+*   **Node.js** v18 o superior.
+*   **MySQL** v8.0+ en ejecución (puede ser XAMPP, WAMP o Docker).
 
-### Windows (recomendado)
+### Instalación Rápida (Windows)
+1. Asegúrate de tener MySQL corriendo.
+2. Haz doble clic en el archivo **`INSTALAR.bat`**. Esto instalará todas las dependencias, creará la base de datos, aplicará las migraciones y generará los archivos `.env` necesarios.
 
-1. Inicia MySQL (XAMPP, WAMP o servicio local).
-2. Ejecuta **`INSTALAR.bat`** en la raíz del proyecto (instala dependencias, crea `server/.env`, base de datos Prisma, build del frontend).
-
-### Manual
+### Instalación Manual (Linux / Mac / Windows)
 
 ```bash
-# Raíz del proyecto
+# 1. Instalar dependencias del Frontend
 npm install
 
+# 2. Instalar dependencias del Backend
 cd server
 npm install
-copy .env.example .env   # Windows; en Linux/Mac: cp .env.example .env
-# Edita server/.env: DATABASE_URL, PORT (por defecto 3002), JWT_SECRET
 
+# 3. Configurar Entorno
+cp .env.example .env
+# -> Edita server/.env y ajusta DATABASE_URL y PORT si es necesario.
+
+# 4. Configurar Base de Datos
 npx prisma generate
 npx prisma db push
-node prisma/seed.js       # opcional: usuarios de ejemplo
+node prisma/seed.js # Crea usuarios por defecto y configuración inicial
 
+# 5. Volver a la raíz
 cd ..
-npm run build             # opcional: producción
 ```
 
-## Desarrollo
+---
 
-El frontend en desarrollo usa **Vite** (puerto **5173**) y reenvía `/api` al backend. El puerto del API se define en **`server/.env`** (`PORT`, por defecto **3002**). Si creas un `.env` en la raíz con `VITE_API_PROXY_TARGET`, Vite usará esa URL para el proxy; si no, se deduce el puerto desde `server/.env` (ver `vite.config.js`).
+## 💻 Desarrollo y Ejecución
 
+Puedes levantar todo el sistema de manera unificada o por separado.
+
+### Opción 1: Todo junto (Recomendado)
 ```bash
-# Opción 1 — una sola terminal (Vite + API)
 npm run dev:full
+```
+*Inicia tanto el servidor Vite (Frontend) como el servidor Express (Backend API).*
 
-# Opción 2 — dos terminales
-npm run api          # solo backend
-npm run dev          # solo Vite (host 0.0.0.0 para red local)
+### Opción 2: Terminales separadas
+**Terminal 1 (Backend):**
+```bash
+npm run api
 ```
 
-### Windows — inicio guiado
+**Terminal 2 (Frontend):**
+```bash
+npm run dev
+```
 
-Doble clic en **`INICIAR_TODO.bat`** (o `INICIAR_SISTEMA.bat` / `iniciar-2arbolitos.bat`): instala dependencias si faltan, prepara `server/.env` desde el ejemplo, genera `.env` en la raíz para el proxy si no existe, abre **`npm run dev:full`** en otra ventana y el navegador en `http://localhost:5173`.
+### Puertos por defecto:
+*   **Frontend (Vite):** `http://localhost:5173`
+*   **Backend (API):** `http://localhost:3001` (Ajustable en `.env`)
 
-**Importante:** si el API no conecta a MySQL, no escuchará el puerto y verás errores de proxy en Vite hasta que la base de datos esté disponible.
+---
 
-## Producción
+## 🔐 Usuarios de Prueba (tras ejecutar el Seed)
 
-Tras `npm run build`, el despliegue depende de tu hosting. El servidor Express vive en `server/`; configura `PORT`, `DATABASE_URL` y sirve el build estático según tu configuración.
+| Rol | Usuario | Contraseña |
+| :--- | :--- | :--- |
+| **Admin** | `admin` | `admin123` |
+| **Mesero** | `mesero` | `waiter123` |
+| **Cocina** | `cocina` | `cook123` |
 
-## Puertos habituales
+---
 
-| Servicio        | Puerto por defecto | URL local                    |
-|-----------------|--------------------|------------------------------|
-| API (Express)   | 3002               | `http://localhost:3002`      |
-| Frontend (Vite) | 5173               | `http://localhost:5173`      |
+## 🌐 Despliegue a Producción
+Para desplegar la aplicación en un VPS o plataforma Cloud:
+1. Compila el frontend: `npm run build`
+2. Sirve la carpeta `/dist` generada junto con tu servidor Express (o en un CDN/Vercel apuntando al backend).
+3. Asegúrate de configurar correctamente `DATABASE_URL`, `JWT_SECRET` y el puerto en tus variables de entorno del servidor.
 
-En la WiFi, otros dispositivos usan `http://<IP-de-esta-PC>:5173` (misma red que el PC servidor).
+---
 
-## Usuarios por defecto (tras `seed`)
-
-| Rol    | Usuario | Contraseña |
-|--------|---------|------------|
-| Admin  | admin   | admin123   |
-| Mesero | mesero  | waiter123  |
-| Cocina | cocina  | cook123    |
-
-## Características
-
-- Pedidos por mesa y **pedido para llevar**
-- Menú, cocina y vistas operativas
-- Finanzas, cierres e historial
-- Sincronización cliente–servidor (API + cola offline donde aplique)
-- PWA (Vite PWA)
-
-## Tecnologías
-
-- **Frontend:** React 19, Vite 7, Tailwind CSS 4, PWA
-- **Backend:** Node.js, Express, Prisma, MySQL
-- **Herramientas:** ESLint, `concurrently` (dev)
-
-## Licencia
-
-MIT
+**Licencia:** MIT
