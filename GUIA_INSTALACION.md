@@ -5,137 +5,90 @@
 
 ## 📋 Requisitos del Sistema
 
-- **Sistema Operativo**: Windows 10 o superior
+- **Sistema Operativo**: Windows 10 o superior (PC Servidor Principal)
+- **Base de Datos**: MySQL 8.0+ (Recomendado XAMPP o instalador nativo MySQL)
 - **Conexión a Internet**: Solo para la instalación inicial
+- **Red Local (LAN)**: Router Wi-Fi para conectar tablets o celulares (meseros/cocina) al PC principal
 - **Navegador**: Google Chrome o Microsoft Edge (recomendado)
-- **Espacio en Disco**: Mínimo 500 MB libres
+- **Espacio en Disco**: Mínimo 2 GB libres
 
 ---
 
-## 🚀 Instalación (Solo la primera vez)
+## 🚀 Instalación Inicial
 
-### Paso 1: Instalar Node.js
+### Paso 1: Instalar Node.js y MySQL
 
-1. Descarga Node.js desde: **https://nodejs.org**
-2. Descarga la versión **LTS** (recomendada)
-3. Ejecuta el instalador y sigue los pasos (Next, Next, Install)
-4. **Reinicia la computadora**
+1. Descarga e instala **Node.js LTS** desde: **https://nodejs.org** (Opciones por defecto).
+2. Descarga e instala **MySQL** (Puedes usar XAMPP para hacerlo más fácil o MySQL Installer).
+3. Asegúrate de que el servicio de MySQL esté corriendo en el puerto `3306` (por defecto).
+4. *(Opcional)* Crea una base de datos vacía llamada `2arbolitos` (el instalador intentará crearla automáticamente).
 
-### Paso 2: Instalar el Sistema
+### Paso 2: Ejecutar el Instalador Automático
 
-1. Copia la carpeta **"2Arbolitos"** a una ubicación permanente (ej: `C:\2Arbolitos`)
-2. Haz doble clic en **`INSTALAR.bat`**
-3. Espera a que termine (puede tardar 3-5 minutos)
-4. Cuando veas "INSTALACION COMPLETADA", cierra la ventana
+1. Copia la carpeta **"2Arbolitos"** a una ubicación permanente (ej: `C:\2Arbolitos`).
+2. Haz doble clic en **`PANEL_DE_CONTROL.bat`**.
+3. En el menú, selecciona la **Opción 1: Instalar Sistema por Primera Vez**.
+4. Sigue las instrucciones en pantalla. Se instalarán dependencias, se configurará la base de datos y se crearán los usuarios por defecto.
 
 ---
 
-## ▶️ Uso Diario
+## ▶️ Uso Diario y Producción
 
-### Abrir el Sistema
+Este sistema utiliza un gestor de procesos profesional (`PM2`) para ejecutarse en segundo plano de manera confiable, sin que se cierre por accidente.
 
-1. Haz doble clic en **`INICIAR_SISTEMA.bat`**
-2. Se abrirá una ventana negra y luego el navegador automáticamente
-3. ¡Ya puedes usar el sistema!
+### Iniciar el Sistema (Modo Producción)
 
-### Cerrar el Sistema
+1. Haz doble clic en **`PANEL_DE_CONTROL.bat`**
+2. Selecciona la **Opción 2: Iniciar Servidor en Produccion (Segundo plano)**.
+3. El sistema se iniciará en segundo plano. Se abrirá el navegador en el PC local apuntando a `http://localhost:5173`.
+4. ¡El sistema quedará encendido incluso si cierras la consola negra!
 
-1. Cierra la pestaña del navegador
-2. Cierra la ventana negra (cmd)
+### Conectar otros dispositivos (Meseros / Cocina)
+
+1. En el PC Principal, abre el Panel de Control de Windows o el Símbolo del Sistema (CMD) y escribe `ipconfig` para ver tu "Dirección IPv4" (Ej: `192.168.1.15`).
+2. Toma la tablet o celular que está conectado al *mismo Wi-Fi*.
+3. Abre Chrome o Edge en el dispositivo y navega a `http://192.168.1.15:5173` (Reemplaza la IP por la tuya).
+
+### Cerrar o Apagar el Sistema
+
+El sistema corre de fondo permanentemente. Si necesitas detener los servicios (por ejemplo, para actualizar), abre un Símbolo del Sistema (CMD) y escribe:
+`npx pm2 stop all`
 
 ---
 
 ## 💾 COPIA DE SEGURIDAD (¡MUY IMPORTANTE!)
 
-> ⚠️ **CRÍTICO**: Si no haces copias de seguridad, puedes perder toda la información.
+> ⚠️ **CRÍTICO**: El sistema guarda toda tu información contable y el menú en la base de datos MySQL.
 
-### Cómo hacer una copia
+### Cómo hacer copias de seguridad de la Base de Datos
 
-1. Abre el sistema
-2. Ve a **⚙️ Configuración** (última pestaña)
-3. Baja hasta la sección **"Copia de Seguridad"** (fondo rojo)
-4. Clic en **"Descargar Copia de Seguridad"**
-5. Guarda el archivo en un lugar seguro (USB, correo, nube)
-
-### Cuándo hacer copias
-
-- ✅ **Al final de cada día** (recomendado)
-- ✅ Antes de actualizar Windows
-- ✅ Antes de limpiar el navegador
-- ✅ Semanalmente como mínimo
-
-### Cómo restaurar una copia
-
-1. Ve a **⚙️ Configuración**
-2. Clic en **"Restaurar desde Archivo"**
-3. Selecciona el archivo de respaldo (.json)
-4. Confirma (se recargará el sistema)
+Se recomienda hacer respaldos de la base de datos MySQL usando herramientas como **phpMyAdmin**, **MySQL Workbench**, o scripts automatizados de volcado (`mysqldump`).
+Consulta con tu desarrollador/técnico para configurar una tarea programada que respalde los datos diariamente.
 
 ---
 
 ## 📖 Funciones Principales
 
 ### 🛒 Punto de Venta (POS)
-- Tomar pedidos
-- Seleccionar método de pago (Efectivo/Nequi)
-- Calcular vueltos automáticamente
-- Imprimir tickets
+- Toma rápida de pedidos en modo táctil.
+- Gestión avanzada de Mesas (Table Map) y cuentas separadas.
 
-### 📋 Menú
-- Agregar/editar productos
-- Organizar por categorías
-- Precios en Pesos y Dólares
+### 🧑‍🍳 Cocina (KDS)
+- Pantalla exclusiva y en vivo para que la cocina prepare las comandas usando un tablero visual (Kanban).
 
-### 📊 Contabilidad
-- Registrar gastos
-- Ver balance del día
-- **Cierre de Caja**: Al final del día, clic en "Cierre de Caja" → "Cerrar Turno"
-- Exportar reportes a Excel
-
-### ⚙️ Configuración
-- Actualizar tasa de cambio
-- Datos del negocio (para facturas)
-- **Copias de seguridad**
+### 📊 Contabilidad y Finanzas
+- Cierres de caja (Reportes Z) y apertura de turnos.
+- Registro de gastos y cobros multi-moneda (COP/USD).
 
 ---
 
-## ❗ Solución de Problemas
+## 🔐 Usuarios de Acceso Inicial
 
-### El sistema no abre
-
-1. Verifica que Node.js esté instalado (abre cmd y escribe `node --version`)
-2. Ejecuta `INSTALAR.bat` de nuevo
-3. Reinicia la computadora
-
-### Se perdieron los datos
-
-1. Restaura la última copia de seguridad desde Configuración
-2. Si no tienes copia, los datos no se pueden recuperar
-
-### Pantalla en blanco
-
-1. Cierra todo
-2. Abre Chrome/Edge y limpia la caché (Ctrl+Shift+Del)
-3. Inicia el sistema de nuevo
+- **Administrador**: `admin` / `admin123`
+- **Mesero**: `mesero` / `waiter123`
+- **Cocina**: `cocina` / `cook123`
 
 ---
 
-## 📞 Soporte
-
-Para soporte técnico, contactar a:
-**[TU NOMBRE/EMPRESA]**
-- Teléfono: [TU TELÉFONO]
-- Email: [TU EMAIL]
-
----
-
-## 🔐 Seguridad
-
-- No compartas tus copias de seguridad con extraños
-- Haz copias en múltiples lugares
-- Este sistema funciona 100% local (no envía datos a internet)
-
----
-
-**Versión del Sistema**: 1.0  
-**Última actualización**: Febrero 2026
+**Versión del Sistema**: 2.0 (Arquitectura Cliente-Servidor Local)
+**Última actualización**: 2026

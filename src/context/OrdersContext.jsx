@@ -103,19 +103,8 @@ export function OrdersProvider({ children }) {
     }
   }, [loaded, loadData]);
 
-  useEffect(() => {
-    const syncInterval = setInterval(() => {
-      if (!syncManager.isOnline) return;
-      const tables = activeTablesRef.current || {};
-      Object.entries(tables).forEach(([tableId, items]) => {
-        if (items && items.length > 0) {
-          syncTableToServer(tableId, items);
-        }
-      });
-    }, 1000);
-
-    return () => clearInterval(syncInterval);
-  }, []);
+  // Se eliminó el syncInterval incondicional de 1 segundo para evitar que otros dispositivos 
+  // con la mesa abierta en caché reescriban el estado borrado en el servidor tras un pago.
 
   useEffect(() => {
     if (!loaded) return;
