@@ -20,6 +20,11 @@ export function UserProvider({ children }) {
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const logout = () => {
+        setCurrentUser(null);
+        sessionStorage.removeItem('currentUser');
+    };
+
     const checkAuth = useCallback(async () => {
         const token = localStorage.getItem('token');
         if (token && syncManager.isOnline) {
@@ -88,17 +93,14 @@ export function UserProvider({ children }) {
                     sessionStorage.setItem('currentUser', JSON.stringify(response.user));
                     return { success: true, user: response.user };
                 }
+
+                return { success: false, error: 'Respuesta inválida del servidor' };
             } catch (error) {
                 return { success: false, error: error.message };
             }
         } else {
             return { success: false, error: 'No hay conexión. El login requiere internet.' };
         }
-    };
-
-    const logout = () => {
-        setCurrentUser(null);
-        sessionStorage.removeItem('currentUser');
     };
 
     const addUser = async (userData) => {

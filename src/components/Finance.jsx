@@ -144,7 +144,8 @@ export function Finance() {
     };
 
     const hasDifference = Object.values(differences).some(d => d !== 0);
-    const totalDifference = differences.cash_cop + (differences.cash_usd * exchangeRate) + differences.nequi + differences.debit;
+    const rate = exchangeRate > 0 ? exchangeRate : 1;
+    const totalDifference = differences.cash_cop + (differences.cash_usd * rate) + differences.nequi + differences.debit;
 
     return (
         <div className="space-y-6">

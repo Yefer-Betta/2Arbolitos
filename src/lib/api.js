@@ -79,19 +79,24 @@ export async function deleteData(key) {
   }
 }
 
+function cacheKeyFromEndpoint(endpoint) {
+  return endpoint.replace(/^\//, '').split('?')[0].split('/').pop();
+}
+
 export async function apiGet(endpoint) {
+  const cacheKey = cacheKeyFromEndpoint(endpoint);
   if (syncManager.isOnline) {
     try {
       const data = await syncManager.fetchFromAPI(endpoint);
       return data;
     } catch (error) {
       console.warn('API fetch failed, using cached data:', error);
-      const cached = await getData(endpoint);
+      const cached = await getData(cacheKey);
       if (cached) return cached;
       throw error;
     }
   } else {
-    const cached = await getData(endpoint);
+    const cached = await getData(cacheKey);
     return cached;
   }
 }

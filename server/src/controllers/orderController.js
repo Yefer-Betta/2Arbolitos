@@ -1,4 +1,5 @@
 import prisma from '../config/database.js';
+import { notifySSEClients } from '../sse.js';
 
 export const orderController = {
   async getOrders(req, res) {
@@ -176,16 +177,25 @@ export const orderController = {
 
         let productId = item.productId;
         
-        // Auto-crear producto si no existe
         if (productId) {
           try {
             const existing = await prisma.product.findUnique({ where: { id: productId } });
             if (!existing) {
+              let categoryId;
+              const firstCategory = await prisma.category.findFirst({ where: { active: true } });
+              if (firstCategory) {
+                categoryId = firstCategory.id;
+              } else {
+                const newCat = await prisma.category.create({
+                  data: { name: 'General', order: 0 },
+                });
+                categoryId = newCat.id;
+              }
               const newProduct = await prisma.product.create({
                 data: {
                   id: productId,
                   name: `Producto ${productId.slice(0, 8)}`,
-                  categoryId: 'default',
+                  categoryId,
                   price: unitPrice,
                   active: true,
                 },
@@ -193,7 +203,7 @@ export const orderController = {
               console.log('Auto-creado producto:', newProduct.id);
             }
           } catch (e) {
-            console.log('Producto no existe, continuando sin él');
+            console.log('Error al auto-crear producto:', e.message);
           }
         }
 
@@ -206,9 +216,13 @@ export const orderController = {
         });
       }
 
-      const finalTotalCop = discountValue > 0 
-        ? totalCop - (totalCop * discountPercent / 100)
+      const discount = discountPercent > 0 ? discountPercent : 0;
+      const finalTotalCop = discount > 0
+        ? totalCop - (totalCop * discount / 100)
         : totalCop;
+      const finalTotalUsd = discount > 0
+        ? totalUsd - (totalUsd * discount / 100)
+        : totalUsd;
 
       const order = await prisma.order.create({
         data: {
@@ -216,7 +230,7 @@ export const orderController = {
           userId,
           orderType: orderType ? orderType.toUpperCase() : 'MESA',
           totalCop: finalTotalCop,
-          totalUsd,
+          totalUsd: finalTotalUsd,
           exchangeRate: exchangeRate || 4000,
           discountValue: discountValue || 0,
           discountPercent: discountPercent || 0,
@@ -246,10 +260,10 @@ export const orderController = {
         }
       }
 
+      notifySSEClients('order:created', order);
       res.status(201).json(order);
     } catch (error) {
       console.error('Error al crear pedido:', error);
-      import('fs').then(fs => fs.writeFileSync('C:\\Users\\BettaLion\\Documents\\Proyectos\\Proyecto\\2Arbolitos\\error_log.txt', error.stack || error.toString()));
       res.status(500).json({ error: 'Error interno del servidor', details: error.message });
     }
   },
@@ -287,6 +301,7 @@ export const orderController = {
         },
       });
 
+      notifySSEClients('order:updated', order);
       res.json(order);
     } catch (error) {
       console.error('Error al actualizar estado del pedido:', error);
@@ -310,10 +325,18 @@ export const orderController = {
         },
       });
 
-      await prisma.order.update({
+      const updatedOrder = await prisma.order.update({
         where: { id },
         data: { status: 'SERVED', completedAt: new Date() },
+        include: {
+          table: true,
+          user: { select: { id: true, name: true, username: true } },
+          items: { include: { product: true } },
+          payment: true,
+        },
       });
+
+      notifySSEClients('order:updated', updatedOrder);
 
       res.status(201).json(payment);
     } catch (error) {

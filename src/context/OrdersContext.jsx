@@ -13,6 +13,63 @@ export function OrdersProvider({ children }) {
   const activeTablesRef = useRef(activeTables);
   activeTablesRef.current = activeTables;
   const clearedTablesRef = useRef(new Set());
+  const syncTimeoutRef = useRef(null);
+
+  const getApiBase = () => {
+    if (typeof window === 'undefined') return '/api';
+    const envUrl = import.meta.env.VITE_API_URL;
+    if (envUrl && String(envUrl).trim()) return String(envUrl).replace(/\/$/, '');
+    return `${window.location.origin}/api`;
+  };
+
+  const syncTableToServer = async (idMesa) => {
+    try {
+      const entry = activeTablesRef.current[idMesa];
+      if (!entry) return;
+      const { items, version } = entry;
+
+      const result = await apiPut('/tables/state', {
+        tableId: idMesa,
+        items,
+        _clientVersion: version,
+      });
+
+      if (result?.conflict) {
+        setActiveTables(prevTables => {
+          const serverItems = Array.isArray(result.serverData) ? result.serverData : [];
+          const localItems = prevTables[idMesa]?.items || [];
+
+          const merged = [...serverItems];
+          localItems.forEach(local => {
+            if (!merged.find(m => m.product?.id === local.product?.id)) {
+              merged.push(local);
+            }
+          });
+
+          const newEntry = { items: merged, version: result.serverVersion };
+          const newTables = { ...prevTables, [idMesa]: newEntry };
+          setData('activeTables', newTables);
+          return newTables;
+        });
+      } else if (result?.version) {
+        setActiveTables(prevTables => {
+          const prev = prevTables[idMesa];
+          if (!prev) return prevTables;
+          const newEntry = { ...prev, version: result.version };
+          const newTables = { ...prevTables, [idMesa]: newEntry };
+          setData('activeTables', newTables);
+          return newTables;
+        });
+      }
+    } catch {}
+  };
+
+  const debouncedSyncTable = useCallback((idMesa) => {
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    syncTimeoutRef.current = setTimeout(() => {
+      syncTableToServer(idMesa);
+    }, 300);
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -24,78 +81,59 @@ export function OrdersProvider({ children }) {
       let localOrders = Array.isArray(ordersData) ? ordersData : [];
       let localTables = (tablesData && typeof tablesData === 'object') ? tablesData : {};
 
-      console.log('LOAD: Local tables loaded:', JSON.stringify(localTables));
-
       if (syncManager.isOnline) {
         try {
           const [serverOrders, tableStates] = await Promise.all([
             apiGet('/orders'),
-            syncManager.fetchFromAPI('/tables/state').catch(e => {
-              console.warn('LOAD: Error fetching table states:', e.message);
-              return {};
-            }),
+            syncManager.fetchFromAPI('/tables/state').catch(() => ({})),
           ]);
-          
+
           if (Array.isArray(serverOrders) && serverOrders.length > 0) {
             localOrders = serverOrders;
             await setData('orders', serverOrders);
           }
 
           if (tableStates && typeof tableStates === 'object') {
-            const now = Date.now();
             let hasChanges = false;
-            
-            Object.entries(tableStates).forEach(([tableId, items]) => {
-              // Skip tables that were just cleared - preserve local cleared state
+
+            Object.entries(tableStates).forEach(([tableId, entry]) => {
               if (clearedTablesRef.current.has(tableId)) {
-                console.log('LOAD: Skipping cleared table from server:', tableId);
-                // Ensure it's removed locally if still present
-                if (localTables[tableId] && localTables[tableId].length > 0) {
+                if (localTables[tableId]) {
                   delete localTables[tableId];
                   hasChanges = true;
                 }
                 return;
               }
-              
-              // Skip empty or invalid items
-              if (!items || items.length === 0) return;
-              if (!Array.isArray(items)) {
-                console.warn('LOAD: Invalid items for table:', tableId, typeof items);
-                return;
-              }
-              
-              const localItem = localTables[tableId];
-              const serverTimestamp = items._timestamp || now;
-              const localTimestamp = localItem?._timestamp || 0;
-              
-              if (!localItem || localItem.length === 0 || serverTimestamp > localTimestamp) {
-                console.log('LOAD: Merging from server - table:', tableId, 'items:', items.length, 'ts:', serverTimestamp);
-                localTables[tableId] = items;
+
+              if (!entry || !Array.isArray(entry.items)) return;
+
+              const serverVersion = entry.version || 0;
+              const localEntry = localTables[tableId];
+              const localVersion = localEntry?.version || 0;
+              const localItems = localEntry?.items || [];
+
+              if (!localEntry || localItems.length === 0 || serverVersion > localVersion) {
+                localTables[tableId] = entry;
                 hasChanges = true;
-              } else if (localTimestamp > serverTimestamp && localItem.length > 0) {
-                console.log('LOAD: Pushing local to server - table:', tableId, 'ts:', localTimestamp);
-                syncTableToServer(tableId, localItem);
+              } else if (localVersion > serverVersion && localItems.length > 0) {
+                debouncedSyncTable(tableId);
               }
             });
-            
+
             if (hasChanges) {
               await setData('activeTables', localTables);
             }
           }
-        } catch (e) {
-          console.warn('LOAD: Could not fetch from server:', e.message);
-        }
+        } catch {}
       }
 
       setOrders(localOrders);
       setActiveTables(localTables);
-      console.log('LOAD: Final activeTables:', JSON.stringify(localTables));
       setLoaded(true);
-    } catch (error) {
-      console.error('LOAD: Error loading orders data:', error);
+    } catch {
       setLoaded(true);
     }
-  }, []);
+  }, [debouncedSyncTable]);
 
   useEffect(() => {
     if (!loaded) {
@@ -103,18 +141,110 @@ export function OrdersProvider({ children }) {
     }
   }, [loaded, loadData]);
 
-  // Se eliminó el syncInterval incondicional de 1 segundo para evitar que otros dispositivos 
-  // con la mesa abierta en caché reescriban el estado borrado en el servidor tras un pago.
-
   useEffect(() => {
     if (!loaded) return;
     const pull = setInterval(() => {
       if (syncManager.isOnline) {
         loadData();
       }
-    }, 4000);
+    }, 15000);
     return () => clearInterval(pull);
   }, [loaded, loadData]);
+
+  useEffect(() => {
+    if (!loaded) return;
+
+    const eventSource = new EventSource(`${getApiBase()}/events`);
+
+    eventSource.addEventListener('order:created', (e) => {
+      try {
+        const newOrder = JSON.parse(e.data);
+        setOrders(prev => {
+          if (prev.find(o => o.id === newOrder.id)) return prev;
+          const next = [newOrder, ...prev];
+          setData('orders', next);
+          return next;
+        });
+      } catch {}
+    });
+
+    eventSource.addEventListener('order:updated', (e) => {
+      try {
+        const updated = JSON.parse(e.data);
+        setOrders(prev => {
+          const next = prev.map(o => o.id === updated.id ? updated : o);
+          setData('orders', next);
+          return next;
+        });
+      } catch {}
+    });
+
+    eventSource.addEventListener('table:updated', () => {
+      syncManager.fetchFromAPI('/tables/state').then(data => {
+        if (!data) return;
+        setActiveTables(prev => {
+          const merged = { ...prev };
+          Object.entries(data).forEach(([tid, entry]) => {
+            if (clearedTablesRef.current.has(tid)) return;
+            if (!entry || !Array.isArray(entry.items)) return;
+            const localVer = prev[tid]?.version || 0;
+            const serverVer = entry.version || 0;
+            if (serverVer > localVer) {
+              merged[tid] = entry;
+            }
+          });
+          setData('activeTables', merged);
+          return merged;
+        });
+      }).catch(() => {});
+    });
+
+    eventSource.addEventListener('table:cleared', () => {
+      syncManager.fetchFromAPI('/tables/state').then(data => {
+        if (!data) return;
+        setActiveTables(prev => {
+          const merged = { ...prev };
+          Object.entries(data).forEach(([tid, entry]) => {
+            if (!entry || !entry.items || entry.items.length === 0) {
+              delete merged[tid];
+            } else if (Array.isArray(entry.items)) {
+              merged[tid] = entry;
+            }
+          });
+          Object.keys(prev).forEach(k => {
+            if (!data[k]) delete merged[k];
+          });
+          setData('activeTables', merged);
+          return merged;
+        });
+      }).catch(() => {});
+    });
+
+    eventSource.addEventListener('table:conflict', (e) => {
+      try {
+        const { tableId, serverData, serverVersion } = JSON.parse(e.data);
+        setActiveTables(prev => {
+          const localItems = prev[tableId]?.items || [];
+          const merged = [...serverData];
+          localItems.forEach(local => {
+            if (!merged.find(m => m.product?.id === local.product?.id)) {
+              merged.push(local);
+            }
+          });
+          const newEntry = { items: merged, version: serverVersion };
+          const newTables = { ...prev, [tableId]: newEntry };
+          setData('activeTables', newTables);
+          return newTables;
+        });
+      } catch {}
+    });
+
+    eventSource.onerror = () => {
+      eventSource.close();
+    };
+
+    return () => eventSource.close();
+  }, [loaded]);
 
   useEffect(() => {
     const unsubscribe = syncManager.addListener((event, data) => {
@@ -133,20 +263,13 @@ export function OrdersProvider({ children }) {
       status: 'PENDING',
     };
 
-    // Persistir siempre la lista nueva (evita closure obsoleto que borraba ventas en el celular)
     setOrders((prev) => {
       const next = [newOrder, ...prev];
-      void setData('orders', next);
+      setData('orders', next);
       return next;
     });
 
-    console.log('ORDER_CREATE: Order created locally, tableId:', order.tableId);
-
-    // Always transform items BEFORE trying to sync
     const originalItems = order.items || [];
-    console.log('ORDER_CREATE: Original items count:', originalItems.length);
-    console.log('ORDER_CREATE: First item structure:', originalItems[0]);
-
     const transformedItems = originalItems.map(item => ({
       productId: item.product?.id || item.productId,
       quantity: item.quantity,
@@ -154,8 +277,6 @@ export function OrdersProvider({ children }) {
       totalPrice: (item.product?.price || item.unitPrice || 0) * item.quantity,
       notes: item.notes || null,
     }));
-
-    console.log('ORDER_CREATE: Transformed items:', JSON.stringify(transformedItems));
 
     const orderDataForServer = {
       tableId: order.tableId,
@@ -167,27 +288,23 @@ export function OrdersProvider({ children }) {
       payment: order.payment,
     };
 
-    console.log('ORDER_CREATE: Full order data:', orderDataForServer);
-
     if (syncManager.isOnline) {
       try {
-        console.log('ORDER_CREATE: Attempting to sync...');
         const created = await apiPost('/orders', orderDataForServer);
-        console.log('ORDER_CREATE: Sync response:', created?.id, created?.offline);
 
         if (created && !created.offline && created.id) {
           setOrders((prev) => {
             const rest = prev.filter((o) => o.id !== newOrder.id);
             const next = [created, ...rest];
-            void setData('orders', next);
+            setData('orders', next);
             return next;
           });
 
           if (order.tableId) {
-            setActiveTables((prevTables) => {
+            setActiveTables(prevTables => {
               const newTables = { ...prevTables };
               delete newTables[order.tableId];
-              void setData('activeTables', newTables);
+              setData('activeTables', newTables);
               return newTables;
             });
             syncManager
@@ -197,8 +314,7 @@ export function OrdersProvider({ children }) {
         } else {
           throw new Error('Server did not return valid order');
         }
-      } catch (e) {
-        console.warn('ORDER_CREATE: Sync failed, saving locally:', e.message);
+      } catch {
         await syncManager.addToQueue({
           type: 'CREATE',
           endpoint: '/orders',
@@ -206,7 +322,6 @@ export function OrdersProvider({ children }) {
         });
       }
     } else {
-      console.log('ORDER_CREATE: Offline, saving to queue');
       await syncManager.addToQueue({
         type: 'CREATE',
         endpoint: '/orders',
@@ -224,7 +339,7 @@ export function OrdersProvider({ children }) {
   const updateOrderStatus = async (orderId, status) => {
     setOrders((prevOrders) => {
       const next = prevOrders.map((o) => (o.id === orderId ? { ...o, status } : o));
-      void setData('orders', next);
+      setData('orders', next);
       return next;
     });
 
@@ -235,7 +350,11 @@ export function OrdersProvider({ children }) {
           body: JSON.stringify({ status }),
         });
       } catch {
-        console.warn('Status update queued for sync');
+        await syncManager.addToQueue({
+          type: 'UPDATE',
+          endpoint: `/orders/${orderId}/status`,
+          data: { status },
+        });
       }
     } else {
       await syncManager.addToQueue({
@@ -246,78 +365,64 @@ export function OrdersProvider({ children }) {
     }
   };
 
-  const syncTableToServer = async (idMesa, items) => {
-    try {
-      const dataToSync = {
-        tableId: idMesa,
-        items,
-        _timestamp: Date.now()
-      };
-      await apiPut('/tables/state', dataToSync);
-    } catch (e) {
-      console.warn('SYNC: Failed to sync table to server:', e.message);
-    }
-  };
-
   const agregarPlatilloAMesa = (idMesa, platillo) => {
-    console.log('AGREGAR: Adding product to mesa:', idMesa, platillo.name);
-    console.log('AGREGAR: Current tables before:', JSON.stringify(activeTables));
-    
     setActiveTables(prevTables => {
-      const currentTableOrder = prevTables[idMesa] || [];
-      console.log('AGREGAR: Current order for mesa:', currentTableOrder.length, 'items');
-      const existingProductIndex = currentTableOrder.findIndex(item => item.product.id === platillo.id);
+      const currentItems = prevTables[idMesa]?.items || [];
+      const currentVersion = prevTables[idMesa]?.version || 0;
+      const existingProductIndex = currentItems.findIndex(item => item.product?.id === platillo.id);
 
-      let newTableOrder;
+      let newItems;
       if (existingProductIndex > -1) {
-        console.log('AGREGAR: Product already exists, increasing quantity');
-        newTableOrder = currentTableOrder.map((item, index) =>
+        newItems = currentItems.map((item, index) =>
           index === existingProductIndex
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
-        console.log('AGREGAR: New product, adding to cart');
-        newTableOrder = [...currentTableOrder, { product: platillo, quantity: 1 }];
+        newItems = [...currentItems, { product: platillo, quantity: 1 }];
       }
 
-      const newTables = { ...prevTables, [idMesa]: newTableOrder };
-      console.log('AGREGAR: New tables:', JSON.stringify(newTables));
+      const newEntry = { items: newItems, version: currentVersion };
+      const newTables = { ...prevTables, [idMesa]: newEntry };
       setData('activeTables', newTables);
-      
-      // Sync to server
-      syncTableToServer(idMesa, newTableOrder);
-      
+
       return newTables;
     });
+    debouncedSyncTable(idMesa);
   };
 
-const actualizarCantidad = (idMesa, idPlatillo, cantidad) => {
+  const actualizarCantidad = (idMesa, idPlatillo, cantidad) => {
+    let willBeEmpty = false;
     setActiveTables(prevTables => {
-      const currentTableOrder = prevTables[idMesa] || [];
-      let newTableOrder;
+      const currentItems = prevTables[idMesa]?.items || [];
+      const currentVersion = prevTables[idMesa]?.version || 0;
+      let newItems;
 
       if (cantidad <= 0) {
-        newTableOrder = currentTableOrder.filter(item => item.product.id !== idPlatillo);
+        newItems = currentItems.filter(item => item.product?.id !== idPlatillo);
       } else {
-        newTableOrder = currentTableOrder.map(item =>
-          item.product.id === idPlatillo
+        newItems = currentItems.map(item =>
+          item.product?.id === idPlatillo
             ? { ...item, quantity: cantidad }
             : item
         );
       }
 
-      const newTables = { ...prevTables, [idMesa]: newTableOrder };
+      willBeEmpty = newItems.length === 0;
+      const newEntry = { items: newItems, version: currentVersion };
+      const newTables = { ...prevTables, [idMesa]: newEntry };
       setData('activeTables', newTables);
-      
-      if (newTableOrder.length > 0) {
-        syncTableToServer(idMesa, newTableOrder);
-      } else {
-        syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' }).catch(() => {});
-      }
-      
+
       return newTables;
     });
+
+    if (willBeEmpty) {
+      setTimeout(() => {
+        syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' }).catch(() => {});
+      }, 0);
+    } else {
+      debouncedSyncTable(idMesa);
+    }
   };
 
   const eliminarPlatilloDeMesa = (idMesa, idPlatillo) => {
@@ -325,32 +430,20 @@ const actualizarCantidad = (idMesa, idPlatillo, cantidad) => {
   };
 
   const limpiarMesa = (idMesa) => {
-    // Marcar mesa como limpiada para evitar que loadData la restaure
     clearedTablesRef.current.add(idMesa);
-    
-    // Forzar sync inmediata después de limpiar
-    const forceSyncAfterClear = async () => {
-      // Mantener el flag por 15 segundos para cubrir múltiples intervalos
-      setTimeout(() => {
-        clearedTablesRef.current.delete(idMesa);
-      }, 15000);
-      
-      // Sincronizar inmediatamente para borrar del servidor
-      try {
-        await syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' });
-      } catch (e) {
-        // ignore - se guardará en cola
-      }
-    };
-    
+
     setActiveTables(prevTables => {
       const newTables = { ...prevTables };
       delete newTables[idMesa];
       setData('activeTables', newTables);
-      forceSyncAfterClear();
-      
       return newTables;
     });
+
+    setTimeout(() => {
+      clearedTablesRef.current.delete(idMesa);
+    }, 15000);
+
+    syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' }).catch(() => {});
   };
 
   const syncNow = async () => {

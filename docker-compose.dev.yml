@@ -1,0 +1,55 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: 2arbolitos-db-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: dev_password_123
+      MYSQL_DATABASE: 2arbolitos
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    volumes:
+      - mysql_data_dev:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - 2arbolitos-dev-net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: 2arbolitos-app-dev
+    environment:
+      PORT: 3002
+      NODE_ENV: development
+      DATABASE_URL: mysql://root:dev_password_123@db:3306/2arbolitos?schema=public&charset=utf8mb4
+      JWT_SECRET: dev_jwt_secret_local
+      JWT_EXPIRES_IN: 7d
+      HOST_IP: ${HOST_IP:-0.0.0.0}
+      DOCKER: "true"
+    ports:
+      - "5173:5173"
+      - "3002:3002"
+    volumes:
+      - ./src:/app/src:ro
+      - ./server/src:/app/server/src:ro
+      - ./server/prisma:/app/server/prisma:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - 2arbolitos-dev-net
+
+volumes:
+  mysql_data_dev:
+
+networks:
+  2arbolitos-dev-net:
+    driver: bridge

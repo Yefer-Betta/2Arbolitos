@@ -38,39 +38,47 @@ Sistema avanzado de Punto de Venta (POS) y gestión operativa para restaurantes.
 2Arbolitos/
 ├── src/                 # Frontend React (Vite, Tailwind, Componentes)
 ├── server/              # API Express + Prisma (Controladores, Rutas)
-├── scripts/             # Scripts modulares de automatización (.bat)
-├── PANEL_DE_CONTROL.bat # Asistente unificado de comandos para Windows
-├── package.json         # Scripts principales (dev, api, dev:full)
+├── scripts/             # Scripts de automatización cross-platform (Node.js)
+│   ├── cli.js           # Menú interactivo principal
+│   └── commands/        # Comandos individuales
+├── PANEL_DE_CONTROL.bat # Atajo para Windows (llama a scripts/cli.js)
+├── package.json         # Scripts principales (start, setup, dev, dev:full)
 └── ...
 ```
 
 ---
 
-## 🚀 Instalación y Despliegue (Windows)
+## 🚀 Instalación y Despliegue (Windows / macOS / Linux)
 
 ### Requisitos Previos
 *   **Node.js** v18 o superior.
-*   **MySQL** v8.0+ instalado y en ejecución (XAMPP, WAMP, o nativo).
+*   **MySQL** v8.0+ instalado y en ejecución.
 
-### Instalación Rápida Asistida
+### Instalación Rápida Asistida (recomendada)
 
-El sistema incluye herramientas automatizadas para que la instalación y administración en un entorno Windows sea sumamente sencilla:
+El sistema incluye un asistente interactivo multiplataforma. Solo ejecuta:
 
-1. Asegúrate de tener el servicio MySQL corriendo.
-2. Haz doble clic en el archivo raíz **`PANEL_DE_CONTROL.bat`**.
-3. En el menú, selecciona **`1. Instalar Sistema por Primera Vez`**. 
-   - El script preparará entornos, instalará dependencias npm del cliente y del servidor, creará la base de datos `2arbolitos`, empujará los schemas (Prisma db push) y agregará los usuarios iniciales (seed).
+```bash
+npm start
+```
 
-### Iniciar el Sistema
+Esto abre el menú interactivo donde puedes elegir:
 
-Desde el mismo `PANEL_DE_CONTROL.bat` puedes arrancar el sistema:
+1. **Instalar Sistema por Primera Vez** — Te guía paso a paso: configura MySQL, instala dependencias, crea la base de datos, pobla datos de ejemplo y construye el frontend.
+2. **Iniciar en Producción (PM2)** — Configura PM2 como servicio del sistema (systemd en Linux, launchd en macOS, servicio de Windows).
+3. **Actualizar Código y Reiniciar** — Reconstruye el frontend y reinicia el servidor.
+4. **Iniciar en Modo Desarrollo** — Arranca Vite + API con hot-reloading.
 
-*   **Opción 2 (Producción):** Configura y arranca el ecosistema usando `PM2`. Ambos servicios (Frontend y Backend) correrán en segundo plano de manera estable, y el sistema se iniciará al encender el PC (opcional según PM2 startup).
-*   **Opción 4 (Desarrollo):** Ejecuta de forma visible en consola mediante `npm run dev:full` con hot-reloading (ideal para programar).
+O puedes ejecutar comandos individuales directamente:
 
----
+```bash
+npm run setup      # Instalación completa
+npm run dev:full   # Modo desarrollo (Vite + API)
+npm run start:prod # Configurar producción con PM2
+npm run update     # Actualizar y reiniciar
+```
 
-## 💻 Desarrollo (Instalación Manual Unix/Mac/Windows)
+### Instalación Manual (avanzada)
 
 ```bash
 # 1. Instalar dependencias del Frontend
@@ -80,22 +88,40 @@ npm install
 cd server
 npm install
 
-# 3. Configurar Entorno (.env)
-cp .env.example .env
+# 3. Crear base de datos MySQL
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS \`2arbolitos\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+
+# 4. Configurar Entorno (.env)
+cd ..
+cp server/.env.example server/.env 2>/dev/null || echo "Crea server/.env manualmente"
 # Edita server/.env y ajusta DATABASE_URL según credenciales locales
 
-# 4. Configurar Base de Datos
+# 5. Configurar Base de Datos con Prisma
 npx prisma generate
 npx prisma db push
 node prisma/seed.js # Crea usuarios y configuraciones por defecto
 
-# 5. Volver a la raíz y correr (Modo Dev Concurrente)
-cd ..
+# 6. Construir frontend
+npm run build
+
+# 7. Iniciar
 npm run dev:full
 ```
 
 *   **Frontend (Vite):** `http://localhost:5173`
-*   **Backend (API):** `http://localhost:3001` (Ajustable en `.env`)
+*   **Backend (API):** `http://localhost:3002` (ajustable en server/.env)
+
+### Windows: Atajo de Doble Click
+
+En Windows puedes hacer doble clic en **`PANEL_DE_CONTROL.bat`** que abre el mismo menú interactivo.
+
+### macOS / Linux: Atajo Terminal
+
+Puedes crear un alias en tu shell:
+
+```bash
+echo "alias 2arbolitos='cd /ruta/a/2Arbolitos && npm start'" >> ~/.bashrc
+```
 
 ---
 

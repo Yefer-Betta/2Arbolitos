@@ -10,6 +10,8 @@ export function VistaMesas({ onSelectTable }) {
     const { exchangeRate } = useSettings();
     const TOTAL_TABLES = 10;
 
+    const rate = exchangeRate > 0 ? exchangeRate : 1;
+
     const calculateTableTotal = (tableOrder) => {
         if (!tableOrder) return { cop: 0, usd: 0 };
 
@@ -17,16 +19,16 @@ export function VistaMesas({ onSelectTable }) {
         let usd = 0;
 
         tableOrder.forEach(item => {
-            const price = item.product.price;
-            const isUsd = item.product.isUsd;
-            const qty = item.quantity;
+            const price = item.product?.price || 0;
+            const isUsd = item.product?.isUsd;
+            const qty = item.quantity || 0;
 
             if (isUsd) {
                 usd += price * qty;
-                cop += (price * exchangeRate) * qty;
+                cop += (price * rate) * qty;
             } else {
                 cop += price * qty;
-                usd += (price / exchangeRate) * qty;
+                usd += (price / rate) * qty;
             }
         });
 
@@ -80,8 +82,8 @@ export function VistaMesas({ onSelectTable }) {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {Array.from({ length: TOTAL_TABLES }, (_, i) => i + 1).map(tableNumber => {
                     const tableId = `mesa-${tableNumber}`;
-                    const tableOrder = activeTables[tableId];
-                    const isOccupied = !!tableOrder && tableOrder.length > 0;
+                    const tableOrder = activeTables[tableId]?.items || [];
+                    const isOccupied = tableOrder.length > 0;
                     const totals = calculateTableTotal(tableOrder);
 
                     return (

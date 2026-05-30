@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { useOrders } from '../context/OrdersContext';
 import { useFinance } from '../context/FinanceContext';
 import { useMenu } from '../context/MenuContext';
 import { syncManager } from '../lib/api.js';
-import { DollarSign, RefreshCw, Building, Save, Download, Upload, Database, AlertTriangle, Wifi, WifiOff, RefreshCw as SyncIcon } from 'lucide-react';
+import { DollarSign, RefreshCw, Building, Save, Download, Upload, Database, AlertTriangle, Wifi, WifiOff, RefreshCw as SyncIcon, Smartphone, QrCode, Power } from 'lucide-react';
 
 export function CurrencySettings() {
-    const { exchangeRate, setExchangeRate, business, setBusiness } = useSettings();
+    const { exchangeRate, setExchangeRate, business, setBusiness, autoStart, toggleAutoStart, serverUrl } = useSettings();
     const { orders, syncNow, loadData } = useOrders();
     const { expenses, closures } = useFinance();
     const { products } = useMenu();
@@ -15,6 +15,8 @@ export function CurrencySettings() {
     const [localBusiness, setLocalBusiness] = useState(business);
     const [isSaved, setIsSaved] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [qrSvg, setQrSvg] = useState('');
+    const [qrLoading, setQrLoading] = useState(false);
 
     const handleRateChange = (e) => {
         const value = parseFloat(e.target.value);
@@ -133,6 +135,21 @@ export function CurrencySettings() {
             reader.readAsDataURL(file);
         }
     };
+
+    const loadQr = async () => {
+        if (qrLoading) return;
+        setQrLoading(true);
+        try {
+            const res = await fetch('/api/settings/qr');
+            const data = await res.json();
+            setQrSvg(data.qrSvg);
+        } catch {}
+        setQrLoading(false);
+    };
+
+    useEffect(() => {
+        loadQr();
+    }, []);
 
     return (
         <div className="space-y-8">
@@ -389,6 +406,96 @@ export function CurrencySettings() {
                     </div>
                 </form>
             </div>
+            </div>
+
+            {/* System Settings */}
+            <div className="card p-6 sm:p-8 bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-200">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-gray-100 rounded-xl text-gray-600">
+                        <Power className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-800">Sistema</h2>
+                        <p className="text-sm text-gray-500">Acceso y configuración del servidor</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* QR Code */}
+                    <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 text-center">
+                        <div className="flex items-center gap-2 justify-center mb-4">
+                            <QrCode className="w-5 h-5 text-gray-600" />
+                            <h3 className="font-bold text-gray-700">Acceso desde tablets y celulares</h3>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Escanea este código QR con cualquier dispositivo en la misma red WiFi
+                        </p>
+                        <div className="bg-gray-50 rounded-xl p-4 inline-block mb-3">
+                            {qrLoading ? (
+                                <div className="w-[200px] h-[200px] flex items-center justify-center text-gray-400">
+                                    <RefreshCw className="w-8 h-8 animate-spin" />
+                                </div>
+                            ) : qrSvg ? (
+                                <div className="w-[200px] mx-auto" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+                            ) : (
+                                <div className="w-[200px] h-[200px] flex items-center justify-center text-gray-400">
+                                    Sin conexión al servidor
+                                </div>
+                            )}
+                        </div>
+                        <p className="text-xs text-gray-500 font-mono break-all bg-gray-50 rounded-lg p-2">
+                            {serverUrl}
+                        </p>
+                        <a
+                            href="/qr"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                            <Smartphone className="w-4 h-4" />
+                            Abrir página QR
+                        </a>
+                    </div>
+
+                    {/* Auto-start toggle */}
+                    <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Power className="w-5 h-5 text-gray-600" />
+                            <h3 className="font-bold text-gray-700">Inicio automático</h3>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-4">
+                            El servidor se inicia automáticamente al encender el PC.
+                            No necesitas abrir una terminal nunca.
+                        </p>
+                        <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
+                            <div>
+                                <p className="font-medium text-gray-700 text-sm">
+                                    {autoStart ? 'Activado' : 'Desactivado'}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    {autoStart
+                                        ? 'El sistema arranca solo al prender el equipo'
+                                        : 'Debes iniciar el servidor manualmente'}
+                                </p>
+                            </div>
+                            <button
+                                onClick={toggleAutoStart}
+                                className={`relative w-14 h-7 rounded-full transition-colors ${
+                                    autoStart ? 'bg-green-500' : 'bg-gray-300'
+                                }`}
+                            >
+                                <span
+                                    className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                                        autoStart ? 'translate-x-7' : 'translate-x-0'
+                                    }`}
+                                />
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-3">
+                            Solo disponible cuando el servidor corre con PM2 (opción 2 del menú de administración)
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

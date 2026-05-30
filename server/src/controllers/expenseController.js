@@ -10,7 +10,7 @@ export const expenseController = {
       res.json(expenses);
     } catch (error) {
       console.error('Error al obtener gastos:', error);
-      res.json([]);
+      res.status(500).json([]);
     }
   },
 

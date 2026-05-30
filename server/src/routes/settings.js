@@ -9,6 +9,8 @@ router.get('/settings/:key', optionalAuth, settingsController.getSetting);
 router.post('/settings', authenticate, authorize('ADMIN', 'CASHIER'), settingsController.setSetting);
 router.put('/settings', authenticate, authorize('ADMIN', 'CASHIER'), settingsController.setSettings);
 
-router.get('/reports/finances', authenticate, optionalAuth, settingsController.getFinanceReport);
+router.post('/settings/auto-start', authenticate, authorize('ADMIN'), settingsController.setAutoStart);
+
+router.get('/reports/finances', authenticate, settingsController.getFinanceReport);
 
 export default router;

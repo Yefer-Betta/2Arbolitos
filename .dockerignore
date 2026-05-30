@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.git/
+.gitignore
+*.log
+.env
+.env.local
+server/.env
+server/node_modules/
+error_log.txt
+release/
+build/
+*.md
+.DS_Store
+Thumbs.db

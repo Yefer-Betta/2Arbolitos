@@ -1,0 +1,19 @@
+FROM node:20-alpine
+WORKDIR /app
+
+RUN apk add --no-cache netcat-openbsd
+
+COPY package*.json ./
+RUN npm ci
+
+COPY server/package*.json ./server/
+RUN cd server && npm ci
+
+COPY vite.config.js tailwind.config.js postcss.config.js index.html ./
+COPY public ./public
+COPY server/prisma ./server/prisma
+RUN cd server && npx prisma generate
+
+EXPOSE 5173 3002
+
+CMD ["npm", "run", "dev:full"]

@@ -35,7 +35,7 @@ export function History() {
                 Fecha: new Date(orderDate).toLocaleDateString(),
                 Hora: new Date(orderDate).toLocaleTimeString(),
                 Origen: orderOriginLabel(order),
-                Items: order.items.map(i => `${i.quantity}x ${i.product.name}`).join(', '),
+                Items: (order.items || []).map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', '),
                 'Total COP': order.totalCop,
                 'Total USD': order.totalUsd,
                 'Método Pago': order.payment?.method || 'N/A',
@@ -123,9 +123,9 @@ export function History() {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600">
                                             <div className="max-w-md">
-                                                {order.items.map((item, itemIdx) => (
+                                                {(order.items || []).map((item, itemIdx) => (
                                                     <span key={`${order.id}-${itemIdx}`} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs mr-1 mb-1 border border-gray-200">
-                                                        <b>{item.quantity}</b>x {item.product.name}
+                                                        <b>{item.quantity}</b>x {item.product?.name || 'Producto'}
                                                     </span>
                                                 ))}
                                             </div>

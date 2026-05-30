@@ -21,8 +21,7 @@ export function App() {
 }
 
 function MainApp() {
-  const { currentUser } = useUser();
-  const defaultTab = currentUser.role === 'COOK' ? 'pos' : 'pos';
+  const defaultTab = 'pos';
   const [activeTab, setActiveTab] = useState(defaultTab);
 
   const renderContent = () => {

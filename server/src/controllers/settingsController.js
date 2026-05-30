@@ -1,4 +1,6 @@
 import prisma from '../config/database.js';
+import { execSync } from 'child_process';
+import os from 'os';
 
 export const settingsController = {
   async getSettings(req, res) {
@@ -136,6 +138,44 @@ export const settingsController = {
       res.json({ message: 'Configuraciones guardadas', count: results.length });
     } catch (error) {
       console.error('Error al guardar configuraciones:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
+
+  async setAutoStart(req, res) {
+    try {
+      const { enabled } = req.body;
+
+      await prisma.settings.upsert({
+        where: { key: 'autoStart' },
+        update: { value: String(enabled), type: 'boolean' },
+        create: { key: 'autoStart', value: String(enabled), type: 'boolean' },
+      });
+
+      const platform = os.platform();
+      try {
+        if (enabled) {
+          if (platform === 'win32') {
+            execSync('npx pm2-startup install', { stdio: 'pipe', timeout: 30000 });
+          } else {
+            execSync('npx pm2 startup', { stdio: 'pipe', timeout: 30000 });
+          }
+        } else {
+          if (platform === 'win32') {
+            execSync('npx pm2-startup uninstall', { stdio: 'pipe', timeout: 30000 });
+          } else {
+            execSync('npx pm2 unstartup', { stdio: 'pipe', timeout: 30000 });
+          }
+        }
+        res.json({ autoStart: enabled, message: enabled ? 'Auto-inicio activado' : 'Auto-inicio desactivado' });
+      } catch (cmdError) {
+        res.json({
+          autoStart: enabled,
+          warning: 'Configuración guardada, pero no se pudo configurar el auto-inicio del sistema. ' + cmdError.message,
+        });
+      }
+    } catch (error) {
+      console.error('Error al configurar auto-inicio:', error);
       res.status(500).json({ error: 'Error interno del servidor' });
     }
   },

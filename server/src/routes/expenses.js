@@ -4,7 +4,7 @@ import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
-router.get('/expenses', expenseController.getExpenses);
+router.get('/expenses', authenticate, expenseController.getExpenses);
 router.post('/expenses', authenticate, expenseController.createExpense);
 router.delete('/expenses/:id', authenticate, expenseController.deleteExpense);
 

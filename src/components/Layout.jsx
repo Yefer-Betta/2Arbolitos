@@ -3,7 +3,6 @@ import { Coffee, Settings, ShoppingCart, TrendingUp, Calculator, Menu, X, LogOut
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useSettings } from '../context/SettingsContext';
-import { useOrders } from '../context/OrdersContext';
 import { syncManager } from '../lib/syncManager.js';
 
 export function Layout({ children, activeTab, setActiveTab }) {
@@ -13,8 +12,6 @@ export function Layout({ children, activeTab, setActiveTab }) {
     const [isSyncing, setIsSyncing] = useState(false);
     const { currentUser, logout } = useUser();
     const { business } = useSettings();
-    const { syncNow } = useOrders();
-
     useEffect(() => {
         const unsubscribe = syncManager.addListener((event, data) => {
             if (event === 'online') {

@@ -17,6 +17,8 @@ const SettingsContext = createContext();
 export function SettingsProvider({ children }) {
     const [exchangeRate, setExchangeRate] = useState(4000);
     const [business, setBusiness] = useState(DEFAULT_BUSINESS);
+    const [autoStart, setAutoStart] = useState(false);
+    const [serverUrl, setServerUrl] = useState('');
     const [loaded, setLoaded] = useState(false);
 
     const loadSettings = useCallback(async () => {
@@ -49,6 +51,9 @@ if (syncManager.isOnline) {
                             _syncTimestamp: new Date().toISOString()
                         });
                     }
+                    if (serverSettings?.autoStart !== undefined) {
+                        setAutoStart(serverSettings.autoStart);
+                    }
                 } catch (err) {
                     console.error('Error fetching settings:', err);
                 }
@@ -65,6 +70,7 @@ if (syncManager.isOnline) {
                 setBusiness({ ...DEFAULT_BUSINESS, ...businessData });
             }
             
+            setServerUrl(window.location.origin.replace(':5173', ':3002'));
             setLoaded(true);
         } catch (error) {
             console.error('Error loading settings:', error);
@@ -130,11 +136,30 @@ if (syncManager.isOnline) {
         }
     };
 
+    const toggleAutoStart = async () => {
+        const newState = !autoStart;
+        setAutoStart(newState);
+        if (syncManager.isOnline) {
+            try {
+                const res = await apiPost('/settings/auto-start', { enabled: newState });
+                if (res.warning) {
+                    console.warn(res.warning);
+                }
+            } catch {
+                setAutoStart(!newState);
+                console.error('Error al cambiar auto-inicio');
+            }
+        }
+    };
+
     const value = {
         exchangeRate,
         setExchangeRate: updateExchangeRate,
         business,
         setBusiness: updateBusiness,
+        autoStart,
+        toggleAutoStart,
+        serverUrl,
         loaded,
     };
 

@@ -48,8 +48,7 @@ export const authController = {
 
   async register(req, res) {
     try {
-      console.log(' register - Body:', req.body);
-      console.log(' register - User:', req.user);
+      console.log(' register - User:', req.user?.username);
       
       const { username, password, name, role } = req.body;
 

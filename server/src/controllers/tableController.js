@@ -1,4 +1,5 @@
 import prisma from '../config/database.js';
+import { notifySSEClients } from '../sse.js';
 
 export const tableController = {
   async getTables(req, res) {
@@ -154,7 +155,10 @@ export const tableController = {
       const states = await prisma.tableState.findMany();
       const result = {};
       states.forEach(state => {
-        result[state.tableId] = JSON.parse(state.items || '[]');
+        result[state.tableId] = {
+          items: JSON.parse(state.items || '[]'),
+          version: state.version,
+        };
       });
       res.json(result);
     } catch (error) {
@@ -170,17 +174,20 @@ export const tableController = {
         where: { tableId },
       });
       if (!state) {
-        return res.json([]);
+        return res.json({ items: [], version: 0 });
       }
       try {
-        res.json(JSON.parse(state.items || '[]'));
+        res.json({
+          items: JSON.parse(state.items || '[]'),
+          version: state.version,
+        });
       } catch (parseError) {
         console.error('Error al parsear items:', parseError, state.items);
-        res.json([]);
+        res.json({ items: [], version: 0 });
       }
     } catch (error) {
       console.error('Error al obtener estado de mesa:', error);
-      res.json([]);
+      res.status(500).json({ items: [], version: 0 });
     }
   },
 
@@ -191,17 +198,48 @@ export const tableController = {
         return res.status(400).json({ error: 'tableId requerido' });
       }
 
-      const itemsJson = JSON.stringify(items || []);
-      
+      const { _clientVersion } = req.body;
+
+      const current = await prisma.tableState.findUnique({ where: { tableId } });
+      const serverVersion = current ? current.version : 0;
+      const clientVersion = _clientVersion || 0;
+
+      if (clientVersion < serverVersion) {
+        notifySSEClients('table:conflict', {
+          tableId,
+          serverData: JSON.parse(current.items || '[]'),
+          serverVersion,
+        });
+        return res.json({
+          conflict: true,
+          tableId,
+          serverData: JSON.parse(current.items || '[]'),
+          serverVersion,
+        });
+      }
+
+      const newVersion = serverVersion + 1;
+      const itemsJson = Array.isArray(items) ? JSON.stringify(items) : JSON.stringify([]);
+
       const state = await prisma.tableState.upsert({
         where: { tableId },
-        update: { items: itemsJson },
-        create: { tableId, items: itemsJson },
+        update: { items: itemsJson, version: newVersion },
+        create: { tableId, items: itemsJson, version: newVersion },
       });
 
-      res.json({ success: true, tableId, items: JSON.parse(state.items) });
+      notifySSEClients('table:updated', {
+        tableId,
+        items: JSON.parse(state.items),
+        version: state.version,
+      });
+      res.json({
+        success: true,
+        tableId,
+        version: state.version,
+        items: JSON.parse(state.items),
+      });
     } catch (error) {
-      console.error('Error al actualizar estado de mesa:', error, error.stack);
+      console.error('Error al actualizar estado de mesa:', error);
       res.status(500).json({ error: 'Error interno del servidor', details: error.message });
     }
   },
@@ -212,6 +250,7 @@ export const tableController = {
       await prisma.tableState.delete({
         where: { tableId },
       });
+      notifySSEClients('table:cleared', { tableId });
       res.json({ success: true });
     } catch (error) {
       console.error('Error al eliminar estado de mesa:', error);

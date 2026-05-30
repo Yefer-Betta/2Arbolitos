@@ -1,10 +1,19 @@
 const SYNC_INTERVAL = 5000;
+const FETCH_TIMEOUT = 10000;
+const MAX_RETRIES = 5;
+const RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000];
 
-/**
- * Base de la API: mismo host que la PWA (PC o celular en la red) + /api.
- * En desarrollo, Vite reenvía /api al backend (vite.config proxy).
- * Opcional: VITE_API_URL=https://midominio.com/api
- */
+async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export function getApiBase() {
   if (typeof window === 'undefined') {
     return (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
@@ -32,6 +41,7 @@ class SyncManager {
     this.listeners = [];
     this.syncInterval = null;
     this.lastSyncTimestamp = null;
+    this.retryTimeout = null;
 
     this.init();
   }
@@ -83,7 +93,6 @@ class SyncManager {
         this.pendingChanges = [];
         return;
       }
-      
       let changes = JSON.parse(saved);
 
       const ONE_HOUR = 60 * 60 * 1000;
@@ -93,13 +102,10 @@ class SyncManager {
         if (age >= ONE_HOUR) return false;
         return true;
       });
-      
-      // Siempre guardar cambios limpiados
+
       localStorage.setItem('pendingChanges', JSON.stringify(changes));
-      
       this.pendingChanges = changes;
-    } catch (e) {
-      // Si hay error de parseo, limpiar todo
+    } catch {
       localStorage.setItem('pendingChanges', '[]');
       this.pendingChanges = [];
     }
@@ -136,6 +142,7 @@ class SyncManager {
     const changesToSync = [...this.pendingChanges];
     const failedChanges = [];
     const successfulIds = [];
+    let minNextDelay = Infinity;
 
     for (const change of changesToSync) {
       try {
@@ -143,7 +150,15 @@ class SyncManager {
         successfulIds.push(change.id);
       } catch (error) {
         console.error('Error syncing change:', change, error);
-        failedChanges.push(change);
+        const retryCount = (change._retryCount || 0) + 1;
+        if (retryCount < MAX_RETRIES) {
+          failedChanges.push({ ...change, _retryCount: retryCount });
+          const delay = RETRY_DELAYS[Math.min(retryCount, RETRY_DELAYS.length - 1)];
+          if (delay < minNextDelay) minNextDelay = delay;
+        } else {
+          console.error('Sync failed after max retries, discarding:', change);
+          this.notifyListeners('syncFailed', change);
+        }
       }
     }
 
@@ -157,26 +172,35 @@ class SyncManager {
     this.notifyListeners('syncComplete', {
       success: successfulIds.length,
       failed: failedChanges.length,
-      timestamp: this.lastSyncTimestamp
+      pending: this.pendingChanges.length,
+      timestamp: this.lastSyncTimestamp,
     });
     this.notifyListeners('timestamp', this.lastSyncTimestamp);
 
-    return { 
-      success: failedChanges.length === 0, 
+    if (this.pendingChanges.length > 0 && minNextDelay < Infinity) {
+      if (this.retryTimeout) clearTimeout(this.retryTimeout);
+      this.retryTimeout = setTimeout(() => {
+        if (this.isOnline) this.syncNow();
+      }, minNextDelay);
+    }
+
+    return {
+      success: failedChanges.length === 0,
       synced: successfulIds.length,
       failed: failedChanges.length,
-      timestamp: this.lastSyncTimestamp
+      pending: this.pendingChanges.length,
+      timestamp: this.lastSyncTimestamp,
     };
   }
 
   async syncChange(change) {
     const { type, endpoint, data, id } = change;
     const token = localStorage.getItem('token');
-    
+
     const headers = {
       'Content-Type': 'application/json',
     };
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -191,7 +215,6 @@ class SyncManager {
         break;
       case 'UPDATE':
         method = 'PUT';
-        // Some endpoints like settings and table states don't expect an ID suffix
         if (endpoint === '/settings' || endpoint === '/tables/state') {
           url = `${base}${endpoint}`;
         } else {
@@ -206,7 +229,7 @@ class SyncManager {
         method = 'GET';
     }
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method,
       headers,
       body: method !== 'GET' && method !== 'DELETE' ? JSON.stringify(data) : undefined,
@@ -221,17 +244,17 @@ class SyncManager {
 
   async fetchFromAPI(endpoint, options = {}) {
     const token = localStorage.getItem('token');
-    
+
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${getApiBase()}${endpoint}`, {
+    const response = await fetchWithTimeout(`${getApiBase()}${endpoint}`, {
       ...options,
       headers,
     });
@@ -249,7 +272,6 @@ class SyncManager {
   }
 
   clearPendingChanges() {
-    // Limpiar TODA la cola - start fresh
     this.pendingChanges = [];
     localStorage.setItem('pendingChanges', '[]');
     this.notifyListeners('change', 0);

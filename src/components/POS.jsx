@@ -18,7 +18,7 @@ export function POS({ tableId, onBack }) {
         limpiarMesa,
     } = useOrders();
 
-    const cart = useMemo(() => activeTables[tableId] || [], [activeTables, tableId]);
+    const cart = useMemo(() => activeTables[tableId]?.items || [], [activeTables, tableId]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todos');
 
@@ -56,7 +56,7 @@ export function POS({ tableId, onBack }) {
     };
 
     const updateQuantity = (productId, delta) => {
-        const item = cart.find(item => item.product.id === productId);
+        const item = cart.find(item => item.product?.id === productId);
         if (item) {
             const newQty = item.quantity + delta;
             // The context function handles removing if quantity is <= 0
@@ -68,40 +68,40 @@ export function POS({ tableId, onBack }) {
         limpiarMesa(tableId);
     };
 
-    // Totals with discount
+    const rate = exchangeRate > 0 ? exchangeRate : 1;
+
     const discountData = useMemo(() => {
         const originalCop = cart.reduce((sum, item) => {
-            const price = item.product.price;
-            const isUsd = item.product.isUsd;
-            const qty = item.quantity;
-            return sum + (isUsd ? (price * exchangeRate) * qty : price * qty);
+            const price = item.product?.price || 0;
+            const isUsd = item.product?.isUsd;
+            const qty = item.quantity || 0;
+            return sum + (isUsd ? (price * rate) * qty : price * qty);
         }, 0);
         
         const originalUsd = cart.reduce((sum, item) => {
-            const price = item.product.price;
-            const isUsd = item.product.isUsd;
-            const qty = item.quantity;
-            return sum + (isUsd ? price * qty : (price / exchangeRate) * qty);
+            const price = item.product?.price || 0;
+            const isUsd = item.product?.isUsd;
+            const qty = item.quantity || 0;
+            return sum + (isUsd ? price * qty : (price / rate) * qty);
         }, 0);
 
         const finalPrice = discountFinalPrice ? parseFloat(discountFinalPrice) : 0;
         const discountValue = finalPrice > 0 ? originalCop - finalPrice : 0;
         const discountPercent = originalCop > 0 && finalPrice > 0 ? ((discountValue / originalCop) * 100) : 0;
-        
-        // Calculate USD equivalent of final price
-        const finalUsd = finalPrice / exchangeRate;
+
+        const finalUsd = finalPrice / rate;
         const discountUsd = originalUsd - finalUsd;
 
         return {
             originalCop,
             originalUsd,
             finalCop: finalPrice > 0 ? finalPrice : originalCop,
-            finalUsd: finalPrice > 0 ? finalPrice / exchangeRate : originalUsd,
+            finalUsd: finalPrice > 0 ? finalPrice / rate : originalUsd,
             discountValue: discountValue,
             discountPercent: discountPercent,
             discountUsd: discountUsd
         };
-    }, [cart, exchangeRate, discountFinalPrice]);
+    }, [cart, rate, discountFinalPrice]);
 
     const totals = useMemo(() => ({
         cop: discountData.finalCop > 0 ? discountData.finalCop : discountData.originalCop,
@@ -564,13 +564,13 @@ export function POS({ tableId, onBack }) {
                         </div>
                     ) : (
                         cart.map(item => (
-                            <div key={item.product.id} className="flex gap-2 lg:gap-4 items-center p-2 lg:p-3 hover:bg-gray-50 rounded-xl lg:rounded-2xl transition-colors group border border-transparent hover:border-gray-100">
+                            <div key={item.product?.id || item.id} className="flex gap-2 lg:gap-4 items-center p-2 lg:p-3 hover:bg-gray-50 rounded-xl lg:rounded-2xl transition-colors group border border-transparent hover:border-gray-100">
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-gray-800 text-xs lg:text-sm truncate">{item.product.name}</h4>
+                                    <h4 className="font-bold text-gray-800 text-xs lg:text-sm truncate">{item.product?.name || 'Producto'}</h4>
                                     <p className="text-xs text-secondary font-bold">
-                                        {item.product.isUsd
-                                            ? `$${item.product.price.toFixed(2)} USD`
-                                            : `$${item.product.price.toLocaleString()} COP`
+                                        {item.product?.isUsd
+                                            ? `$${(item.product?.price || 0).toFixed(2)} USD`
+                                            : `$${(item.product?.price || 0).toLocaleString()} COP`
                                         }
                                     </p>
                                 </div>

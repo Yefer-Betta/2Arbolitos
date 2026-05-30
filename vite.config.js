@@ -61,7 +61,7 @@ export default defineConfig(({ mode }) => {
     react(),
     VitePWA({ 
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'vite.svg'],
+      includeAssets: ['vite.svg'],
       manifest: {
         name: '2Arbolitos POS',
         short_name: '2Arbolitos',
