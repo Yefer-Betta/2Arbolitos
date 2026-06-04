@@ -19,7 +19,7 @@ function getLocalIP() {
 }
 
 export function createTray(mainWindow, port) {
-  const iconPath = path.join(__dirname, '..', 'public', 'vite.svg');
+  const iconPath = path.join(__dirname, '..', 'public', 'logo.png');
   const icon = nativeImage.createFromPath(iconPath);
   const tray = new Tray(icon.resize({ width: 22, height: 22 }));
 

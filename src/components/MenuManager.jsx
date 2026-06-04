@@ -183,7 +183,7 @@ export function MenuManager() {
                 ) : (
                     products.map((product) => (
                         <div key={product.id} className="card p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden bg-white">
-                            <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-2">
+                            <div className="absolute top-0 right-0 p-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 flex gap-2">
                                 <button
                                     onClick={() => handleEditClick(product)}
                                     className="p-2 bg-white text-blue-600 hover:bg-blue-50 rounded-lg shadow-sm"

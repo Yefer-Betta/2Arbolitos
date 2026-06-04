@@ -10,6 +10,7 @@ export function Layout({ children, activeTab, setActiveTab }) {
     const [isOnline, setIsOnline] = useState(syncManager.isOnline);
     const [pendingChanges, setPendingChanges] = useState(0);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [currentTime, setCurrentTime] = useState(new Date());
     const { currentUser, logout } = useUser();
     const { business } = useSettings();
     useEffect(() => {
@@ -30,7 +31,12 @@ export function Layout({ children, activeTab, setActiveTab }) {
 
         setPendingChanges(syncManager.getPendingCount());
 
-        return unsubscribe;
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+
+        return () => {
+            clearInterval(timer);
+            unsubscribe();
+        };
     }, []);
 
     const handleSync = async () => {
@@ -63,8 +69,8 @@ export function Layout({ children, activeTab, setActiveTab }) {
                 >
                     <Menu className="w-6 h-6" />
                 </button>
-                <div className="text-lg font-bold">
-                    {business.logo ? <img src={business.logo} alt={business.name} className="h-8" /> : business.name}
+                <div className="text-lg font-bold flex items-center justify-center">
+                    <img src="./logo-light.png" alt="2Arbolitos" className="h-10 w-auto" />
                 </div>
                 
                 {/* Connection status on mobile */}
@@ -88,20 +94,36 @@ export function Layout({ children, activeTab, setActiveTab }) {
                     isMobileNavOpen ? "translate-x-0" : "-translate-x-full",
                 )}
             >
-                <div className="p-6 border-b border-primary-light/30 flex items-start justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold font-sans tracking-tight flex items-center gap-2">
-                            {business.logo ? <img src={business.logo} alt={business.name} className="h-8" /> : <span>{business.name}</span>}
-                        </h1>
-                        <p className="text-primary-light/80 text-xs mt-1 font-medium">Gestión & Sabores</p>
-                    </div>
+                <div className="p-6 border-b border-primary-light/30 flex flex-col items-center gap-3 relative">
                     <button
                         onClick={() => setIsMobileNavOpen(false)}
-                        className="md:hidden p-2 rounded-lg hover:bg-primary-light/20 transition"
+                        className="md:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-primary-light/20 transition"
                         aria-label="Cerrar menú"
                     >
                         <X className="w-5 h-5" />
                     </button>
+
+                    <div className="flex items-center gap-2">
+                        <img src="./logo-light.png" alt="2Arbolitos" className="h-16 w-auto" />
+                        <div className={cn(
+                            "flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                            isOnline ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"
+                        )}>
+                            {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                            <span>{isOnline ? 'Online' : 'Offline'}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm font-mono">
+                        <span className="font-bold text-white tracking-widest">PUNTO DE VENTA</span>
+                        <span className="text-white/40">·</span>
+                        <span className="font-bold text-secondary tracking-wider">
+                            {currentTime.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span className="text-secondary/60 text-[10px]">
+                            {currentTime.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Connection Status Bar */}

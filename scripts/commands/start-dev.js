@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'url';
 import { dirname, resolve, join } from 'path';
 import { existsSync } from 'fs';
-import { spawn } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -9,12 +9,8 @@ const __dirname = dirname(__filename);
 const ROOT = resolve(__dirname, '../..');
 
 const colors = {
-  reset: '\x1b[0m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  red: '\x1b[31m',
-  cyan: '\x1b[36m',
-  bold: '\x1b[1m',
+  reset: '\x1b[0m', green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m',
+  cyan: '\x1b[36m', bold: '\x1b[1m',
 };
 
 function log(message, type = 'info') {
@@ -27,10 +23,8 @@ function log(message, type = 'info') {
 }
 
 function openBrowser(url) {
-  const platform = os.platform();
-  const cmd =
-    platform === 'win32' ? `start "" "${url}"`
-    : platform === 'darwin' ? `open "${url}"`
+  const cmd = os.platform() === 'win32' ? `start "" "${url}"`
+    : os.platform() === 'darwin' ? `open "${url}"`
     : `xdg-open "${url}"`;
   try {
     spawn(cmd, [], { shell: true, stdio: 'ignore' }).unref();
@@ -41,33 +35,32 @@ function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
+      if (iface.family === 'IPv4' && !iface.internal) return iface.address;
     }
   }
   return '127.0.0.1';
 }
 
-export default function startDev() {
+async function ensureDeps(dir, label) {
+  if (!existsSync(join(dir, 'node_modules'))) {
+    log(`${label}: node_modules no encontrado. Instalando...`, 'warn');
+    execSync('npm install', { cwd: dir, stdio: 'inherit' });
+    log(`${label}: dependencias instaladas`, 'success');
+  }
+}
+
+export default async function startDev() {
   console.log(`
 ${colors.cyan}${colors.bold}=========================================${colors.reset}
 ${colors.cyan}${colors.bold}  2ARBOLITOS - MODO DESARROLLO${colors.reset}
 ${colors.cyan}${colors.bold}=========================================${colors.reset}
 `);
 
-  if (!existsSync(join(ROOT, 'node_modules'))) {
-    log('node_modules no encontrado. Ejecutando npm install...', 'warn');
-    spawn('npm', ['install'], { cwd: ROOT, stdio: 'inherit', shell: true });
-  }
-
-  if (!existsSync(join(ROOT, 'server', 'node_modules'))) {
-    log('server/node_modules no encontrado. Ejecutando npm install...', 'warn');
-    spawn('npm', ['install'], { cwd: join(ROOT, 'server'), stdio: 'inherit', shell: true });
-  }
+  await ensureDeps(ROOT, 'Frontend');
+  await ensureDeps(join(ROOT, 'server'), 'Servidor');
 
   if (!existsSync(join(ROOT, 'server', '.env'))) {
-    log('server/.env no encontrado. Ejecuta primero la opción de instalación.', 'error');
+    log('server/.env no encontrado. Ejecuta primero: npm run setup', 'error');
     process.exit(1);
   }
 
@@ -88,7 +81,7 @@ ${colors.bold}Iniciando servidor de desarrollo...${colors.reset}
     shell: true,
   });
 
-  setTimeout(() => openBrowser('http://localhost:5173'), 3000);
+  setTimeout(() => openBrowser('http://localhost:5173'), 2000);
 
   child.on('exit', code => {
     process.exit(code);

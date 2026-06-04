@@ -204,7 +204,7 @@ export function POS({ tableId, onBack }) {
 
 
     return (
-        <div className="flex flex-col md:flex-row h-full md:h-[calc(100vh-theme(spacing.32))] gap-6 relative pb-20 md:pb-0">
+        <div className="flex flex-col md:flex-row h-full md:h-[calc(100dvh-theme(spacing.32))] gap-6 relative pb-20 md:pb-0">
             {/* Checkout Modal Overlay */}
             {isCheckoutOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
@@ -224,17 +224,17 @@ export function POS({ tableId, onBack }) {
                                 {/* Totals Display */}
                                 <div className="flex gap-2 sm:gap-4 p-3 sm:p-4 bg-surface rounded-xl sm:rounded-2xl border border-primary/10">
                                     <div className="flex-1 text-center border-r border-gray-200 py-2">
-                                        <p className="text-gray-500 text-[10px] sm:text-xs font-bold uppercase">Total a Pagar</p>
+                                        <p className="text-gray-500 text-xs font-bold uppercase">Total a Pagar</p>
                                         <p className="text-xl sm:text-3xl font-bold text-primary">${totals.cop.toLocaleString()}</p>
                                         <p className="text-xs sm:text-sm text-gray-400">COP</p>
                                         {discountData.discountValue > 0 && (
-                                            <p className="text-[10px] sm:text-xs text-red-500 font-bold mt-1">
+                                            <p className="text-xs text-red-500 font-bold mt-1">
                                                 -{discountData.discountPercent.toFixed(1)}% (${discountData.discountValue.toLocaleString()})
                                             </p>
                                         )}
                                     </div>
                                     <div className="flex-1 text-center py-2">
-                                        <p className="text-gray-500 text-[10px] sm:text-xs font-bold uppercase">Equivalente</p>
+                                        <p className="text-gray-500 text-xs font-bold uppercase">Equivalente</p>
                                         <p className="text-xl sm:text-3xl font-bold text-secondary">${totals.usd.toFixed(2)}</p>
                                         <p className="text-xs sm:text-sm text-gray-400">USD</p>
                                     </div>
@@ -258,21 +258,21 @@ export function POS({ tableId, onBack }) {
                                             className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_cop' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-200 hover:bg-gray-50')}
                                         >
                                             <Banknote className="w-4 h-4 sm:w-5 sm:h-5" />
-                                            <span className="text-[10px] sm:text-xs font-bold">Efectivo COP</span>
+                                            <span className="text-xs font-bold">Efectivo COP</span>
                                         </button>
                                         <button
                                             onClick={() => { setPaymentMethod('cash_usd'); setAmountReceived(''); }}
                                             className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_usd' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-200 hover:bg-gray-50')}
                                         >
                                             <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
-                                            <span className="text-[10px] sm:text-xs font-bold">Efectivo USD</span>
+                                            <span className="text-xs font-bold">Efectivo USD</span>
                                         </button>
                                         <button
                                             onClick={() => { setPaymentMethod('nequi'); setAmountReceived(String(totals.cop)); }}
                                             className={cn("col-span-2 sm:col-span-1 p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'nequi' ? 'bg-purple-50 border-purple-500 text-purple-700' : 'border-gray-200 hover:bg-gray-50')}
                                         >
                                             <Smartphone className="w-4 h-4 sm:w-5 sm:h-5" />
-                                            <span className="text-[10px] sm:text-xs font-bold">Nequi / Digital</span>
+                                            <span className="text-xs font-bold">Nequi / Digital</span>
                                         </button>
                                     </div>
                                 </div>
@@ -310,7 +310,7 @@ export function POS({ tableId, onBack }) {
                                             {change >= 0 ? 'Vueltos' : 'Faltante'}
                                         </span>
                                         <span className="text-lg sm:text-2xl font-bold">
-                                            ${Math.abs(change).toLocaleString()} <span className="text-[10px] sm:text-xs opacity-70">{paymentMethod === 'cash_usd' ? 'USD' : 'COP'}</span>
+                                            ${Math.abs(change).toLocaleString()} <span className="text-xs opacity-70">{paymentMethod === 'cash_usd' ? 'USD' : 'COP'}</span>
                                         </span>
                                     </div>
                                 )}
@@ -433,7 +433,7 @@ export function POS({ tableId, onBack }) {
             )}
 
             {/* Left: Product Grid (Same as before) */}
-            <div className={cn("flex-1 flex flex-col gap-6 h-[calc(100vh-160px)] md:h-auto", mobileView !== 'products' && "hidden md:flex")}>
+            <div className={cn("flex-1 flex flex-col gap-6 h-[calc(100dvh-160px)] md:h-auto", mobileView !== 'products' && "hidden md:flex")}>
                 {/* Header Section */}
                 <div className="flex flex-col gap-4">
                     <div>
@@ -504,7 +504,7 @@ export function POS({ tableId, onBack }) {
                                 onClick={() => addToCart(product)}
                                 className="flex flex-col p-5 bg-white hover:bg-surface border border-transparent hover:border-primary/20 rounded-2xl shadow-sm hover:shadow-md transition-all text-left group relative overflow-hidden"
                             >
-                                <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute top-0 right-0 p-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     <div className="bg-primary text-white p-1.5 rounded-lg shadow-lg">
                                         <Plus className="w-4 h-4" />
                                     </div>
@@ -535,7 +535,7 @@ export function POS({ tableId, onBack }) {
             </div>
 
             {/* Right: Cart */}
-            <div className={cn("w-full md:w-[350px] lg:w-[400px] bg-white rounded-2xl lg:rounded-3xl shadow-xl flex flex-col h-[calc(100vh-140px)] md:h-full overflow-hidden border border-black/5 mt-4 md:mt-0", mobileView !== 'cart' && "hidden md:flex")}>
+            <div className={cn("w-full md:w-[350px] lg:w-[400px] bg-white rounded-2xl lg:rounded-3xl shadow-xl flex flex-col h-[calc(100dvh-140px)] md:h-full overflow-hidden border border-black/5 mt-4 md:mt-0", mobileView !== 'cart' && "hidden md:flex")}>
                 <div className="p-4 lg:p-6 bg-primary text-white">
                     <h2 className="text-lg lg:text-xl font-bold flex items-center gap-2 lg:gap-3">
                         <ShoppingCart className="w-5 h-5 lg:w-6 lg:h-6" />
@@ -578,14 +578,14 @@ export function POS({ tableId, onBack }) {
                                 <div className="flex items-center gap-1 lg:gap-2 bg-surface rounded-lg lg:rounded-xl px-1 lg:px-2 py-1">
                                     <button
                                         onClick={() => updateQuantity(item.product.id, -1)}
-                                        className="w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-red-500 hover:scale-110 transition-all"
+                                        className="min-w-[44px] min-h-[44px] w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-red-500 hover:scale-110 transition-all"
                                     >
                                         <Minus className="w-2 lg:w-3 h-2 lg:h-3" />
                                     </button>
                                     <span className="text-xs lg:text-sm font-bold w-4 text-center">{item.quantity}</span>
                                     <button
                                         onClick={() => updateQuantity(item.product.id, 1)}
-                                        className="w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-green-600 hover:scale-110 transition-all"
+                                        className="min-w-[44px] min-h-[44px] w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-green-600 hover:scale-110 transition-all"
                                     >
                                         <Plus className="w-2 lg:w-3 h-2 lg:h-3" />
                                     </button>
@@ -593,7 +593,7 @@ export function POS({ tableId, onBack }) {
 
                                 <button
                                     onClick={() => removeFromCart(item.product.id)}
-                                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>

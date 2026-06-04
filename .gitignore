@@ -1,6 +1,7 @@
 # Logs
 logs
 *.log
+error_log.txt
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -12,6 +13,8 @@ node_modules/
 # Build output
 dist
 build
+release
+*.exe
 
 # Env files
 .env

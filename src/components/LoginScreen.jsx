@@ -33,6 +33,9 @@ export function LoginScreen() {
     return (
         <div className="flex items-center justify-center h-screen bg-gray-100">
             <div className="p-8 bg-white rounded-xl shadow-2xl w-full max-w-sm border-t-4 border-primary">
+                <div className="flex justify-center mb-6">
+                    <img src="./logo.png" alt="2Arbolitos" className="w-40 h-auto" />
+                </div>
                 <div className="flex justify-center mb-4">
                     {syncManager.isOnline ? (
                         <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1 rounded-full">
@@ -46,9 +49,9 @@ export function LoginScreen() {
                         </div>
                     )}
                 </div>
-                
-                <h1 className="text-3xl font-bold text-center text-primary mb-2">2Arbolitos</h1>
-                <p className="text-center text-gray-500 mb-6">Inicio de Sesión</p>
+
+                <h1 className="text-2xl font-bold text-center text-primary mb-1">Bienvenido</h1>
+                <p className="text-center text-gray-500 mb-6">Inicia sesión para continuar</p>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>

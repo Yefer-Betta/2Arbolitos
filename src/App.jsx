@@ -39,11 +39,7 @@ function MainApp() {
       case 'users':
         return <UserManager />;
       case 'settings':
-        return (
-          <div className="flex justify-center p-8">
-            <CurrencySettings />
-          </div>
-        );
+        return <CurrencySettings />;
       default:
         return <PedidosRouter />;
     }

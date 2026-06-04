@@ -59,24 +59,25 @@ export default defineConfig(({ mode }) => {
   },
   plugins: [
     react(),
-    VitePWA({ 
+    VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['vite.svg'],
+      includeAssets: ['logo.png', 'icon.png'],
       manifest: {
         name: '2Arbolitos POS',
         short_name: '2Arbolitos',
         description: 'Aplicación de Punto de Venta para 2Arbolitos',
-        theme_color: '#ffffff',
+        theme_color: '#1A4D2E',
+        background_color: '#ffffff',
         icons: [
           {
-            src: 'pwa-192x192.svg',
+            src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/svg+xml'
+            type: 'image/png'
           },
           {
-            src: 'pwa-512x512.svg',
+            src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/svg+xml'
+            type: 'image/png'
           }
         ]
       }

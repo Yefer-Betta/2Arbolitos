@@ -11,7 +11,7 @@ export function Ticket({ order, business, orderType }) {
     };
     
     return (
-        <div className="bg-white p-4 rounded-lg w-80 font-mono text-sm border border-gray-200 shadow-sm mx-auto">
+        <div className="bg-white p-4 rounded-lg w-full max-w-xs font-mono text-sm border border-gray-200 shadow-sm mx-auto">
             <div className="text-center mb-3 pb-3 border-b border-dashed border-gray-300">
                 <h2 className="font-bold text-lg uppercase">{business.name}</h2>
                 <p className="text-xs font-bold text-green-600 mt-1">{getTypeLabel()}</p>
@@ -25,7 +25,7 @@ export function Ticket({ order, business, orderType }) {
             <div className="space-y-1 mb-3 pb-3 border-b border-dashed border-gray-300">
                 {order.items?.map((item, i) => (
                     <div key={i} className="flex justify-between text-xs">
-                        <span className="truncate w-32">{item.quantity} x {item.product?.name || item.name}</span>
+                        <span className="truncate max-w-[50%]">{item.quantity} x {item.product?.name || item.name}</span>
                         <span>
                             {item.product?.isUsd
                                 ? `$${(item.product.price * item.quantity).toFixed(2)}`

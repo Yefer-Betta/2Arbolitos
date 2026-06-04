@@ -17,7 +17,7 @@ function createMainWindow(port) {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    icon: path.join(ROOT, 'public', 'vite.svg'),
+    icon: path.join(ROOT, 'public', 'logo.png'),
     title: '2Arbolitos POS',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -29,6 +29,24 @@ function createMainWindow(port) {
 
   mainWindow.loadURL(`http://localhost:${port}`);
   mainWindow.once('ready-to-show', () => mainWindow.show());
+
+  mainWindow.webContents.on('did-finish-load', async () => {
+    try {
+      await mainWindow.webContents.executeJavaScript(`
+        (async () => {
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (const r of regs) { await r.unregister(); }
+            if (window.caches) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map(k => caches.delete(k)));
+            }
+          }
+        })();
+        true;
+      `);
+    } catch {}
+  });
 
   mainWindow.on('close', (e) => {
     if (!app.isQuitting) {
