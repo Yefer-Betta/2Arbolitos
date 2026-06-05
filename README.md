@@ -6,6 +6,36 @@ Sistema avanzado de Punto de Venta (POS) y gestión operativa para restaurantes.
 
 ---
 
+## 📚 Documentación Completa del Proyecto
+
+> Documentación técnica y de usuario detallada en la carpeta [`docs/`](./docs/). Incluye 17 archivos con análisis, diagramas UML, modelo de base de datos, manuales, pruebas y más.
+
+### Índice de Documentación
+
+| # | Documento | Descripción |
+|:--|:----------|:------------|
+| 00 | [Portada](./docs/00-PORTADA.md) | Carátula del proyecto, datos académicos |
+| 01 | [Resumen Ejecutivo](./docs/01-RESUMEN-EJECUTIVO.md) | Abstract, palabras clave, ficha técnica |
+| 02 | [Introducción](./docs/02-INTRODUCCION.md) | Contexto, justificación, objetivos, alcance |
+| 03 | [Marco Teórico](./docs/03-MARCO-TEORICO.md) | React, Node, MySQL, SSE, Electron, mDNS, etc. |
+| 04 | [Arquitectura](./docs/04-ARQUITECTURA.md) | 3-capas + diagramas de componentes Mermaid |
+| 05 | [Diagramas UML](./docs/05-DIAGRAMAS-UML.md) | Casos de uso, clases, secuencias, actividades, estados |
+| 06 | [Base de Datos](./docs/06-BASE-DE-DATOS.md) | Diagrama ER + 11 modelos explicados |
+| 07 | [Despliegue](./docs/07-DESPLIEGUE.md) | Topología LAN + Docker + Electron + CI/CD |
+| 08 | [API Reference](./docs/08-API-REFERENCE.md) | 40+ endpoints REST + SSE documentados |
+| 09 | [Flujos de Negocio](./docs/09-FLUJOS-NEGOCIO.md) | POS, pago multi-moneda, sync conflict-merge, KDS |
+| 10 | [Interfaz UI/UX](./docs/10-INTERFAZ-UI.md) | Paleta, wireframes, navegación, responsive |
+| 11 | [Pruebas](./docs/11-PRUEBAS.md) | Plan de pruebas + 10 casos detallados + métricas |
+| 12 | [Instalación](./docs/12-INSTALACION.md) | Wizard 4 pasos + 4 métodos + troubleshooting |
+| 13 | [Manual de Usuario](./docs/13-MANUAL-USUARIO.md) | Manual por rol (Admin/Mesero/Cocina/Cajero) |
+| 14 | [Manual Técnico](./docs/14-MANUAL-TECNICO.md) | Stack, estructura, scripts, build pipeline, debug |
+| 15 | [Conclusiones](./docs/15-CONCLUSIONES.md) | Logros, métricas, lecciones, trabajo futuro |
+| 16 | [Bibliografía](./docs/16-BIBLIOGRAFIA.md) | 54 referencias, libros, RFCs, estándares |
+
+> 💡 Los diagramas están en sintaxis **Mermaid** y se renderizan automáticamente en GitHub.
+
+---
+
 ## ✨ Características Principales
 
 *   🛒 **Punto de Venta (POS):** Interfaz ágil e intuitiva (tipo tablet/desktop) para la toma de pedidos rápidos.
