@@ -16,6 +16,9 @@ build
 release
 *.exe
 
+# Runtime flags
+.shortcut-created
+
 # Env files
 .env
 .env.local

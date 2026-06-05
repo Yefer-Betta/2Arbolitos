@@ -1,7 +1,10 @@
 import { app, BrowserWindow, Tray, Menu, ipcMain, dialog, nativeImage } from 'electron';
 import path from 'path';
+import os from 'os';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createTray } from './tray.js';
+import { createDesktopShortcut } from './create-desktop-shortcut.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,6 +13,30 @@ const ROOT = path.resolve(__dirname, '..');
 let mainWindow = null;
 let tray = null;
 let serverPort = null;
+
+function ensureDesktopShortcut() {
+  try {
+    const userDataDir = app.getPath('userData');
+    const flagFile = path.join(userDataDir, '.shortcut-created');
+    if (fs.existsSync(flagFile)) return;
+
+    const desktopPath = path.join(os.homedir(), 'Desktop');
+
+    const result = createDesktopShortcut({
+      exePath: process.execPath,
+      name: '2Arbolitos POS',
+      desktopPath
+    });
+
+    if (result.success) {
+      fs.writeFileSync(flagFile, new Date().toISOString(), 'utf8');
+    } else {
+      console.error('No se pudo crear el acceso directo:', result.error);
+    }
+  } catch (err) {
+    console.error('Error creando acceso directo:', err.message);
+  }
+}
 
 function createMainWindow(port) {
   mainWindow = new BrowserWindow({
@@ -102,6 +129,7 @@ app.whenReady().then(async () => {
       serverPort = await startServer();
       createMainWindow(serverPort);
       tray = createTray(mainWindow, serverPort);
+      ensureDesktopShortcut();
     });
 
     ipcMain.handle('cancel-setup', () => {
@@ -203,6 +231,7 @@ FRONTEND_URL=http://localhost:5173
     serverPort = await startServer();
     createMainWindow(serverPort);
     tray = createTray(mainWindow, serverPort);
+    ensureDesktopShortcut();
   }
 });
 
