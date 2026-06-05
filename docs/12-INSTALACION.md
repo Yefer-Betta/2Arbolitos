@@ -28,7 +28,7 @@
 
 ## 12.2 Métodos de Instalación
 
-Existen **3 métodos**, de menor a mayor dificultad:
+Existen **4 métodos**, de menor a mayor dificultad:
 
 | Método | Dificultad | Tiempo | Recomendado para |
 |:-------|:-----------|:-------|:-----------------|
