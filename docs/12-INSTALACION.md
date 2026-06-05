@@ -39,12 +39,38 @@ Existen **3 métodos**, de menor a mayor dificultad:
 
 ## 12.3 Método 1: Instalador Gráfico (Recomendado)
 
-### Paso 1: Descargar
+> **Estado:** Instalador NSIS ya generado en `release/2Arbolitos POS Setup 1.0.0.exe` (168 MB). 
+> Probado en Windows 10/11 con instalación silenciosa (`/S`), desinstalador registrado en 
+> Panel de Control, accesos directos creados automáticamente en Escritorio y Menú Inicio.
+
+### Paso 1: Descargar / Ubicar
 
 ```
-https://github.com/Yefer-Betta/2Arbolitos/releases
-→ 2Arbolitos-POS-Setup-1.0.0.exe (~189 MB)
+release/2Arbolitos POS Setup 1.0.0.exe (~168 MB)
 ```
+
+O desde GitHub Releases:
+```
+https://github.com/Yefer-Betta/2Arbolitos/releases
+→ 2Arbolitos POS Setup 1.0.0.exe
+```
+
+#### Instalación silenciosa (avanzada / para deploys)
+
+```cmd
+:: Instalar sin mostrar UI
+"2Arbolitos POS Setup 1.0.0.exe" /S
+
+:: Instalar en directorio personalizado
+"2Arbolitos POS Setup 1.0.0.exe" /S /D=C:\Apps\2Arbolitos POS
+
+:: Desinstalar silenciosamente
+"C:\Users\<user>\AppData\Local\Programs\2Arbolitos POS\Uninstall 2Arbolitos POS.exe" /S
+```
+
+> **Nota:** Con la configuración `perMachine: false` la app se instala por usuario en 
+> `%LOCALAPPDATA%\Programs\2Arbolitos POS\` (no requiere permisos de Administrador para 
+> ejecutarse, solo el instalador NSIS los solicita una vez).
 
 ### Paso 2: Ejecutar Instalador
 

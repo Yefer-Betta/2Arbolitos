@@ -141,8 +141,12 @@ El menú interactivo ofrece:
 ```bash
 npm run build
 npm run dist
-# Genera release/2Arbolitos POS Setup 1.0.0.exe (~189 MB)
+# Genera release/2Arbolitos POS Setup 1.0.0.exe (~168 MB)
 ```
+
+> **Estado actual:** el instalador NSIS ya está generado en `release/2Arbolitos POS Setup 1.0.0.exe`. 
+> Probado en Windows 10/11 — instalación silenciosa, accesos directos en Escritorio y Menú Inicio, 
+> desinstalador en Panel de Control. Listo para distribuir al cliente.
 
 ### Docker
 

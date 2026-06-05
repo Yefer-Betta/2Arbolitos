@@ -16,6 +16,7 @@
 | **Nombre del sistema** | 2Arbolitos POS |
 | **Tipo de proyecto** | Software de aplicación cliente-servidor |
 | **Versión del software** | 1.0 |
+| **Instalador NSIS** | `release/2Arbolitos POS Setup 1.0.0.exe` (168 MB, Windows 10/11) |
 | **Plataforma objetivo** | Windows 10/11, macOS, Linux (escritorio + tablets en LAN) |
 | **Lenguaje principal** | JavaScript / TypeScript (React 19) + Node.js |
 | **Base de datos** | MySQL 8+ |
