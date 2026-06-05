@@ -1,34 +1,46 @@
-# 🌳 2Arbolitos — Sistema POS y Gestión de Restaurante
+# 🌳 2Arbolitos POS
 
-![2Arbolitos Cover](https://via.placeholder.com/1200x300/1A4D2E/FFFFFF?text=2Arbolitos+POS+System)
+### Sistema de Punto de Venta y Gestión Integral para Restaurantes
 
-Sistema avanzado de Punto de Venta (POS) y gestión operativa para restaurantes. Diseñado con una interfaz moderna y táctil para agilizar la toma de pedidos, gestionar el salón, coordinar la cocina y mantener el control financiero del establecimiento. Incluye arquitectura robusta Cliente-Servidor con base de datos real (MySQL).
+[![Versión](https://img.shields.io/badge/versión-1.0.0-1A4D2E?style=flat-square)]()
+[![Licencia](https://img.shields.io/badge/licencia-MIT-D4A373?style=flat-square)]()
+[![Node](https://img.shields.io/badge/node-%E2%89%A518-339933?style=flat-square&logo=node.js&logoColor=white)]()
+[![MySQL](https://img.shields.io/badge/MySQL-8.0%2B-4479A1?style=flat-square&logo=mysql&logoColor=white)]()
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)]()
+[![Electron](https://img.shields.io/badge/Electron-33-47848F?style=flat-square&logo=electron&logoColor=white)]()
+[![Plataforma](https://img.shields.io/badge/plataforma-Win%20%7C%20Mac%20%7C%20Linux-lightgrey?style=flat-square)]()
+
+> _"Dos árboles, una raíz: tecnología que crece en el restaurante local."_
+
+Sistema POS (Punto de Venta) que opera en **red local (LAN) sin internet obligatorio**, integra gestión de mesas, cocina en tiempo real, ventas multi-moneda (COP/USD) y caja. Empaquetado como aplicación de escritorio **Electron multiplataforma** con instalador gráfico.
+
+A diferencia de soluciones SaaS como Alegra POS o Siigo, 2Arbolitos **no requiere internet**, no cobra suscripciones mensuales y el negocio es dueño de sus datos. Diseñado para restaurantes pequeños y medianos con 5 a 20 dispositivos.
+
+📷 **[CAPTURA REQUERIDA]**: Dashboard principal — `assets/screenshots/00-cover.png`
 
 ---
 
-## 📚 Documentación Completa del Proyecto
+## 📚 Documentación Completa
 
-> Documentación técnica y de usuario detallada en la carpeta [`docs/`](./docs/). Incluye 17 archivos con análisis, diagramas UML, modelo de base de datos, manuales, pruebas y más.
-
-### Índice de Documentación
+La documentación técnica y de usuario detallada está en la carpeta [`docs/`](./docs/) — **17 archivos** con análisis, diagramas UML, modelo de base de datos, manuales, pruebas y más.
 
 | # | Documento | Descripción |
-|:--|:----------|:------------|
-| 00 | [Portada](./docs/00-PORTADA.md) | Carátula del proyecto, datos académicos |
-| 01 | [Resumen Ejecutivo](./docs/01-RESUMEN-EJECUTIVO.md) | Abstract, palabras clave, ficha técnica |
+|:-:|:----------|:------------|
+| 00 | [Portada](./docs/00-PORTADA.md) | Carátula del proyecto |
+| 01 | [Resumen Ejecutivo](./docs/01-RESUMEN-EJECUTIVO.md) | Abstract + keywords + ficha técnica |
 | 02 | [Introducción](./docs/02-INTRODUCCION.md) | Contexto, justificación, objetivos, alcance |
-| 03 | [Marco Teórico](./docs/03-MARCO-TEORICO.md) | React, Node, MySQL, SSE, Electron, mDNS, etc. |
-| 04 | [Arquitectura](./docs/04-ARQUITECTURA.md) | 3-capas + diagramas de componentes Mermaid |
-| 05 | [Diagramas UML](./docs/05-DIAGRAMAS-UML.md) | Casos de uso, clases, secuencias, actividades, estados |
-| 06 | [Base de Datos](./docs/06-BASE-DE-DATOS.md) | Diagrama ER + 11 modelos explicados |
+| 03 | [Marco Teórico](./docs/03-MARCO-TEORICO.md) | 8+ tecnologías analizadas en profundidad |
+| 04 | [Arquitectura](./docs/04-ARQUITECTURA.md) | 3-capas + diagramas de componentes |
+| 05 | [Diagramas UML](./docs/05-DIAGRAMAS-UML.md) | 7 diagramas: casos de uso, clases, secuencias, estados |
+| 06 | [Base de Datos](./docs/06-BASE-DE-DATOS.md) | Diagrama ER + 11 modelos + versionado optimista |
 | 07 | [Despliegue](./docs/07-DESPLIEGUE.md) | Topología LAN + Docker + Electron + CI/CD |
 | 08 | [API Reference](./docs/08-API-REFERENCE.md) | 40+ endpoints REST + SSE documentados |
-| 09 | [Flujos de Negocio](./docs/09-FLUJOS-NEGOCIO.md) | POS, pago multi-moneda, sync conflict-merge, KDS |
+| 09 | [Flujos de Negocio](./docs/09-FLUJOS-NEGOCIO.md) | POS, pago multi-moneda, sync conflict-merge |
 | 10 | [Interfaz UI/UX](./docs/10-INTERFAZ-UI.md) | Paleta, wireframes, navegación, responsive |
-| 11 | [Pruebas](./docs/11-PRUEBAS.md) | Plan de pruebas + 10 casos detallados + métricas |
+| 11 | [Pruebas](./docs/11-PRUEBAS.md) | Plan + 10 casos detallados + métricas |
 | 12 | [Instalación](./docs/12-INSTALACION.md) | Wizard 4 pasos + 4 métodos + troubleshooting |
 | 13 | [Manual de Usuario](./docs/13-MANUAL-USUARIO.md) | Manual por rol (Admin/Mesero/Cocina/Cajero) |
-| 14 | [Manual Técnico](./docs/14-MANUAL-TECNICO.md) | Stack, estructura, scripts, build pipeline, debug |
+| 14 | [Manual Técnico](./docs/14-MANUAL-TECNICO.md) | Stack, estructura, scripts, build pipeline |
 | 15 | [Conclusiones](./docs/15-CONCLUSIONES.md) | Logros, métricas, lecciones, trabajo futuro |
 | 16 | [Bibliografía](./docs/16-BIBLIOGRAFIA.md) | 54 referencias, libros, RFCs, estándares |
 
@@ -38,133 +50,226 @@ Sistema avanzado de Punto de Venta (POS) y gestión operativa para restaurantes.
 
 ## ✨ Características Principales
 
-*   🛒 **Punto de Venta (POS):** Interfaz ágil e intuitiva (tipo tablet/desktop) para la toma de pedidos rápidos.
-*   🍽️ **Gestión de Órdenes:** Soporte para pedidos por **Mesa**, **Para Llevar** y **Domicilio**.
-*   🪑 **Vista de Mesas (Table Map):** Monitoreo visual del estado de las mesas en tiempo real (Libre, Ocupada, Tiempo de atención).
-*   🧑‍🍳 **Kitchen Display System (KDS):** Tablero tipo Kanban en tiempo real para la cocina. Visualiza preparaciones (Pendientes, En Preparación, Listas) mediante WebSockets / Polling.
-*   💵 **Multi-moneda:** Cobros, cálculo de vueltos e informes duales en Pesos Colombianos (COP) y Dólares (USD), con tasa de cambio ajustable.
-*   📊 **Finanzas y Cierres:** Reportes de cierre de caja (End of Day), control de gastos operativos e historial completo de ventas.
-*   🔒 **Roles de Usuario Autenticados:** Sistema seguro con login y permisos restringidos (Admin, Cajero, Mesero, Cocina).
+| | |
+|:-|:--|
+| 🛒 **Punto de Venta táctil** | Interfaz optimizada para tablets y celulares, botones ≥ 44 px |
+| 🪑 **Vista de Mesas en tiempo real** | Mapa visual con estados Libre / Ocupada / Tiempo de atención |
+| 🧑‍🍳 **Kitchen Display System (KDS)** | Tablero Kanban: Pendientes → En Preparación → Listas |
+| 💵 **Multi-moneda COP ↔ USD** | Cálculo automático de vueltos con tasa configurable |
+| 🔄 **Sincronización en tiempo real** | Server-Sent Events con versionado optimista y conflict-merge |
+| 📡 **Funciona sin internet** | Operación 100% offline-first en la red local del restaurante |
+| 🌐 **Descubrimiento automático** | mDNS/Bonjour: `2arbolitos-pos.local` |
+| 📱 **Acceso desde móviles por QR** | Escaneas y se abre la app, sin instalar nada |
+| 🖥️ **App de escritorio** | Electron con instalador NSIS, icono en bandeja, wizard gráfico |
+| 💾 **Multi-plataforma** | Windows, macOS, Linux + tablets/celulares en LAN |
+| 🐳 **Docker ready** | docker-compose para dev y prod |
+| 🔒 **Autenticación JWT** | Roles: Admin, Mesero, Cocina, Cajero |
+| 📊 **Finanzas** | Cierre de caja Z, gastos operativos, historial completo |
+| 🔧 **Backup/Restore** | Desde la UI, exportable a JSON |
+| 🌳 **Branding 2Arbolitos** | Logo, paleta de marca verde bosque + dorado ocre |
 
-## 🛠️ Tecnologías
+---
 
-### Frontend (Cliente)
-*   **React 19** + **Vite 7**
-*   **Tailwind CSS 4** para un diseño moderno y responsivo
-*   **Lucide React** para iconografía y **Axios** para consumo de API.
+## 🛠️ Stack Tecnológico
 
-### Backend (API Servidor)
-*   **Node.js** con **Express.js**
-*   **Prisma ORM** para el modelado, validaciones y tipado de base de datos.
-*   **MySQL 8+** como motor de base de datos relacional.
-*   **JWT** para autenticación segura.
-*   **PM2** para gestión de procesos y despliegue a prueba de fallos.
+### Frontend
+- **React 19** + **Vite 7** + **Tailwind CSS 4**
+- **Lucide React** (iconografía)
+- **vite-plugin-pwa** (Service Worker)
+- Context API + Hooks para estado global
+
+### Backend
+- **Node.js 18+** + **Express 4**
+- **Prisma 5** ORM con **MySQL 8.0+**
+- **JWT** para autenticación
+- **Server-Sent Events** (SSE) para tiempo real
+- **bonjour-service** para mDNS
+- **qrcode** para generación de QR
+- **multer / xlsx** (preparado para exports)
+
+### Desktop
+- **Electron 33** + **electron-builder 26**
+- Wizard gráfico HTML+CSS+JS para primera ejecución
+- Icono en bandeja del sistema con menú de control
+- Genera instaladores `.exe` (NSIS), `.dmg`, `.AppImage`
+
+### DevOps
+- **Docker** + **docker-compose**
+- **GitHub Actions** para CI (build Docker)
+- **PM2** para producción como servicio del SO
+
+---
+
+## 🚀 Inicio Rápido
+
+### Requisitos Previos
+- **Node.js** 18 o superior
+- **MySQL** 8.0+ (o XAMPP/WAMP)
+
+### Instalación Asistida (recomendada)
+
+```bash
+# Clonar
+git clone https://github.com/Yefer-Betta/2Arbolitos.git
+cd 2Arbolitos
+
+# Instalar dependencias
+npm install && cd server && npm install && cd ..
+
+# Menú interactivo (elige "Instalar Sistema por Primera Vez")
+npm start
+```
+
+El menú interactivo ofrece:
+
+| Opción | Acción |
+|:-------|:-------|
+| 1 | Instalar Sistema por Primera Vez (wizard completo) |
+| 2 | Iniciar en Producción (PM2 como servicio) |
+| 3 | Actualizar Código y Reiniciar |
+| 4 | Iniciar en Modo Desarrollo (Vite + API con hot-reload) |
+
+### Acceso
+
+- **App local**: `http://localhost:3002`
+- **App en LAN**: `http://<IP-servidor>:3002`
+- **App por mDNS**: `http://2arbolitos-pos.local:3002`
+- **Código QR de acceso**: `http://<IP-servidor>:3002/qr`
+
+### Empaquetar como App de Escritorio
+
+```bash
+npm run build
+npm run dist
+# Genera release/2Arbolitos POS Setup 1.0.0.exe (~189 MB)
+```
+
+### Docker
+
+```bash
+docker compose up -d
+```
+
+---
+
+## 🔐 Usuarios Iniciales (Seed)
+
+| Rol | Usuario | Contraseña |
+|:----|:--------|:-----------|
+| 👑 Administrador | `admin` | `admin123` |
+| 🛒 Mesero | `mesero` | `waiter123` |
+| 🧑‍🍳 Cocina | `cocina` | `cook123` |
+
+> ⚠️ **Cambiar inmediatamente en producción.**
 
 ---
 
 ## 📂 Estructura del Proyecto
 
-```text
+```
 2Arbolitos/
-├── src/                 # Frontend React (Vite, Tailwind, Componentes)
-├── server/              # API Express + Prisma (Controladores, Rutas)
-├── scripts/             # Scripts de automatización cross-platform (Node.js)
-│   ├── cli.js           # Menú interactivo principal
-│   └── commands/        # Comandos individuales
-├── PANEL_DE_CONTROL.bat # Atajo para Windows (llama a scripts/cli.js)
-├── package.json         # Scripts principales (start, setup, dev, dev:full)
-└── ...
+├── docs/                        # 📚 17 archivos de documentación
+├── electron/                    # 🖥️ Wrapper Electron (main, tray, wizard)
+├── logo/                        # 🎨 Logo original fuente
+├── public/                      # 🖼️ Assets servidos (logo, iconos PWA)
+├── scripts/                     # 🔧 CLI + generadores de iconos
+│   ├── cli.js                   # Menú interactivo principal
+│   ├── generate-icons.js        # Genera iconos desde logo
+│   ├── generate-logo-variants.js
+│   └── commands/                # install, start-dev, start-prod, health, etc.
+├── server/                      # ⚙️ Backend Node.js
+│   ├── prisma/
+│   │   ├── schema.prisma        # 11 modelos + 4 enums
+│   │   └── seed.js              # Datos iniciales
+│   └── src/
+│       ├── index.js             # Entry + startServer() exportable
+│       ├── sse.js               # Hub de Server-Sent Events
+│       ├── config/database.js
+│       ├── controllers/         # 8 controladores
+│       ├── middleware/auth.js   # JWT
+│       └── routes/              # 8 rutas REST
+├── src/                         # 🎨 Frontend React
+│   ├── components/              # 17 componentes (POS, KDS, VistaMesas, etc.)
+│   ├── context/                 # 6 contextos (Orders, Menu, Settings, etc.)
+│   ├── lib/                     # api.js, syncManager.js, utils.js
+│   └── services/                # (legacy)
+├── build/                       # 📦 Recursos para electron-builder (icon.ico)
+├── .github/workflows/           # CI: docker-build.yml
+├── docker-compose.yml           # Producción
+├── Dockerfile                   # Build producción
+├── index.html                   # HTML raíz
+├── package.json                 # Deps + scripts
+├── tailwind.config.js           # Paleta de marca
+└── vite.config.js               # Vite + PWA
 ```
 
 ---
 
-## 🚀 Instalación y Despliegue (Windows / macOS / Linux)
+## 🎨 Branding
 
-### Requisitos Previos
-*   **Node.js** v18 o superior.
-*   **MySQL** v8.0+ instalado y en ejecución.
+- **Verde bosque profundo** `#1A4D2E` — Primary
+- **Dorado ocre terroso** `#D4A373` — Secondary
+- **Crema suave** `#F9F7F2` — Background
+- **Tipografía**: [Outfit](https://fonts.google.com/specimen/Outfit)
 
-### Instalación Rápida Asistida (recomendada)
-
-El sistema incluye un asistente interactivo multiplataforma. Solo ejecuta:
-
-```bash
-npm start
-```
-
-Esto abre el menú interactivo donde puedes elegir:
-
-1. **Instalar Sistema por Primera Vez** — Te guía paso a paso: configura MySQL, instala dependencias, crea la base de datos, pobla datos de ejemplo y construye el frontend.
-2. **Iniciar en Producción (PM2)** — Configura PM2 como servicio del sistema (systemd en Linux, launchd en macOS, servicio de Windows).
-3. **Actualizar Código y Reiniciar** — Reconstruye el frontend y reinicia el servidor.
-4. **Iniciar en Modo Desarrollo** — Arranca Vite + API con hot-reloading.
-
-O puedes ejecutar comandos individuales directamente:
-
-```bash
-npm run setup      # Instalación completa
-npm run dev:full   # Modo desarrollo (Vite + API)
-npm run start:prod # Configurar producción con PM2
-npm run update     # Actualizar y reiniciar
-```
-
-### Instalación Manual (avanzada)
-
-```bash
-# 1. Instalar dependencias del Frontend
-npm install
-
-# 2. Instalar dependencias del Backend
-cd server
-npm install
-
-# 3. Crear base de datos MySQL
-mysql -u root -e "CREATE DATABASE IF NOT EXISTS \`2arbolitos\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-
-# 4. Configurar Entorno (.env)
-cd ..
-cp server/.env.example server/.env 2>/dev/null || echo "Crea server/.env manualmente"
-# Edita server/.env y ajusta DATABASE_URL según credenciales locales
-
-# 5. Configurar Base de Datos con Prisma
-npx prisma generate
-npx prisma db push
-node prisma/seed.js # Crea usuarios y configuraciones por defecto
-
-# 6. Construir frontend
-npm run build
-
-# 7. Iniciar
-npm run dev:full
-```
-
-*   **Frontend (Vite):** `http://localhost:5173`
-*   **Backend (API):** `http://localhost:3002` (ajustable en server/.env)
-
-### Windows: Atajo de Doble Click
-
-En Windows puedes hacer doble clic en **`PANEL_DE_CONTROL.bat`** que abre el mismo menú interactivo.
-
-### macOS / Linux: Atajo Terminal
-
-Puedes crear un alias en tu shell:
-
-```bash
-echo "alias 2arbolitos='cd /ruta/a/2Arbolitos && npm start'" >> ~/.bashrc
-```
+Logo generado en variantes: `logo.png` (original), `logo-light.png` (sidebar oscuro), `logo-dark.png` (fondos claros).
 
 ---
 
-## 🔐 Usuarios de Prueba Generados (Seed)
+## 📊 Métricas del Proyecto
 
-| Rol | Usuario (Username) | Contraseña |
-| :--- | :--- | :--- |
-| **Administrador** | `admin` | `admin123` |
-| **Mesero** | `mesero` | `waiter123` |
-| **Cocina** | `cocina` | `cook123` |
-
-*(Se recomienda encarecidamente cambiar estas credenciales en un entorno de producción real, desde el módulo de configuración o en la BD directamente).*
+| Métrica | Valor |
+|:--------|:------|
+| Componentes React | 17 |
+| Contextos | 6 |
+| Controladores backend | 8 |
+| Endpoints API | 40+ |
+| Modelos de datos | 11 |
+| Enums | 4 |
+| Líneas de código (frontend) | ~6,500 |
+| Líneas de código (backend) | ~2,800 |
+| Documentación | ~4,500 líneas / 17 archivos |
+| Tamaño instalador | 189 MB |
+| Latencia sync | < 500 ms |
 
 ---
 
-**Licencia:** MIT
+## 🧪 Estado del Proyecto
+
+- ✅ Funcionalidad core completa
+- ✅ Sincronización robusta con conflict-merge
+- ✅ Multi-plataforma (Win/Mac/Linux)
+- ✅ Mobile responsive
+- ✅ Documentación completa
+- ⚠️ Tests automatizados pendientes (mejora v1.1)
+- ⚠️ Facturación electrónica no incluida (roadmap v1.2)
+
+Ver [`docs/15-CONCLUSIONES.md`](./docs/15-CONCLUSIONES.md) para logros, limitaciones y roadmap completo.
+
+---
+
+## 🤝 Contribuir
+
+1. Fork el repositorio
+2. Crea una rama (`git checkout -b feature/mi-mejora`)
+3. Commit tus cambios (`git commit -m 'feat: mi mejora'`)
+4. Push (`git push origin feature/mi-mejora`)
+5. Abre un Pull Request
+
+---
+
+## 📄 Licencia
+
+**MIT** — Ver [`LICENSE`](./LICENSE) para más detalles.
+
+---
+
+## 👤 Autor
+
+**Yefer Betta**
+- Repositorio: [github.com/Yefer-Betta/2Arbolitos](https://github.com/Yefer-Betta/2Arbolitos)
+- Documentación completa: [`docs/`](./docs/)
+
+---
+
+> 🌳 _Construido con React, Node.js, Prisma, MySQL, Electron y mucho café._
