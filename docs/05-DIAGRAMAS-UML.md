@@ -138,7 +138,7 @@ classDiagram
         +String id
         +String tableId
         +String items (JSON)
-        +Int version
+        +Int versión
         +DateTime updatedAt
     }
 
@@ -268,17 +268,17 @@ sequenceDiagram
     API->>API: auth middleware (JWT)
     API->>Ctrl: tableController.updateState
     Ctrl->>DB: prisma.tableState.findUnique
-    DB-->>Ctrl: {version: 5}
-    Ctrl->>Ctrl: Validar version: 5 >= 5 ✓
-    Ctrl->>DB: prisma.tableState.update<br/>{version: 6, items}
+    DB-->>Ctrl: {versión: 5}
+    Ctrl->>Ctrl: Validar versión: 5 >= 5 ✓
+    Ctrl->>DB: prisma.tableState.update<br/>{versión: 6, items}
     DB-->>Ctrl: OK
     Ctrl->>SSE: notifySSEClients('table:updated', payload)
     SSE-->>K: event: table:updated
     K->>K: Actualizar UI KDS
     
-    Ctrl-->>API: {version: 6}
-    API-->>Sync: 200 OK {version: 6}
-    Sync-->>Ctx: setActiveTables(version: 6)
+    Ctrl-->>API: {versión: 6}
+    API-->>Sync: 200 OK {versión: 6}
+    Sync-->>Ctx: setActiveTables(versión: 6)
 ```
 
 ## 5.4 Diagrama de Secuencia: Resolución de Conflicto (Versionado)
@@ -293,33 +293,33 @@ sequenceDiagram
     participant DB as MySQL
     participant SSE as sse.js
 
-    Note over A,B: Ambos clientes tienen version=5
+    Note over A,B: Ambos clientes tienen versión=5
     
     A->>API: PUT /api/tables/state<br/>{items: A1+A2, _clientVersion: 5}
     API->>Ctrl: updateState
-    Ctrl->>DB: SELECT version FROM table_states
-    DB-->>Ctrl: version=5
-    Ctrl->>DB: UPDATE SET items=A1+A2, version=6
+    Ctrl->>DB: SELECT versión FROM table_states
+    DB-->>Ctrl: versión=5
+    Ctrl->>DB: UPDATE SET items=A1+A2, versión=6
     Ctrl->>SSE: notifySSEClients('table:updated', v6)
-    SSE-->>B: event: table:updated {version: 6}
+    SSE-->>B: event: table:updated {versión: 6}
     
-    B->>B: Actualizar local a version=6
+    B->>B: Actualizar local a versión=6
     
     Note over B: Mientras tanto, B ya tenía pedido para enviar
     
     B->>API: PUT /api/tables/state<br/>{items: B1+B2, _clientVersion: 5}  ⚠️
     API->>Ctrl: updateState
-    Ctrl->>DB: SELECT version FROM table_states
-    DB-->>Ctrl: version=6
+    Ctrl->>DB: SELECT versión FROM table_states
+    DB-->>Ctrl: versión=6
     Ctrl-->>API: {conflict: true, serverData: [A1,A2], serverVersion: 6}
     API-->>B: 409 Conflict {conflict: true, serverData, serverVersion: 6}
     
     B->>B: Merge: serverData + [B1,B2]<br/>(evita duplicados por product.id)
     B->>API: PUT /api/tables/state<br/>{items: [A1,A2,B1,B2], _clientVersion: 6}
     API->>Ctrl: updateState
-    Ctrl->>DB: UPDATE version=7
+    Ctrl->>DB: UPDATE versión=7
     Ctrl->>SSE: notifySSEClients
-    SSE-->>A: event: table:updated {version: 7}
+    SSE-->>A: event: table:updated {versión: 7}
 ```
 
 ## 5.5 Diagrama de Secuencia: Comunicación SSE Tiempo Real

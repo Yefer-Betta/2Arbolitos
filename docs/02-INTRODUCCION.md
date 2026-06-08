@@ -41,7 +41,7 @@ Diseñar, desarrollar e implementar un sistema de Punto de Venta (POS) y gestió
 
 2. **Desarrollar un frontend responsive** en React 19 con Tailwind CSS 4 que proporcione interfaces táctiles para toma de pedidos, gestión visual de mesas, pantalla de cocina (KDS) y módulo financiero.
 
-3. **Implementar sincronización reactiva cliente-servidor** con versionado optimista de estado de mesa (`version Int`), resolución de conflictos por `product.id`, debounce de 300 ms, y reintentos exponenciales para tolerar caídas de red.
+3. **Implementar sincronización reactiva cliente-servidor** con versionado optimista de estado de mesa (`versión Int`), resolución de conflictos por `product.id`, debounce de 300 ms, y reintentos exponenciales para tolerar caídas de red.
 
 4. **Empaquetar la aplicación como software de escritorio** con Electron 33, instalador NSIS para Windows, asistente gráfico de primera ejecución, icono en la bandeja del sistema y código QR para acceso desde dispositivos móviles en la misma LAN.
 

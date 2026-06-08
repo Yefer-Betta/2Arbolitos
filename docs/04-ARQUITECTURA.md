@@ -108,8 +108,8 @@ flowchart TB
         └─────────────┬──────────────────────┘
                       ▼
         ┌────────────────────────────────────┐
-        │  Servidor: validar version         │
-        │  • OK → version++ → notifySSE      │
+        │  Servidor: validar versión         │
+        │  • OK → versión++ → notifySSE      │
         │  • Conflicto → merge + SSE         │
         └─────────────┬──────────────────────┘
                       ▼
@@ -141,17 +141,17 @@ export function notifySSEClients(type, payload) {
 
 ### 4.3.3 Versionado Optimista y Conflict-Merge
 
-El modelo `TableState` tiene un campo `version Int @default(0)`. En cada escritura:
+El modelo `TableState` tiene un campo `versión Int @default(0)`. En cada escritura:
 
 1. Cliente envía `{ items, _clientVersion: N }`.
-2. Servidor lee `version` actual: `serverVersion`.
+2. Servidor lee `versión` actual: `serverVersion`.
 3. Si `serverVersion > N` → **conflicto**:
    - Servidor devuelve `{ conflict: true, serverData, serverVersion }`.
    - Cliente merge: toma serverData y agrega items locales únicos por `product.id`.
    - Cliente reenvía con nueva versión.
 4. Si `serverVersion == N` → **ok**:
-   - Servidor actualiza con `version: N+1`.
-   - Devuelve `{ version: N+1 }`.
+   - Servidor actualiza con `versión: N+1`.
+   - Devuelve `{ versión: N+1 }`.
    - Notifica vía SSE a otros clientes.
 
 ### 4.3.4 Multi-tenancy de Red (No es multi-negocio)
@@ -186,13 +186,13 @@ Un único servidor Express sirve un único restaurante. Sin embargo, sirve **mú
 │ 2. Capa de Autenticación                                 │
 │    • JWT firmado con HS256, expiración 7 días           │
 │    • bcrypt para passwords (10 rounds)                  │
-│    • Middleware auth.js valida Bearer token            │
+│    • Middleware auth.js válida Bearer token            │
 └─────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────┐
 │ 3. Capa de Autorización                                  │
 │    • Roles: ADMIN, WAITER, COOK, CASHIER                │
 │    • Validación por endpoint (a implementar)            │
-│    • UserContext valida sesión activa                   │
+│    • UserContext válida sesión activa                   │
 └─────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────┐
 │ 4. Capa de Validación de Datos                           │

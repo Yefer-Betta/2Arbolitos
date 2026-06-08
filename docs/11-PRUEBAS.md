@@ -2,7 +2,7 @@
 
 ## 11.1 Estrategia de Pruebas
 
-2Arbolitos se valida con un enfoque de **testing en capas**:
+2Arbolitos se válida con un enfoque de **testing en capas**:
 
 1. **Pruebas unitarias** — funciones puras y utilidades
 2. **Pruebas de integración** — endpoints API con base de datos
@@ -126,9 +126,9 @@ assert(vueltoCop === 43500);
 | Campo | Valor |
 |:------|:------|
 | **Objetivo** | Verificar resolución correcta de conflicto |
-| **Pre-condición** | 2 clientes A y B tienen version=5 de mesa 3 |
-| **Pasos** | 1. A envía: items [Hamburguesa], v=5. 2. Servidor: version=6. 3. B envía: items [Pizza], v=5. |
-| **Resultado esperado** | Servidor responde 409 con serverData [Hamburguesa], v=6. B hace merge y reenvía con [Hamburguesa, Pizza], v=6. Servidor: version=7 |
+| **Pre-condición** | 2 clientes A y B tienen versión=5 de mesa 3 |
+| **Pasos** | 1. A envía: items [Hamburguesa], v=5. 2. Servidor: versión=6. 3. B envía: items [Pizza], v=5. |
+| **Resultado esperado** | Servidor responde 409 con serverData [Hamburguesa], v=6. B hace merge y reenvía con [Hamburguesa, Pizza], v=6. Servidor: versión=7 |
 | **Resultado obtenido** | ✅ OK — sin pérdida de items, ambas órdenes registradas |
 
 ### 11.3.8 CP-08: Modo Offline con Reintento
@@ -294,4 +294,4 @@ El sistema 2Arbolitos ha sido validado en escenarios representativos de uso real
 - **Recuperación ante fallos** — reintento exponencial + sync al reconectar.
 - **Instalación amigable** — wizard gráfico sin terminal.
 
-El **98% de éxito** en la suite de pruebas valida que el sistema está listo para producción en el contexto objetivo (restaurantes PyMEs con 5-20 dispositivos en LAN).
+El **98% de éxito** en la suite de pruebas válida que el sistema está listo para producción en el contexto objetivo (restaurantes PyMEs con 5-20 dispositivos en LAN).

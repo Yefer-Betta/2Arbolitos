@@ -114,7 +114,7 @@ En 2Arbolitos, Vite 7 compila el frontend a `dist/`, que luego es servido por Ex
 - **PostgreSQL**: más features pero mayor complejidad operativa.
 - **SQLite**: descartado porque no soporta concurrencia real multi-dispositivo y no es "industrial".
 
-**Versionado optimista**: una de las técnicas más importantes del sistema. El modelo `TableState` incluye un campo `version Int @default(0)` que se incrementa en cada escritura. Si el cliente envía un `_clientVersion` menor que el `version` actual del servidor, se dispara el protocolo de **conflict-merge**: el servidor devuelve su estado actual y el cliente combina sus items locales con los del servidor por `product.id`, evitando duplicados.
+**Versionado optimista**: una de las técnicas más importantes del sistema. El modelo `TableState` incluye un campo `versión Int @default(0)` que se incrementa en cada escritura. Si el cliente envía un `_clientVersion` menor que el `versión` actual del servidor, se dispara el protocolo de **conflict-merge**: el servidor devuelve su estado actual y el cliente combina sus items locales con los del servidor por `product.id`, evitando duplicados.
 
 ## 3.8 Server-Sent Events (SSE) para Tiempo Real
 
@@ -154,10 +154,10 @@ data: {"type":"order:created","payload":{...}}
 **En 2Arbolitos:**
 
 - El usuario hace login con username/password.
-- El servidor valida con `bcrypt.compare()` y firma un JWT con `jsonwebtoken.sign()`.
+- El servidor válida con `bcrypt.compare()` y firma un JWT con `jsonwebtoken.sign()`.
 - El cliente almacena el token en `localStorage`.
 - Cada request protegido envía el token en el header `Authorization: Bearer <token>`.
-- El middleware `auth.js` valida la firma y la expiración.
+- El middleware `auth.js` válida la firma y la expiración.
 - Duración: 7 días (`JWT_EXPIRES_IN=7d`).
 
 **Ventajas sobre sesiones en servidor**: no requiere estado en el servidor, escala horizontalmente sin sticky sessions, funciona idéntico en LAN y WAN.

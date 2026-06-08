@@ -149,8 +149,8 @@ flowchart TD
 
     DEBOUNCE --> REQUEST[PUT /api/tables/state<br/>{tableId, items, _clientVersion: 5}]
 
-    REQUEST --> SERVER_VALIDATE{Servidor valida}
-    SERVER_VALIDATE -->|version=5, no conflicto| UPDATE_OK[UPDATE version=6]
+    REQUEST --> SERVER_VALIDATE{Servidor válida}
+    SERVER_VALIDATE -->|versión=5, no conflicto| UPDATE_OK[UPDATE versión=6]
     SERVER_VALIDATE -->|serverVersion=6 > 5| CONFLICT[Detectar conflicto]
 
     UPDATE_OK --> NOTIFY_SSE[SSE broadcast: table:updated]
@@ -164,7 +164,7 @@ flowchart TD
     MERGE_LOGIC --> SERVER_DATA[Tomar serverData: A1, A2]
     SERVER_DATA --> AGREGAR_LOCAL[Agregar items locales únicos: B1, B2]
     AGREGAR_LOCAL --> RESULTADO[Array final: A1, A2, B1, B2]
-    RESULTADO --> CLIENTE_UPDATE[setActiveTables con version=6]
+    RESULTADO --> CLIENTE_UPDATE[setActiveTables con versión=6]
     CLIENTE_UPDATE --> REINTENTAR[Reintentar PUT con _clientVersion=6]
     REINTENTAR --> REQUEST
 

@@ -214,7 +214,7 @@ open http://localhost:3002       # macOS
 ### 7.6.1 docker-compose.yml (Producción)
 
 ```yaml
-version: '3.8'
+versión: '3.8'
 
 services:
   mysql:

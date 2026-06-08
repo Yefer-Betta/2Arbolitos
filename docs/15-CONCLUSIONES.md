@@ -78,7 +78,7 @@
 
 ## 15.4 Lecciones Aprendidas
 
-### 15.4.1 Lo que funcionó bien
+### 15.4.1 Lo que funciónó bien
 
 1. **Elección del stack**: React + Node + MySQL es una combinación probada y con abundante documentación. Redujo el riesgo técnico.
 2. **Versionado optimista temprano**: implementar el sistema de conflictos desde el sprint 1 evitó reescrituras masivas después.

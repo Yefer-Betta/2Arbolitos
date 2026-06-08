@@ -423,17 +423,17 @@ async updateState(req, res) {
   
   if (!current) {
     current = await prisma.tableState.create({
-      data: { tableId, items: JSON.stringify(items), version: 0 }
+      data: { tableId, items: JSON.stringify(items), versión: 0 }
     });
-    notifySSEClients('table:updated', { tableId, items, version: 0 });
-    return res.status(201).json({ version: 0 });
+    notifySSEClients('table:updated', { tableId, items, versión: 0 });
+    return res.status(201).json({ versión: 0 });
   }
   
-  if (_clientVersion < current.version) {
+  if (_clientVersion < current.versión) {
     return res.status(409).json({
       conflict: true,
       serverData: JSON.parse(current.items),
-      serverVersion: current.version
+      serverVersion: current.versión
     });
   }
   
@@ -441,17 +441,17 @@ async updateState(req, res) {
     where: { tableId },
     data: {
       items: JSON.stringify(items),
-      version: current.version + 1
+      versión: current.versión + 1
     }
   });
   
   notifySSEClients('table:updated', { 
     tableId, 
     items, 
-    version: updated.version 
+    versión: updated.versión 
   });
   
-  return res.json({ version: updated.version });
+  return res.json({ versión: updated.versión });
 }
 ```
 

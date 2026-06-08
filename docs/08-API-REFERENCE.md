@@ -271,7 +271,7 @@ Content-Type: application/json
 
 ```json
 {
-  "version": 6
+  "versión": 6
 }
 ```
 
@@ -289,7 +289,7 @@ Content-Type: application/json
 
 ```json
 {
-  "version": 0
+  "versión": 0
 }
 ```
 
@@ -399,7 +399,7 @@ event: order:created
 data: {"id":"uuid","tableId":"uuid","status":"PENDING","totalCop":18000,...}
 
 event: table:updated
-data: {"tableId":"uuid","items":[...],"version":6}
+data: {"tableId":"uuid","items":[...],"versión":6}
 
 ```
 
@@ -410,7 +410,7 @@ data: {"tableId":"uuid","items":[...],"version":6}
 | `order:created` | Nueva orden POST | objeto order completo |
 | `order:updated` | PUT en orden | objeto order con cambios |
 | `order:status:changed` | Cambio de status | `{id, status}` |
-| `table:updated` | PUT /tables/state exitoso | `{tableId, items, version}` |
+| `table:updated` | PUT /tables/state exitoso | `{tableId, items, versión}` |
 | `table:cleared` | DELETE items de mesa | `{tableId}` |
 | `menu:updated` | CRUD producto/categoría | `{type, id}` |
 

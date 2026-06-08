@@ -6,7 +6,7 @@
 
 Las decisiones clave del modelo de datos son:
 
-- **Versionado optimista** en `TableState` con campo `version Int @default(0)`.
+- **Versionado optimista** en `TableState` con campo `versión Int @default(0)`.
 - **Items de mesa almacenados como JSON** en `TableState.items` (campo `LongText`) — el carrito activo de cada mesa.
 - **Relaciones explícitas** con `onDelete: Cascade` donde tiene sentido (items de orden, pagos).
 - **Soft-delete** mediante `active Boolean` en `Category`, `Product`, `Table`, `User` — permite "desactivar" sin perder histórico.
@@ -70,7 +70,7 @@ erDiagram
         string id PK
         string tableId UK,FK
         text items "JSON array"
-        int version "default 0, optimistic lock"
+        int versión "default 0, optimistic lock"
         datetime updatedAt
     }
 
@@ -209,7 +209,7 @@ Almacena el carrito activo de cada mesa: qué items tiene pendientes, en qué ve
 |:------|:-----|:------------|
 | `tableId` | String unique | 1:1 con Table |
 | `items` | LongText (JSON) | Array de items del carrito |
-| `version` | Int default 0 | **Versionado optimista** |
+| `versión` | Int default 0 | **Versionado optimista** |
 | `updatedAt` | DateTime | Última modificación |
 
 **Estructura típica de `items`:**
@@ -359,7 +359,7 @@ enum PaymentMethod {
 
 ## 6.5 Versionado Optimista — Detalle Técnico
 
-El campo `version` en `TableState` es el corazón de la consistencia distribuida.
+El campo `versión` en `TableState` es el corazón de la consistencia distribuida.
 
 ```javascript
 // Servidor: PUT /api/tables/state
@@ -367,37 +367,37 @@ const { tableId, items, _clientVersion } = req.body;
 const current = await prisma.tableState.findUnique({ where: { tableId } });
 
 if (!current) {
-  // Crear nuevo TableState con version=0
-  await prisma.tableState.create({ data: { tableId, items, version: 0 } });
-  return { version: 0 };
+  // Crear nuevo TableState con versión=0
+  await prisma.tableState.create({ data: { tableId, items, versión: 0 } });
+  return { versión: 0 };
 }
 
-if (_clientVersion < current.version) {
+if (_clientVersion < current.versión) {
   // CONFLICTO: el cliente tiene datos obsoletos
   return { 
     conflict: true, 
     serverData: current.items, 
-    serverVersion: current.version 
+    serverVersion: current.versión 
   };
 }
 
 const updated = await prisma.tableState.update({
   where: { tableId },
-  data: { items, version: current.version + 1 }
+  data: { items, versión: current.versión + 1 }
 });
 
-notifySSEClients('table:updated', { tableId, items, version: updated.version });
-return { version: updated.version };
+notifySSEClients('table:updated', { tableId, items, versión: updated.versión });
+return { versión: updated.versión };
 ```
 
 ```javascript
 // Cliente: OrdersContext.jsx
 const syncTableToServer = async (idMesa) => {
-  const { items, version } = activeTablesRef.current[idMesa];
+  const { items, versión } = activeTablesRef.current[idMesa];
   const result = await apiPut('/tables/state', {
     tableId: idMesa,
     items,
-    _clientVersion: version
+    _clientVersion: versión
   });
 
   if (result?.conflict) {
@@ -414,17 +414,17 @@ const syncTableToServer = async (idMesa) => {
     // Reenviar con la versión del servidor
     setActiveTables(prev => ({
       ...prev,
-      [idMesa]: { items: merged, version: result.serverVersion }
+      [idMesa]: { items: merged, versión: result.serverVersion }
     }));
     
     // Reintentar
     return syncTableToServer(idMesa);
   }
   
-  if (result?.version) {
+  if (result?.versión) {
     setActiveTables(prev => ({
       ...prev,
-      [idMesa]: { ...prev[idMesa], version: result.version }
+      [idMesa]: { ...prev[idMesa], versión: result.versión }
     }));
   }
 };
