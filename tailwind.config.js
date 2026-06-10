@@ -1,9 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
   theme: {
     extend: {
       fontFamily: {
@@ -11,20 +7,20 @@ export default {
       },
       colors: {
         primary: {
-          DEFAULT: '#1A4D2E', // Deep Forest Green
+          DEFAULT: '#1A4D2E',
           light: '#2D6A42',
           dark: '#113520',
         },
         secondary: {
-          DEFAULT: '#D4A373', // Earthy Gold/Ochre
+          DEFAULT: '#D4A373',
           light: '#E5C09C',
         },
         background: {
-          DEFAULT: '#F9F7F2', // Soft Cream
+          DEFAULT: '#F9F7F2',
           paper: '#FFFFFF',
         },
         surface: {
-          DEFAULT: '#F0EBE0', // Slightly darker cream for cards/sidebars
+          DEFAULT: '#F0EBE0',
         }
       }
     },

@@ -18,6 +18,7 @@ export function SettingsProvider({ children }) {
     const [exchangeRate, setExchangeRate] = useState(4000);
     const [business, setBusiness] = useState(DEFAULT_BUSINESS);
     const [autoStart, setAutoStart] = useState(false);
+    const [backupHour, setBackupHour] = useState(2);
     const [serverUrl, setServerUrl] = useState('');
     const [loaded, setLoaded] = useState(false);
 
@@ -53,6 +54,10 @@ if (syncManager.isOnline) {
                     }
                     if (serverSettings?.autoStart !== undefined) {
                         setAutoStart(serverSettings.autoStart);
+                    }
+                    if (serverSettings?.backupHour !== undefined) {
+                        const val = typeof serverSettings.backupHour === 'number' ? serverSettings.backupHour : (serverSettings.backupHour?.value || 2);
+                        setBackupHour(Number(val));
                     }
                 } catch (err) {
                     console.error('Error fetching settings:', err);
@@ -152,6 +157,17 @@ if (syncManager.isOnline) {
         }
     };
 
+    const updateBackupHour = async (hour) => {
+        setBackupHour(hour);
+        if (syncManager.isOnline) {
+            try {
+                await apiPost('/settings', { key: 'backupHour', value: String(hour), type: 'number' });
+            } catch {
+                console.warn('Backup hour saved locally');
+            }
+        }
+    };
+
     const value = {
         exchangeRate,
         setExchangeRate: updateExchangeRate,
@@ -159,6 +175,8 @@ if (syncManager.isOnline) {
         setBusiness: updateBusiness,
         autoStart,
         toggleAutoStart,
+        backupHour,
+        updateBackupHour,
         serverUrl,
         loaded,
     };

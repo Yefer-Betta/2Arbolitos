@@ -1,9 +1,8 @@
 import { fileURLToPath } from 'url';
 import { dirname, resolve, join } from 'path';
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, existsSync } from 'fs';
 import os from 'os';
 import { execSync } from 'child_process';
-import { createDesktopShortcut } from '../../electron/create-desktop-shortcut.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -43,35 +42,11 @@ export default function createShortcuts(port = 3002) {
 
   const targetDir = existsSync(desktop) ? desktop : ROOT;
 
-  log(`Creando accesos directos en ${targetDir}...`, 'step');
+  log(`Creando accesos directos en ${targetDir}...`);
 
   if (platform === 'win32') {
-    // 1. Acceso directo nativo .lnk apuntando al .exe (con logo)
-    const exePath = join(ROOT, 'release', 'win-unpacked', '2Arbolitos POS.exe');
-    const iconPath = join(ROOT, 'build', 'icon.ico');
-
-    if (existsSync(exePath)) {
-      const result = createDesktopShortcut({
-        exePath,
-        iconPath: existsSync(iconPath) ? iconPath : undefined,
-        name: '2Arbolitos POS',
-        desktopPath: targetDir
-      });
-      if (result.success) {
-        log(`Acceso directo nativo: "${result.path}"`, 'success');
-      } else {
-        log(`Fallo creando .lnk: ${result.error}. Usando fallback .url.`, 'warn');
-        writeFallbackUrl(targetDir, baseUrl);
-      }
-    } else {
-      log(`No se encontró ${exePath}. Usando fallback .url (solo navegador).`, 'warn');
-      writeFallbackUrl(targetDir, baseUrl);
-    }
-
-    // 2. Acceso directo .url al navegador (compatibilidad, NO se elimina)
     writeFallbackUrl(targetDir, baseUrl);
 
-    // 3. Admin shortcut - abre el menú CLI en una ventana
     const adminBat = `@echo off
 title 2Arbolitos - Administración
 color 0B
@@ -83,7 +58,6 @@ pause
     log('Acceso directo creado: "2Arbolitos - Admin.bat"', 'success');
 
   } else if (platform === 'darwin') {
-    // macOS .command file (doble-click abre terminal y ejecuta)
     const commandContent = `#!/bin/bash
 open "${baseUrl}"
 `;
@@ -135,9 +109,8 @@ Categories=System;
 
   console.log(`
 ${colors.green}${colors.bold}✅ Accesos directos creados en tu escritorio:${colors.reset}
-  ${colors.bold}2Arbolitos POS${colors.reset}        → Acceso directo nativo (.lnk) con logo
-  ${colors.bold}2Arbolitos - POS.url${colors.reset}  → Acceso directo al navegador (legacy)
-  ${colors.bold}2Arbolitos - Admin${colors.reset}    → Panel de control (instalación, actualización)
+  ${colors.bold}2Arbolitos - POS.url${colors.reset}  → Acceso directo al navegador
+  ${colors.bold}2Arbolitos - Admin.${platform === 'win32' ? 'bat' : platform === 'darwin' ? 'command' : 'desktop'}${colors.reset}    → Panel de control
 `);
 }
 

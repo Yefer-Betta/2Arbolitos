@@ -42,3 +42,9 @@ export function generateId() {
     return v.toString(16);
   });
 }
+
+export function hasPermission(user, permission) {
+  if (!user) return false;
+  if (user.role === 'ADMIN') return true;
+  return Array.isArray(user.permissions) && user.permissions.includes(permission);
+}

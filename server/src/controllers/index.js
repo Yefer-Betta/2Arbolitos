@@ -5,3 +5,8 @@ export { tableController } from './tableController.js';
 export { settingsController } from './settingsController.js';
 export { closureController } from './closureController.js';
 export { expenseController } from './expenseController.js';
+export { customerController } from './customerController.js';
+export { reservationController } from './reservationController.js';
+export { modifierController } from './modifierController.js';
+export { supplierController } from './supplierController.js';
+export { attendanceController } from './attendanceController.js';

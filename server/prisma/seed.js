@@ -6,6 +6,9 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting seed...');
 
+  await prisma.auditLog.deleteMany();
+  await prisma.rolePermission.deleteMany();
+  await prisma.permission.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
@@ -28,6 +31,24 @@ async function main() {
     },
   });
 
+  const manager = await prisma.user.create({
+    data: {
+      username: 'gerente',
+      password: waiterPassword,
+      name: 'Gerente',
+      role: 'MANAGER',
+    },
+  });
+
+  const cashier = await prisma.user.create({
+    data: {
+      username: 'cajero',
+      password: waiterPassword,
+      name: 'Cajero',
+      role: 'CASHIER',
+    },
+  });
+
   const waiter = await prisma.user.create({
     data: {
       username: 'mesero',
@@ -47,6 +68,69 @@ async function main() {
   });
 
   console.log('✅ Users created');
+
+  const permissions = await Promise.all([
+    prisma.permission.create({ data: { name: 'CREATE_PRODUCT' } }),
+    prisma.permission.create({ data: { name: 'EDIT_PRODUCT' } }),
+    prisma.permission.create({ data: { name: 'DELETE_PRODUCT' } }),
+    prisma.permission.create({ data: { name: 'MANAGE_INVENTORY' } }),
+    prisma.permission.create({ data: { name: 'VIEW_REPORTS' } }),
+    prisma.permission.create({ data: { name: 'MANAGE_USERS' } }),
+    prisma.permission.create({ data: { name: 'MANAGE_ORDERS' } }),
+    prisma.permission.create({ data: { name: 'VIEW_ORDERS' } }),
+    prisma.permission.create({ data: { name: 'VIEW_AUDIT' } }),
+    prisma.permission.create({ data: { name: 'MANAGE_PERMISSIONS' } }),
+    prisma.permission.create({ data: { name: 'MANAGE_SETTINGS' } }),
+    prisma.permission.create({ data: { name: 'MANAGE_BACKUP' } }),
+  ]);
+
+  console.log('✅ Permissions created');
+
+  // ADMIN: todos los permisos
+  for (const perm of permissions) {
+    await prisma.rolePermission.create({
+      data: { roleName: 'ADMIN', permissionId: perm.id },
+    });
+  }
+
+  // MANAGER: permisos de operación excepto MANAGE_USERS y MANAGE_PERMISSIONS
+  const managerPerms = permissions.filter(p =>
+    !['MANAGE_USERS', 'MANAGE_PERMISSIONS', 'DELETE_PRODUCT', 'VIEW_AUDIT'].includes(p.name)
+  );
+  for (const perm of managerPerms) {
+    await prisma.rolePermission.create({
+      data: { roleName: 'MANAGER', permissionId: perm.id },
+    });
+  }
+
+  // CASHIER: productos, órdenes, inventario, reportes
+  const cashierPerms = permissions.filter(p =>
+    ['CREATE_PRODUCT', 'EDIT_PRODUCT', 'MANAGE_INVENTORY', 'VIEW_REPORTS', 'MANAGE_ORDERS'].includes(p.name)
+  );
+  for (const perm of cashierPerms) {
+    await prisma.rolePermission.create({
+      data: { roleName: 'CASHIER', permissionId: perm.id },
+    });
+  }
+
+  // WAITER: solo crear/ver órdenes
+  const waiterPerms = permissions.filter(p =>
+    ['MANAGE_ORDERS', 'VIEW_ORDERS'].includes(p.name)
+  );
+  for (const perm of waiterPerms) {
+    await prisma.rolePermission.create({
+      data: { roleName: 'WAITER', permissionId: perm.id },
+    });
+  }
+
+  // COOK: solo ver órdenes
+  for (const perm of permissions.filter(p => p.name === 'VIEW_ORDERS')) {
+    await prisma.rolePermission.create({
+      data: { roleName: 'COOK', permissionId: perm.id },
+    });
+  }
+
+  console.log('✅ Role permissions assigned');
 
   const categories = await Promise.all([
     prisma.category.create({ data: { name: 'Bebidas', order: 1 } }),
@@ -183,6 +267,8 @@ async function main() {
 ╠═══════════════════════════════════════════════════════╣
 ║  USUARIOS CREADOS:                                    ║
 ║  - admin / admin123 (ADMIN)                           ║
+║  - gerente / waiter123 (MANAGER)                      ║
+║  - cajero / waiter123 (CASHIER)                       ║
 ║  - mesero / waiter123 (WAITER)                        ║
 ║  - cocina / cook123 (COOK)                            ║
 ╚═══════════════════════════════════════════════════════╝

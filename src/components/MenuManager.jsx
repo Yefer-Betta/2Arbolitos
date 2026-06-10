@@ -1,13 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useMenu } from '../context/MenuContext';
 import { useSettings } from '../context/SettingsContext';
-import { Plus, Trash2, Edit2, X, Check, Search, Utensils } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Check, Search, Utensils, Package } from 'lucide-react';
+import { apiGet } from '../lib/api.js';
 
 export function MenuManager() {
     const { products, categories, addProduct, updateProduct, deleteProduct } = useMenu();
     const { exchangeRate } = useSettings();
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [inventoryItems, setInventoryItems] = useState([]);
+
+    // Load inventory items for linking
+    const loadInventory = useCallback(async () => {
+        try {
+            const data = await apiGet('/inventory');
+            if (Array.isArray(data)) setInventoryItems(data);
+        } catch {}
+    }, []);
+
+    useEffect(() => { loadInventory(); }, [loadInventory]);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -15,10 +27,11 @@ export function MenuManager() {
         categoryId: '',
         price: '',
         isUsd: false,
+        inventoryItemId: '',
     });
 
     const resetForm = () => {
-        setFormData({ name: '', categoryId: '', price: '', isUsd: false });
+        setFormData({ name: '', categoryId: '', price: '', isUsd: false, inventoryItemId: '' });
         setIsAdding(false);
         setEditingId(null);
     };
@@ -29,6 +42,7 @@ export function MenuManager() {
             categoryId: product.categoryId,
             price: product.price,
             isUsd: product.isUsd || false,
+            inventoryItemId: product.inventoryItems?.[0]?.id || '',
         });
         setEditingId(product.id);
         setIsAdding(true);
@@ -47,6 +61,7 @@ export function MenuManager() {
             categoryId: formData.categoryId,
             price: parseFloat(formData.price),
             isUsd: formData.isUsd,
+            inventoryItemId: formData.inventoryItemId || null,
         };
 
         if (editingId) {
@@ -151,6 +166,32 @@ export function MenuManager() {
                             </div>
                         </div>
 
+                        <div className="col-span-2 md:col-span-1">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Insumo vinculado</label>
+                            <select
+                                value={formData.inventoryItemId}
+                                onChange={e => {
+                                    const invId = e.target.value;
+                                    const selected = inventoryItems.find(i => i.id === invId);
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        inventoryItemId: invId,
+                                        name: selected && !prev.name ? selected.name : prev.name,
+                                        price: selected && selected.unitCost && !prev.price ? String(selected.unitCost) : prev.price,
+                                    }));
+                                }}
+                                className="input-field"
+                            >
+                                <option value="">Ninguno</option>
+                                {inventoryItems.map(inv => (
+                                    <option key={inv.id} value={inv.id}>
+                                        {inv.name} ({inv.quantity} {inv.unit})
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-gray-400 mt-1">Al vender este producto se descontar&aacute; del inventario</p>
+                        </div>
+
                         <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
                             <button
                                 type="button"
@@ -209,6 +250,12 @@ export function MenuManager() {
                                 <span className="inline-block px-2.5 py-1 text-xs font-bold bg-primary/5 text-primary rounded-md mb-2 uppercase tracking-wide">
                                     {product.category}
                                 </span>
+                                {product.inventoryItems?.length > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold bg-amber-50 text-amber-700 rounded-md mb-2 ml-1">
+                                        <Package className="w-3 h-3" />
+                                        {product.inventoryItems[0].quantity} {product.inventoryItems[0].unit}
+                                    </span>
+                                )}
                                 <h3 className="font-bold text-lg text-gray-800 leading-tight mb-1">{product.name}</h3>
                             </div>
 

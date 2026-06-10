@@ -3,7 +3,6 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "main": "electron/main.js",
   "scripts": {
     "dev": "vite --host",
     "api": "npm run start --prefix server",
@@ -22,10 +21,7 @@
     "docker:logs": "docker compose logs -f",
     "docker:seed": "docker compose exec -T app node server/prisma/seed.js",
     "docker:rebuild": "docker compose up -d --build",
-    "electron": "electron .",
-    "electron:dev": "concurrently -k \"npm run dev\" \"node -e setTimeout(()=>process.exit(),3000) && electron .\"",
-    "electron:build": "vite build && electron-builder",
-    "dist": "electron-builder"
+    "backup": "node scripts/backup.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -52,8 +48,6 @@
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.24",
     "concurrently": "^9.1.2",
-    "electron": "^33.4.11",
-    "electron-builder": "^26.0.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
@@ -64,53 +58,5 @@
     "to-ico": "^1.1.5",
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0"
-  },
-  "build": {
-    "appId": "com.2arbolitos.pos",
-    "productName": "2Arbolitos POS",
-    "copyright": "Copyright © 2024",
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "server/**/*",
-      "server/node_modules/**/*",
-      "package.json"
-    ],
-    "asarUnpack": [
-      "server/node_modules/.prisma/**/*"
-    ],
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "icon": "build/icon.ico"
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ],
-      "category": "public.app-category.business"
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "category": "Office"
-    },
-    "nsis": {
-      "oneClick": true,
-      "perMachine": true,
-      "allowToChangeInstallationDirectory": false,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "2Arbolitos POS",
-      "deleteAppDataOnUninstall": false,
-      "include": "build/installer.nsh"
-    }
   }
 }

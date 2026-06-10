@@ -5,6 +5,7 @@ import { authenticate, authorize, optionalAuth } from '../middleware/auth.js';
 const router = Router();
 
 router.get('/products', optionalAuth, productController.getProducts);
+router.get('/products/cost-analysis', authenticate, productController.getCostAnalysis);
 router.get('/products/:id', optionalAuth, productController.getProduct);
 router.post('/products', authenticate, authorize('ADMIN', 'CASHIER'), productController.createProduct);
 router.put('/products/:id', authenticate, authorize('ADMIN', 'CASHIER'), productController.updateProduct);

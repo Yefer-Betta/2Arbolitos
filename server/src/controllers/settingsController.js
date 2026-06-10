@@ -1,6 +1,12 @@
 import prisma from '../config/database.js';
 import { execSync } from 'child_process';
 import os from 'os';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const settingsController = {
   async getSettings(req, res) {
@@ -237,6 +243,35 @@ export const settingsController = {
     } catch (error) {
       console.error('Error al obtener reporte financiero:', error);
       res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  },
+
+  async downloadBackup(req, res) {
+    try {
+      const backupsDir = path.resolve(__dirname, '..', '..', '..', 'backups');
+      if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupFile = path.join(backupsDir, `backup-${timestamp}.sql`);
+
+      const dbUrl = process.env.DATABASE_URL;
+      if (!dbUrl) return res.status(500).json({ error: 'DATABASE_URL no configurada' });
+
+      const match = dbUrl.match(/^mysql:\/\/([^:]+):([^@]+)@([^:/]+)(?::(\d+))?\/([^?]+)/);
+      if (!match) return res.status(500).json({ error: 'DATABASE_URL formato inválido' });
+
+      const [, user, password, host, port = '3306', database] = match;
+      const dumpCmd = `mysqldump -u ${user} -p${password} -h ${host} -P ${port} ${database}`;
+
+      execSync(`${dumpCmd} > "${backupFile}"`, { stdio: 'pipe', shell: true, timeout: 120000 });
+
+      res.download(backupFile, `backup-2arbolitos-${timestamp}.sql`, (err) => {
+        if (err) console.error('Error al enviar backup:', err.message);
+        fs.unlink(backupFile, () => {});
+      });
+    } catch (error) {
+      console.error('Error al generar backup:', error.message);
+      res.status(500).json({ error: 'Error al generar backup: ' + error.message });
     }
   },
 };

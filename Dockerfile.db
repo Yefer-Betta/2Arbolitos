@@ -1,0 +1,5 @@
+FROM alpine:3.19
+RUN apk add --no-cache mariadb mariadb-client
+RUN mkdir -p /run/mysqld && mkdir -p /var/lib/mysql
+EXPOSE 3306
+CMD ["mariadbd", "--user=root", "--skip-grant-tables", "--skip-networking=0"]

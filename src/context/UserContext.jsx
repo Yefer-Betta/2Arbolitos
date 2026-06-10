@@ -20,7 +20,10 @@ export function UserProvider({ children }) {
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            await apiPost('/attendance/check-out', {});
+        } catch {}
         setCurrentUser(null);
         sessionStorage.removeItem('currentUser');
     };
@@ -91,6 +94,9 @@ export function UserProvider({ children }) {
                     localStorage.setItem('token', response.token);
                     setCurrentUser(response.user);
                     sessionStorage.setItem('currentUser', JSON.stringify(response.user));
+                    try {
+                        await apiPost('/attendance/check-in', {});
+                    } catch {}
                     return { success: true, user: response.user };
                 }
 

@@ -10,6 +10,7 @@ import { PrismaClient } from '@prisma/client';
 import routes from './routes/index.js';
 import QRCode from 'qrcode';
 import { addSSEClient, removeSSEClient, notifySSEClients } from './sse.js';
+import { initScheduler } from './scheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,6 +56,11 @@ export async function startServer(usePort) {
   const localIP = getLocalIP();
   const serverUrl = `http://${localIP}:${PORT}`;
 
+  const allowedOriginsEnv = process.env.ALLOWED_ORIGINS || '';
+  const extraPatterns = allowedOriginsEnv
+    .split(',')
+    .filter(Boolean)
+    .map(o => new RegExp(o.trim()));
   app.use(cors({
     origin: function(origin, callback) {
       if (!origin) {
@@ -66,6 +72,7 @@ export async function startServer(usePort) {
         /^http:\/\/127\.0\.0\.1(:\d+)?$/,
         /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/,
         /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/,
+        ...extraPatterns,
       ];
       const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
       if (isAllowed) {
@@ -171,6 +178,8 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
           txt: { url: serverUrl },
         });
       } catch {}
+
+      initScheduler();
 
       console.log(`\n🏪 Servidor 2Arbolitos corriendo en puerto ${PORT}`);
       console.log(`   Local:    http://localhost:${PORT}`);

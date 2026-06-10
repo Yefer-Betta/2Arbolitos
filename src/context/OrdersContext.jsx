@@ -276,6 +276,7 @@ export function OrdersProvider({ children }) {
       unitPrice: item.product?.price || item.unitPrice || 0,
       totalPrice: (item.product?.price || item.unitPrice || 0) * item.quantity,
       notes: item.notes || null,
+      modifiers: item._modifiers || null,
     }));
 
     const orderDataForServer = {
@@ -286,6 +287,9 @@ export function OrdersProvider({ children }) {
       discountValue: order.discountValue || 0,
       discountPercent: order.discountPercent || 0,
       payment: order.payment,
+      customerId: order.customerId || null,
+      deliveryAddress: order.deliveryAddress || null,
+      deliveryCost: order.deliveryCost || 0,
     };
 
     if (syncManager.isOnline) {
@@ -446,6 +450,20 @@ export function OrdersProvider({ children }) {
     syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' }).catch(() => {});
   };
 
+  const transferTable = (fromId, toId) => {
+    setActiveTables(prevTables => {
+      const newTables = { ...prevTables };
+      const items = newTables[fromId]?.items || [];
+      if (items.length === 0) return newTables;
+      const existing = newTables[toId]?.items || [];
+      newTables[toId] = { ...newTables[toId], items: [...existing, ...items] };
+      delete newTables[fromId];
+      setData('activeTables', newTables);
+      return newTables;
+    });
+    syncManager.fetchFromAPI(`/tables/state/${fromId}`, { method: 'DELETE' }).catch(() => {});
+  };
+
   const syncNow = async () => {
     setIsSyncing(true);
     await syncManager.syncNow();
@@ -464,6 +482,7 @@ export function OrdersProvider({ children }) {
     actualizarCantidad,
     eliminarPlatilloDeMesa,
     limpiarMesa,
+    transferTable,
     loaded,
     isSyncing,
     syncNow,

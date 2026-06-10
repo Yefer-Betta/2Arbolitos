@@ -31,6 +31,8 @@ export const authController = {
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
       );
 
+      const permissions = await getUserPermissions(user.role);
+
       res.json({
         token,
         user: {
@@ -38,6 +40,7 @@ export const authController = {
           username: user.username,
           name: user.name,
           role: user.role,
+          permissions,
         },
       });
     } catch (error) {
@@ -99,7 +102,9 @@ export const authController = {
         return res.status(404).json({ error: 'Usuario no encontrado' });
       }
 
-      res.json({ user });
+      const permissions = await getUserPermissions(user.role);
+
+      res.json({ user: { ...user, permissions } });
     } catch (error) {
       console.error('Error en verifyToken:', error);
       res.status(500).json({ error: 'Error interno del servidor' });
@@ -173,3 +178,15 @@ export const authController = {
     }
   },
 };
+
+async function getUserPermissions(roleName) {
+  try {
+    const rps = await prisma.rolePermission.findMany({
+      where: { roleName },
+      include: { permission: { select: { name: true } } },
+    });
+    return rps.map(rp => rp.permission.name);
+  } catch {
+    return [];
+  }
+}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Coffee, Settings, ShoppingCart, TrendingUp, Calculator, Menu, X, LogOut, Users, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Coffee, Settings, ShoppingCart, TrendingUp, Calculator, Menu, X, LogOut, Users, Wifi, WifiOff, RefreshCw, Package, Shield, ClipboardList, UserCog, ChefHat, Clock, Moon, Sun, Layers, Building2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useSettings } from '../context/SettingsContext';
+import { useTheme } from '../context/ThemeContext';
 import { syncManager } from '../lib/syncManager.js';
 
 export function Layout({ children, activeTab, setActiveTab }) {
@@ -13,6 +14,7 @@ export function Layout({ children, activeTab, setActiveTab }) {
     const [currentTime, setCurrentTime] = useState(new Date());
     const { currentUser, logout } = useUser();
     const { business } = useSettings();
+    const { isDark, toggleTheme } = useTheme();
     useEffect(() => {
         const unsubscribe = syncManager.addListener((event, data) => {
             if (event === 'online') {
@@ -48,15 +50,27 @@ export function Layout({ children, activeTab, setActiveTab }) {
     };
 
     const allTabs = [
-        { id: 'pos', label: 'Pedidos', icon: ShoppingCart, roles: ['ADMIN', 'WAITER'] },
-        { id: 'menu', label: 'Menú', icon: Coffee, roles: ['ADMIN'] },
-        { id: 'finance', label: 'Contabilidad', icon: TrendingUp, roles: ['ADMIN'] },
-        { id: 'escandallo', label: 'Escandallo', icon: Calculator, roles: ['ADMIN'] },
-        { id: 'users', label: 'Usuarios', icon: Users, roles: ['ADMIN'] },
-        { id: 'settings', label: 'Configuración', icon: Settings, roles: ['ADMIN'] },
+        { id: 'pos', label: 'Pedidos', icon: ShoppingCart, roles: ['ADMIN', 'WAITER'], permissions: ['VIEW_ORDERS', 'MANAGE_ORDERS'] },
+        { id: 'kitchen', label: 'Cocina', icon: ChefHat, roles: ['ADMIN', 'COOK'], permissions: ['VIEW_ORDERS'] },
+        { id: 'history', label: 'Historial', icon: Clock, roles: ['ADMIN', 'MANAGER', 'CASHIER'], permissions: ['VIEW_REPORTS'] },
+        { id: 'menu', label: 'Menú', icon: Coffee, roles: ['ADMIN'], permissions: ['CREATE_PRODUCT', 'EDIT_PRODUCT'] },
+        { id: 'inventory', label: 'Inventario', icon: Package, roles: ['ADMIN', 'MANAGER'], permissions: ['MANAGE_INVENTORY'] },
+        { id: 'customers', label: 'Clientes', icon: Users, roles: ['ADMIN', 'MANAGER'], permissions: ['VIEW_REPORTS'] },
+        { id: 'modifiers', label: 'Modificadores', icon: Layers, roles: ['ADMIN'], permissions: ['CREATE_PRODUCT', 'EDIT_PRODUCT'] },
+        { id: 'suppliers', label: 'Proveedores', icon: Building2, roles: ['ADMIN', 'MANAGER'], permissions: ['MANAGE_INVENTORY'] },
+        { id: 'finance', label: 'Contabilidad', icon: TrendingUp, roles: ['ADMIN'], permissions: ['VIEW_REPORTS'] },
+        { id: 'escandallo', label: 'Escandallo', icon: Calculator, roles: ['ADMIN'], permissions: ['VIEW_REPORTS'] },
+        { id: 'admin', label: 'Administración', icon: UserCog, roles: ['ADMIN', 'MANAGER'], permissions: ['MANAGE_USERS', 'MANAGE_PERMISSIONS'] },
+        { id: 'audit', label: 'Auditoría', icon: ClipboardList, roles: ['ADMIN'], permissions: ['VIEW_AUDIT'] },
+        { id: 'settings', label: 'Configuración', icon: Settings, roles: ['ADMIN'], permissions: ['MANAGE_SETTINGS'] },
     ];
 
-    const navItems = allTabs.filter(tab => tab.roles.includes(currentUser.role));
+    const userPerms = currentUser.permissions || [];
+
+    const navItems = allTabs.filter(tab =>
+        tab.roles.includes(currentUser.role) ||
+        tab.permissions.some(p => userPerms.includes(p))
+    );
 
     return (
         <div className="flex flex-col md:flex-row h-screen bg-background text-gray-800 font-sans">
@@ -141,22 +155,31 @@ export function Layout({ children, activeTab, setActiveTab }) {
                             </>
                         )}
                     </div>
-                    
-                    {isOnline && (
+
+                    <div className="flex items-center gap-1">
+                        {isOnline && (
+                            <button
+                                onClick={handleSync}
+                                disabled={isSyncing}
+                                className={cn(
+                                    "flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors",
+                                    pendingChanges > 0 
+                                        ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30" 
+                                        : "bg-green-500/20 text-green-400"
+                                )}
+                            >
+                                <RefreshCw className={cn("w-3 h-3", isSyncing && "animate-spin")} />
+                                {pendingChanges > 0 ? `${pendingChanges} pendiente${pendingChanges > 1 ? 's' : ''}` : 'Sincronizado'}
+                            </button>
+                        )}
                         <button
-                            onClick={handleSync}
-                            disabled={isSyncing}
-                            className={cn(
-                                "flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors",
-                                pendingChanges > 0 
-                                    ? "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30" 
-                                    : "bg-green-500/20 text-green-400"
-                            )}
+                            onClick={toggleTheme}
+                            className="p-2 rounded-lg text-primary-light/70 hover:bg-primary-light/20 hover:text-white transition-colors"
+                            title={isDark ? 'Modo claro' : 'Modo oscuro'}
                         >
-                            <RefreshCw className={cn("w-3 h-3", isSyncing && "animate-spin")} />
-                            {pendingChanges > 0 ? `${pendingChanges} pendiente${pendingChanges > 1 ? 's' : ''}` : 'Sincronizado'}
+                            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                         </button>
-                    )}
+                    </div>
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1">

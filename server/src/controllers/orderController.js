@@ -33,6 +33,9 @@ export const orderController = {
           user: {
             select: { id: true, name: true, username: true },
           },
+          customer: {
+            select: { id: true, name: true, phone: true },
+          },
           items: {
             include: {
               product: true,
@@ -63,13 +66,15 @@ export const orderController = {
           user: {
             select: { id: true, name: true, username: true },
           },
+          customer: {
+            select: { id: true, name: true, phone: true },
+          },
           items: {
             include: {
               product: true,
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
       });
 
       res.json(orders);
@@ -89,6 +94,9 @@ export const orderController = {
           table: true,
           user: {
             select: { id: true, name: true, username: true },
+          },
+          customer: {
+            select: { id: true, name: true, phone: true },
           },
           items: {
             include: {
@@ -112,7 +120,7 @@ export const orderController = {
 
   async createOrder(req, res) {
     try {
-      const { tableId, orderType, items, exchangeRate, discountValue, discountPercent, notes, payment } = req.body;
+      const { tableId, orderType, items, exchangeRate, discountValue, discountPercent, notes, payment, customerId, deliveryAddress, deliveryCost } = req.body;
       
       let userId = req.user?.id;
       if (!userId) {
@@ -213,6 +221,7 @@ export const orderController = {
           unitPrice: item.unitPrice,
           totalPrice,
           notes: item.notes,
+          modifiers: item.modifiers || null,
         });
       }
 
@@ -228,6 +237,7 @@ export const orderController = {
         data: {
           tableId: dbTableId,
           userId,
+          customerId: customerId || null,
           orderType: orderType ? orderType.toUpperCase() : 'MESA',
           totalCop: finalTotalCop,
           totalUsd: finalTotalUsd,
@@ -235,6 +245,8 @@ export const orderController = {
           discountValue: discountValue || 0,
           discountPercent: discountPercent || 0,
           notes,
+          deliveryAddress: deliveryAddress || null,
+          deliveryCost: deliveryCost || 0,
           items: {
             create: orderItems,
           },
@@ -261,6 +273,27 @@ export const orderController = {
       }
 
       notifySSEClients('order:created', order);
+
+      // Descontar inventario por cada ítem del pedido
+      try {
+        for (const item of order.items) {
+          if (item.productId) {
+            const invItems = await prisma.inventoryItem.findMany({
+              where: { productId: item.productId },
+            });
+            for (const inv of invItems) {
+              const newQty = Math.max(0, inv.quantity - item.quantity);
+              await prisma.inventoryItem.update({
+                where: { id: inv.id },
+                data: { quantity: newQty },
+              });
+            }
+          }
+        }
+      } catch (invErr) {
+        console.error('Error al descontar inventario:', invErr);
+      }
+
       res.status(201).json(order);
     } catch (error) {
       console.error('Error al crear pedido:', error);

@@ -91,6 +91,8 @@ export function UserManager() {
                             <label className="block text-sm font-bold text-gray-700 mb-2">Rol</label>
                             <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="input-field">
                                 <option value="ADMIN">Administrador</option>
+                                <option value="MANAGER">Gerente</option>
+                                <option value="CASHIER">Cajero</option>
                                 <option value="WAITER">Mesero</option>
                                 <option value="COOK">Cocinero</option>
                             </select>

@@ -18,6 +18,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   orders Order[]
+  attendance Attendance[]
 
   @@map("users")
 }
@@ -27,7 +28,24 @@ enum Role {
   COOK
   WAITER
   CASHIER
+  MANAGER
 }
+
+model Permission {
+  id   String @id @default(uuid())
+  name String @unique
+
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  roleName     String
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleName, permissionId])
+}
+
 
 model Category {
   id        String    @id @default(uuid())
@@ -55,8 +73,85 @@ model Product {
   updatedAt   DateTime    @updatedAt
 
   orderItems OrderItem[]
+  inventoryItems InventoryItem[]
+  modifierGroups ProductModifierGroup[]
 
   @@map("products")
+}
+
+model ModifierGroup {
+  id       String   @id @default(uuid())
+  name     String
+  type     ModifierGroupType @default(SINGLE)
+  active   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  modifiers  Modifier[]
+  products   ProductModifierGroup[]
+
+  @@map("modifier_groups")
+}
+
+enum ModifierGroupType {
+  SINGLE
+  MULTIPLE
+}
+
+model Modifier {
+  id        String   @id @default(uuid())
+  groupId   String
+  group     ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name      String
+  price     Float    @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("modifiers")
+}
+
+model ProductModifierGroup {
+  productId String
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  groupId   String
+  group     ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([productId, groupId])
+  @@map("product_modifier_groups")
+}
+
+// Inventario de insumos (gaseosas, materias primas, etc.)
+model InventoryItem {
+  id             String   @id @default(uuid())
+  name           String
+  sku            String?  @unique   // código de barras (opcional)
+  quantity       Float    @default(0)   // unidades o litros
+  unit           String   // "lt", "ml", "pcs", etc.
+  minStock       Float    @default(0)   // nivel de reposición
+  expirationDate DateTime? // fecha de vencimiento (opcional)
+  provider       String?   // proveedor del insumo
+  unitCost       Float?    // costo unitario del insumo
+  productId      String?   // si se asocia a un producto (ej. botella de soda)
+  product        Product? @relation(fields: [productId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  movements InventoryMovement[]
+
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id        String   @id @default(uuid())
+  itemId    String
+  item      InventoryItem @relation(fields: [itemId], references: [id])
+  quantity  Float    // positivo = entrada, negativo = salida
+  previous  Float
+  newQuantity Float
+  reason    String   // "ajuste", "compra", "venta", "merma", etc.
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@map("inventory_movements")
 }
 
 model Table {
@@ -69,6 +164,7 @@ model Table {
   updatedAt DateTime   @updatedAt
 
   orders Order[]
+  reservations Reservation[]
 
   @@map("tables")
 }
@@ -76,11 +172,25 @@ model Table {
 model TableState {
   id        String   @id @default(uuid())
   tableId   String   @unique
-  items     String   @db.LongText @default("[]")
+  items     String?  @db.LongText
   version   Int      @default(0)
   updatedAt DateTime @updatedAt
 
   @@map("table_states")
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("customers")
 }
 
 model Order {
@@ -89,6 +199,8 @@ model Order {
   table         Table?      @relation(fields: [tableId], references: [id])
   userId        String?
   user          User?        @relation(fields: [userId], references: [id])
+  customerId    String?
+  customer      Customer?    @relation(fields: [customerId], references: [id])
   orderType     OrderType   @default(MESA)
   status        OrderStatus @default(PENDING)
   totalCop      Float       @default(0)
@@ -97,6 +209,8 @@ model Order {
   discountValue Float       @default(0)
   discountPercent Float     @default(0)
   notes         String?
+  deliveryAddress String?
+  deliveryCost  Float       @default(0)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   completedAt   DateTime?
@@ -105,6 +219,9 @@ model Order {
   payment   Payment?
 
   @@map("orders")
+  @@index([createdAt])
+  @@index([userId])
+  @@index([customerId])
 }
 
 enum OrderType {
@@ -131,6 +248,7 @@ model OrderItem {
   unitPrice Float
   totalPrice Float
   notes     String?
+  modifiers Json?
   createdAt DateTime @default(now())
 
   @@map("order_items")
@@ -168,6 +286,19 @@ model Settings {
   @@map("settings")
 }
 
+model AuditLog {
+  id        String   @id @default(uuid())
+  entity    String   // tabla (ej. Product, InventoryItem)
+  entityId  String   // id del registro
+  action    String   // CREATE, UPDATE, DELETE
+  before    Json?
+  after     Json?
+  userId    String?  // quien realizó la acción
+  timestamp DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
 model Closure {
   id            String   @id @default(uuid())
   date         DateTime @default(now())
@@ -192,4 +323,93 @@ model Expense {
   updatedAt   DateTime @updatedAt
 
   @@map("expenses")
+}
+
+model Reservation {
+  id         String            @id @default(uuid())
+  customerName String
+  phone      String?
+  email      String?
+  guests     Int               @default(1)
+  dateTime   DateTime
+  tableId    String?
+  table      Table?            @relation(fields: [tableId], references: [id])
+  status     ReservationStatus @default(PENDING)
+  notes      String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@map("reservations")
+  @@index([dateTime])
+  @@index([status])
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  SEATED
+  CANCELLED
+  NO_SHOW
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+model PurchaseOrder {
+  id         String   @id @default(uuid())
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+  items      Json
+  total      Float    @default(0)
+  status     PurchaseOrderStatus @default(PENDING)
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  receivedAt DateTime?
+
+  @@map("purchase_orders")
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  APPROVED
+  RECEIVED
+  CANCELLED
+}
+
+model Attendance {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  date      DateTime @default(now())
+  checkIn   DateTime @default(now())
+  checkOut  DateTime?
+  hours     Float    @default(0)
+  status    AttendanceStatus @default(PRESENT)
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@map("attendance")
+  @@index([userId])
+  @@index([date])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  HALF_DAY
 }
