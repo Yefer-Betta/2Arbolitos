@@ -10,7 +10,7 @@ import { Ticket } from './Ticket';
 
 export function POS({ tableId, onBack }) {
     const { products } = useMenu();
-    const { exchangeRate, business } = useSettings();
+    const { exchangeRate, exchangeRateBs, business } = useSettings();
     const {
         addOrder,
         activeTables,
@@ -27,7 +27,7 @@ export function POS({ tableId, onBack }) {
     // Checkout State
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [amountReceived, setAmountReceived] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState('cash_cop'); // 'cash_cop', 'cash_usd', 'nequi'
+    const [paymentMethod, setPaymentMethod] = useState('cash_cop'); // 'cash_cop', 'cash_usd', 'cash_bs', 'nequi'
     const [showRecipe, setShowRecipe] = useState(false);
     const [lastOrder, setLastOrder] = useState(null);
 
@@ -206,20 +206,29 @@ export function POS({ tableId, onBack }) {
         setShowRecipe(false);
     };
 
-    const change = useMemo(() => {
+    const changeData = useMemo(() => {
+        const rate = exchangeRate > 0 ? exchangeRate : 4000;
+        const rateBs = exchangeRateBs > 0 ? exchangeRateBs : 40;
         const received = parseFloat(amountReceived) || 0;
 
-        if (paymentMethod === 'nequi') return 0; // Nequi is usually exact payment
+        if (paymentMethod === 'nequi') return { changeCop: 0, changeUsd: 0, changeBs: 0, isShort: false };
 
         if (paymentMethod === 'cash_usd') {
-            return received - totals.usd;
+            const changeUsd = received - totals.usd;
+            const changeCop = changeUsd * rate;
+            return { changeUsd, changeCop, changeBs: changeCop / rateBs, isShort: changeUsd < 0 };
+        } else if (paymentMethod === 'cash_bs') {
+            const changeBs = received - (totals.cop / rateBs);
+            const changeCop = changeBs * rateBs;
+            return { changeBs, changeCop, changeUsd: changeCop / rate, isShort: changeBs < 0 };
         } else {
-            return received - totals.cop;
+            const changeCop = received - totals.cop;
+            return { changeCop, changeUsd: changeCop / rate, changeBs: changeCop / rateBs, isShort: changeCop < 0 };
         }
-    }, [amountReceived, paymentMethod, totals]);
+    }, [amountReceived, paymentMethod, totals, exchangeRate, exchangeRateBs]);
 
     const handleFinalizeSale = () => {
-        const currency = paymentMethod === 'cash_usd' ? 'USD' : 'COP';
+        const currency = paymentMethod === 'cash_usd' ? 'USD' : paymentMethod === 'cash_bs' ? 'Bs.' : 'COP';
         const received = parseFloat(amountReceived) || (paymentMethod === 'nequi' ? totals.cop : 0);
 
         const getOrderType = () => {
@@ -235,6 +244,7 @@ export function POS({ tableId, onBack }) {
             totalCop: totals.cop,
             totalUsd: totals.usd,
             exchangeRateSnapshot: exchangeRate,
+            exchangeRateBsSnapshot: exchangeRateBs,
             date: new Date().toISOString(),
             orderType: getOrderType(),
             // Discount data
@@ -243,17 +253,25 @@ export function POS({ tableId, onBack }) {
             discountValue: discountData.discountValue,
             discountPercent: discountData.discountPercent,
             payment: {
-                method: paymentMethod, // 'cash_cop', 'cash_usd', 'nequi'
+                method: paymentMethod, // 'cash_cop', 'cash_usd', 'cash_bs', 'nequi'
                 currency: currency,
                 received: received,
-                change: currency === 'USD' ? (received - totals.usd) : (received - totals.cop)
+                change: currency === 'USD' ? (received - totals.usd) : (currency === 'Bs.' ? (received - totals.cop / exchangeRateBs) : (received - totals.cop)),
+                changeCop: changeData.changeCop,
+                changeUsd: changeData.changeUsd,
+                changeBs: changeData.changeBs,
             },
             customerId: selectedCustomer?.id || null,
             deliveryAddress: selectedCustomer?.address || null,
         };
 
         // Auto-correct negative change for Nequi/Exact payment
-        if (orderData.payment.change < 0) orderData.payment.change = 0;
+        if (orderData.payment.change < 0) {
+            orderData.payment.change = 0;
+            orderData.payment.changeCop = 0;
+            orderData.payment.changeUsd = 0;
+            orderData.payment.changeBs = 0;
+        }
 
         addOrder(orderData);
         setLastOrder(orderData);
@@ -373,7 +391,7 @@ export function POS({ tableId, onBack }) {
                                 {/* Payment Method Selector */}
                                 <div>
                                     <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">Método de Pago</label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                         <button
                                             onClick={() => { setPaymentMethod('cash_cop'); setAmountReceived(''); }}
                                             className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_cop' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-200 hover:bg-gray-50')}
@@ -389,8 +407,15 @@ export function POS({ tableId, onBack }) {
                                             <span className="text-xs font-bold">Efectivo USD</span>
                                         </button>
                                         <button
+                                            onClick={() => { setPaymentMethod('cash_bs'); setAmountReceived(''); }}
+                                            className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_bs' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' : 'border-gray-200 hover:bg-gray-50')}
+                                        >
+                                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            <span className="text-xs font-bold">Efectivo Bs.</span>
+                                        </button>
+                                        <button
                                             onClick={() => { setPaymentMethod('nequi'); setAmountReceived(String(totals.cop)); }}
-                                            className={cn("col-span-2 sm:col-span-1 p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'nequi' ? 'bg-purple-50 border-purple-500 text-purple-700' : 'border-gray-200 hover:bg-gray-50')}
+                                            className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'nequi' ? 'bg-purple-50 border-purple-500 text-purple-700' : 'border-gray-200 hover:bg-gray-50')}
                                         >
                                             <Smartphone className="w-4 h-4 sm:w-5 sm:h-5" />
                                             <span className="text-xs font-bold">Nequi / Digital</span>
@@ -402,7 +427,7 @@ export function POS({ tableId, onBack }) {
                                 {paymentMethod !== 'nequi' && (
                                     <div>
                                         <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
-                                            Monto Recibido ({paymentMethod === 'cash_usd' ? 'USD' : 'COP'})
+                                            Monto Recibido ({paymentMethod === 'cash_usd' ? 'USD' : paymentMethod === 'cash_bs' ? 'Bs.' : 'COP'})
                                         </label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -423,22 +448,33 @@ export function POS({ tableId, onBack }) {
                                 {/* Change Calculation */}
                                 {paymentMethod !== 'nequi' && (
                                     <div className={cn(
-                                        "p-3 sm:p-4 rounded-xl flex justify-between items-center transition-colors",
-                                        change >= 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                                        "p-3 sm:p-4 rounded-xl space-y-1 transition-colors",
+                                        !changeData.isShort ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
                                     )}>
-                                        <span className="font-bold text-xs sm:text-sm uppercase flex items-center gap-2">
-                                            <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
-                                            {change >= 0 ? 'Vueltos' : 'Faltante'}
-                                        </span>
-                                        <span className="text-lg sm:text-2xl font-bold">
-                                            ${Math.abs(change).toLocaleString()} <span className="text-xs opacity-70">{paymentMethod === 'cash_usd' ? 'USD' : 'COP'}</span>
-                                        </span>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-xs sm:text-sm uppercase flex items-center gap-2">
+                                                <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                {!changeData.isShort ? 'Vueltos' : 'Faltante'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-base sm:text-lg font-bold">
+                                            <span className="text-xs opacity-70">COP</span>
+                                            <span>${Math.abs(changeData.changeCop).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-base sm:text-lg font-bold">
+                                            <span className="text-xs opacity-70">USD</span>
+                                            <span>${Math.abs(changeData.changeUsd).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-base sm:text-lg font-bold">
+                                            <span className="text-xs opacity-70">Bs.</span>
+                                            <span>${Math.abs(changeData.changeBs).toFixed(2)}</span>
+                                        </div>
                                     </div>
                                 )}
 
                                 <button
                                     onClick={handleFinalizeSale}
-                                    disabled={(paymentMethod !== 'nequi' && change < 0) || (paymentMethod !== 'nequi' && !amountReceived)}
+                                    disabled={(paymentMethod !== 'nequi' && changeData.isShort) || (paymentMethod !== 'nequi' && !amountReceived)}
                                     className="w-full btn-primary py-3 sm:py-4 text-base sm:text-lg shadow-xl disabled:opacity-50 disabled:shadow-none"
                                 >
                                     Confirmar y Facturar

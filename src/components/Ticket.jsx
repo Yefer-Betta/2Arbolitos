@@ -72,8 +72,16 @@ export function Ticket({ order, business, orderType }) {
                             <span>${order.payment.received?.toLocaleString()} {order.payment.currency}</span>
                         </div>
                         <div className="flex justify-between font-bold">
-                            <span>Cambio:</span>
-                            <span>${order.payment.change?.toLocaleString()} {order.payment.currency}</span>
+                            <span>Cambio COP:</span>
+                            <span>${(order.payment.changeCop ?? order.payment.change)?.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between font-bold">
+                            <span>Cambio USD:</span>
+                            <span>${(order.payment.changeUsd ?? order.payment.change)?.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold">
+                            <span>Cambio Bs.:</span>
+                            <span>${(order.payment.changeBs ?? 0)?.toFixed(2)}</span>
                         </div>
                     </>
                 )}

@@ -259,6 +259,14 @@ async function main() {
     },
   });
 
+  await prisma.settings.create({
+    data: {
+      key: 'exchangeRateBs',
+      value: '40',
+      type: 'number',
+    },
+  });
+
   console.log('✅ Settings created');
 
   console.log(`

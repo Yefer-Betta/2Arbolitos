@@ -50,6 +50,10 @@ export function ClosureTicket({ closure, business, exchangeRate }) {
             <span className="font-bold">${(closure.salesByMethod?.cash_usd || 0).toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
+            <span>Efectivo Bs.:</span>
+            <span className="font-bold">Bs. {(closure.salesByMethod?.cash_bs || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
             <span>Nequi:</span>
             <span className="font-bold">{formatCurrency(closure.salesByMethod?.nequi || 0)}</span>
           </div>
@@ -72,6 +76,10 @@ export function ClosureTicket({ closure, business, exchangeRate }) {
             <div className="flex justify-between">
               <span>Contado USD:</span>
               <span className="font-bold">${(closure.countedUsd || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Contado Bs.:</span>
+              <span className="font-bold">Bs. {(closure.countedBs || 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Nequi contado:</span>

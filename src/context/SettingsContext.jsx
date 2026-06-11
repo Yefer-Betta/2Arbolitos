@@ -16,6 +16,7 @@ const SettingsContext = createContext();
 
 export function SettingsProvider({ children }) {
     const [exchangeRate, setExchangeRate] = useState(4000);
+    const [exchangeRateBs, setExchangeRateBs] = useState(40);
     const [business, setBusiness] = useState(DEFAULT_BUSINESS);
     const [autoStart, setAutoStart] = useState(false);
     const [backupHour, setBackupHour] = useState(2);
@@ -36,6 +37,17 @@ if (syncManager.isOnline) {
                     const exchangeRate = serverSettings?.exchangeRate;
                     const business = serverSettings?.business;
                     
+                    const exchangeRateBs = serverSettings?.exchangeRateBs;
+                    
+                    if (exchangeRateBs !== undefined) {
+                        const newRateBs = typeof exchangeRateBs === 'number' ? exchangeRateBs : (exchangeRateBs?.value || exchangeRateBs);
+                        setExchangeRateBs(newRateBs);
+                        await setData('exchangeRateBs', {
+                            value: newRateBs,
+                            _syncTimestamp: new Date().toISOString()
+                        });
+                    }
+
                     if (exchangeRate !== undefined) {
                         const newRate = typeof exchangeRate === 'number' ? exchangeRate : (exchangeRate?.value || exchangeRate);
                         localRate = newRate;
@@ -122,6 +134,24 @@ if (syncManager.isOnline) {
         }
     };
 
+    const updateExchangeRateBs = async (newRate) => {
+        setExchangeRateBs(newRate);
+        localStorage.setItem('exchangeRateBs', String(newRate));
+        await setData('exchangeRateBs', newRate);
+
+        if (syncManager.isOnline) {
+            try {
+                await apiPost('/settings', {
+                    key: 'exchangeRateBs',
+                    value: newRate,
+                    type: 'number',
+                });
+            } catch {
+                console.warn('Settings saved locally');
+            }
+        }
+    };
+
     const updateBusiness = async (newBusiness) => {
         const updatedBusiness = { ...business, ...newBusiness };
         setBusiness(updatedBusiness);
@@ -171,6 +201,8 @@ if (syncManager.isOnline) {
     const value = {
         exchangeRate,
         setExchangeRate: updateExchangeRate,
+        exchangeRateBs,
+        setExchangeRateBs: updateExchangeRateBs,
         business,
         setBusiness: updateBusiness,
         autoStart,

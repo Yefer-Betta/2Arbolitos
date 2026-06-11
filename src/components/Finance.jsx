@@ -10,7 +10,7 @@ import { ClosureTicket } from './ClosureTicket';
 export function Finance() {
     const { expenses, addExpense, deleteExpense, lastClosureDate, closeDay, closures } = useFinance();
     const { orders } = useOrders();
-    const { exchangeRate, business } = useSettings();
+    const { exchangeRate, exchangeRateBs, business } = useSettings();
     
     // View state: 'summary' | 'sales' | 'closures'
     const [activeView, setActiveView] = useState('summary');
@@ -37,6 +37,7 @@ export function Finance() {
     // Close day state
     const [countedCash, setCountedCash] = useState('');
     const [countedUsd, setCountedUsd] = useState('');
+    const [countedBs, setCountedBs] = useState('');
     const [countedNequi, setCountedNequi] = useState('');
     const [countedDebit, setCountedDebit] = useState('');
     const [observations, setObservations] = useState('');
@@ -61,6 +62,7 @@ export function Finance() {
     const resetCloseForm = () => {
         setCountedCash('');
         setCountedUsd('');
+        setCountedBs('');
         setCountedNequi('');
         setCountedDebit('');
         setObservations('');
@@ -105,6 +107,7 @@ export function Finance() {
             salesByMethod,
             countedCash: parseFloat(countedCash) || 0,
             countedUsd: parseFloat(countedUsd) || 0,
+            countedBs: parseFloat(countedBs) || 0,
             countedNequi: parseFloat(countedNequi) || 0,
             countedDebit: parseFloat(countedDebit) || 0,
             totalDifference,
@@ -141,10 +144,11 @@ export function Finance() {
         const total = order.totalCop || 0;
         if (method === 'cash_cop') acc.cash_cop += total;
         else if (method === 'cash_usd') acc.cash_usd += order.totalUsd || 0;
+        else if (method === 'cash_bs') acc.cash_bs += total;
         else if (method === 'nequi') acc.nequi += total;
         else acc.debit += total;
         return acc;
-    }, { cash_cop: 0, cash_usd: 0, nequi: 0, debit: 0 });
+    }, { cash_cop: 0, cash_usd: 0, cash_bs: 0, nequi: 0, debit: 0 });
 
     const filteredSales = orders.filter(order => {
         if (!order?.date && !order?.createdAt) return false;
@@ -164,19 +168,22 @@ export function Finance() {
 
     const countedCopVal = parseFloat(countedCash) || 0;
     const countedUsdVal = parseFloat(countedUsd) || 0;
+    const countedBsVal = parseFloat(countedBs) || 0;
     const countedNequiVal = parseFloat(countedNequi) || 0;
     const countedDebitVal = parseFloat(countedDebit) || 0;
 
     const differences = {
         cash_cop: countedCopVal - salesByMethod.cash_cop,
         cash_usd: countedUsdVal - salesByMethod.cash_usd,
+        cash_bs: countedBsVal - salesByMethod.cash_bs,
         nequi: countedNequiVal - salesByMethod.nequi,
         debit: countedDebitVal - salesByMethod.debit,
     };
 
     const hasDifference = Object.values(differences).some(d => d !== 0);
     const rate = exchangeRate > 0 ? exchangeRate : 1;
-    const totalDifference = differences.cash_cop + (differences.cash_usd * rate) + differences.nequi + differences.debit;
+    const rateBs = exchangeRateBs > 0 ? exchangeRateBs : 40;
+    const totalDifference = differences.cash_cop + (differences.cash_usd * rate) + (differences.cash_bs * rateBs) + differences.nequi + differences.debit;
 
     return (
         <div className="space-y-6">
@@ -307,6 +314,11 @@ export function Finance() {
                                 <DollarSign className="w-6 h-6 text-blue-600 mx-auto mb-2" />
                                 <p className="text-xs text-gray-500 uppercase font-bold">Efectivo USD</p>
                                 <p className="text-lg font-bold text-blue-700">${salesByMethod.cash_usd.toFixed(2)}</p>
+                            </div>
+                            <div className="bg-yellow-50 p-4 rounded-xl text-center">
+                                <DollarSign className="w-6 h-6 text-yellow-600 mx-auto mb-2" />
+                                <p className="text-xs text-gray-500 uppercase font-bold">Efectivo Bs.</p>
+                                <p className="text-lg font-bold text-yellow-700">Bs. {salesByMethod.cash_bs.toFixed(2)}</p>
                             </div>
                             <div className="bg-purple-50 p-4 rounded-xl text-center">
                                 <Smartphone className="w-6 h-6 text-purple-600 mx-auto mb-2" />
@@ -670,6 +682,10 @@ export function Finance() {
                                         <p className="text-xs text-gray-500 uppercase">Efectivo USD</p>
                                         <p className="font-bold text-blue-700">${salesByMethod.cash_usd.toFixed(2)}</p>
                                     </div>
+                                    <div className="bg-yellow-50 p-3 rounded-lg text-center">
+                                        <p className="text-xs text-gray-500 uppercase">Efectivo Bs.</p>
+                                        <p className="font-bold text-yellow-700">Bs. {salesByMethod.cash_bs.toFixed(2)}</p>
+                                    </div>
                                     <div className="bg-purple-50 p-3 rounded-lg text-center">
                                         <p className="text-xs text-gray-500 uppercase">Nequi</p>
                                         <p className="font-bold text-purple-700">{formatCurrency(salesByMethod.nequi)}</p>
@@ -686,7 +702,7 @@ export function Finance() {
                                     <Eye className="w-5 h-5" />
                                     Arqueo Físico (Ingrese lo contado)
                                 </h3>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1">Efectivo COP Contado</label>
                                         <input
@@ -703,6 +719,16 @@ export function Finance() {
                                             type="number"
                                             value={countedUsd}
                                             onChange={e => setCountedUsd(e.target.value)}
+                                            className="input-field"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">Efectivo Bs. Contado</label>
+                                        <input
+                                            type="number"
+                                            value={countedBs}
+                                            onChange={e => setCountedBs(e.target.value)}
                                             className="input-field"
                                             placeholder="0"
                                         />
@@ -743,7 +769,7 @@ export function Finance() {
         <div key={method} className="flex justify-between">
             <span className="text-gray-600 capitalize">{method.replace('_', ' ')}:</span>
             <span className={cn("font-bold", diff >= 0 ? "text-green-600" : "text-red-600")}>
-                {diff >= 0 ? '+' : ''}{method === 'cash_usd' ? `$${diff.toFixed(2)}` : formatCurrency(diff)}
+                {diff >= 0 ? '+' : ''}{method === 'cash_usd' ? `$${diff.toFixed(2)}` : method === 'cash_bs' ? `Bs. ${diff.toFixed(2)}` : formatCurrency(diff)}
             </span>
         </div>
     ))}
@@ -867,6 +893,10 @@ export function Finance() {
                                         <span className="font-bold">${(selectedClosure.salesByMethod?.cash_usd || 0).toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between">
+                                        <span>Efectivo Bs.:</span>
+                                        <span className="font-bold">Bs. {(selectedClosure.salesByMethod?.cash_bs || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
                                         <span>Nequi:</span>
                                         <span className="font-bold">{formatCurrency(selectedClosure.salesByMethod?.nequi || 0)}</span>
                                     </div>
@@ -888,6 +918,10 @@ export function Finance() {
                                         <div className="flex justify-between">
                                             <span>Contado USD:</span>
                                             <span className="font-bold">${(selectedClosure.countedUsd || 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Contado Bs.:</span>
+                                            <span className="font-bold">Bs. {(selectedClosure.countedBs || 0).toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between font-bold border-t pt-2">
                                             <span>Diferencia:</span>
@@ -923,6 +957,7 @@ export function Finance() {
                                       const methods = [
                                         ['Efectivo COP', fmt(c.salesByMethod?.cash_cop)],
                                         ['Efectivo USD', '$' + (c.salesByMethod?.cash_usd || 0).toFixed(2)],
+                                        ['Efectivo Bs.', 'Bs. ' + (c.salesByMethod?.cash_bs || 0).toFixed(2)],
                                         ['Nequi', fmt(c.salesByMethod?.nequi)],
                                         ['Débito', fmt(c.salesByMethod?.debit)],
                                       ];
@@ -951,6 +986,7 @@ export function Finance() {
                                         ${c.countedCash !== undefined ? `<div class="line"><p class="b" style="margin:0 0 8px">Arqueo</p>
                                           <div class="row"><span>Contado COP:</span><span class="b">${fmt(c.countedCash)}</span></div>
                                           <div class="row"><span>Contado USD:</span><span class="b">$${(c.countedUsd||0).toFixed(2)}</span></div>
+                                          <div class="row"><span>Contado Bs.:</span><span class="b">Bs. ${(c.countedBs||0).toFixed(2)}</span></div>
                                           <div class="row"><span>Nequi:</span><span class="b">${fmt(c.countedNequi)}</span></div>
                                           <div class="row"><span>Débito:</span><span class="b">${fmt(c.countedDebit)}</span></div>
                                         </div>` : ''}

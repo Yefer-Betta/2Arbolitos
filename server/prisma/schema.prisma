@@ -271,6 +271,7 @@ model Payment {
 enum PaymentMethod {
   CASH_COP
   CASH_USD
+  CASH_BS
   NEQUI
   CARD
 }

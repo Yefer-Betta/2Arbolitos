@@ -3,7 +3,7 @@ import { useSettings } from '../context/SettingsContext';
 import { DollarSign, RefreshCw, Building, Save } from 'lucide-react';
 
 export function SettingsNegocio() {
-    const { exchangeRate, setExchangeRate, business, setBusiness } = useSettings();
+    const { exchangeRate, setExchangeRate, exchangeRateBs, setExchangeRateBs, business, setBusiness } = useSettings();
     const [localBusiness, setLocalBusiness] = useState(business);
     const [isSaved, setIsSaved] = useState(false);
 
@@ -11,6 +11,13 @@ export function SettingsNegocio() {
         const value = parseFloat(e.target.value);
         if (!isNaN(value) && value > 0) {
             setExchangeRate(value);
+        }
+    };
+
+    const handleRateBsChange = (e) => {
+        const value = parseFloat(e.target.value);
+        if (!isNaN(value) && value > 0) {
+            setExchangeRateBs(value);
         }
     };
 
@@ -82,6 +89,26 @@ export function SettingsNegocio() {
                                 <span>Auto</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-4 mt-6 pt-6 border-t border-gray-100">
+                    <label htmlFor="rateBs" className="text-sm font-bold text-gray-700">
+                        1 Bs. = COP
+                    </label>
+
+                    <div className="relative group">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-yellow-600 font-bold text-lg">
+                            Bs.
+                        </span>
+                        <input
+                            id="rateBs"
+                            type="number"
+                            value={exchangeRateBs}
+                            onChange={handleRateBsChange}
+                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-2xl font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 focus:border-yellow-500 transition-all"
+                            step="1"
+                        />
                     </div>
                 </div>
             </div>
