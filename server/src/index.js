@@ -88,7 +88,10 @@ export async function startServer(usePort) {
   app.use(express.urlencoded({ extended: true }));
 
   app.get('/api/settings/qr', async (req, res) => {
-    const url = `http://${getLocalIP()}:${PORT}`;
+    const host = req.headers.host?.replace(/:3002$/, '') || `${getLocalIP()}:${PORT}`;
+    const url = process.env.HOST_IP
+      ? `http://${process.env.HOST_IP}`
+      : `http://${host}`;
     try {
       const qrSvg = await QRCode.toString(url, { type: 'svg', width: 300, margin: 1 });
       res.json({ url, qrSvg });
@@ -101,7 +104,10 @@ export async function startServer(usePort) {
 
   // QR code page
   app.get('/qr', async (req, res) => {
-    const url = `http://${getLocalIP()}:${PORT}`;
+    const host = req.headers.host?.replace(/:3002$/, '') || `${getLocalIP()}:${PORT}`;
+    const url = process.env.HOST_IP
+      ? `http://${process.env.HOST_IP}`
+      : `http://${host}`;
     try {
       const qrSvg = await QRCode.toString(url, { type: 'svg', width: 400, margin: 2 });
       res.type('text/html').send(`<!DOCTYPE html>
@@ -184,7 +190,13 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
       console.log(`\n🏪 Servidor 2Arbolitos corriendo en puerto ${PORT}`);
       console.log(`   Local:    http://localhost:${PORT}`);
       console.log(`   Red:      ${serverUrl}`);
-      console.log(`   QR:       http://localhost:${PORT}/qr\n`);
+      console.log(`   QR:       http://localhost:${PORT}/qr`);
+
+      if (!process.env.HOST_IP) {
+        console.log(`\n⚠️  HOST_IP no definido. Si el QR no funciona desde el celular,`);
+        console.log(`   define la IP del servidor en el archivo .env`);
+        console.log(`   HOST_IP=192.168.x.x\n`);
+      }
 
       try {
         const qr = await QRCode.toString(serverUrl, { type: 'terminal', small: true });

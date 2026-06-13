@@ -1,17 +1,6 @@
 #!/bin/sh
 set -e
 
-if [ "$DOCKER" = "true" ] && [ -z "$HOST_IP" -o "$HOST_IP" = "0.0.0.0" ]; then
-  GATEWAY=$(ip route 2>/dev/null | awk '/default/ { print $3 }' | head -1)
-  if [ -n "$GATEWAY" ]; then
-    HOST_IP="$GATEWAY"
-    export HOST_IP
-    echo "  HOST_IP autodetectada: $HOST_IP"
-  else
-    echo "  No se pudo detectar gateway. Si el QR falla, define HOST_IP en .env"
-  fi
-fi
-
 echo "⏳ Esperando a MySQL..."
 MAX_TRIES=30
 TRIES=0
