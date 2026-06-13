@@ -89,9 +89,8 @@ export async function startServer(usePort) {
 
   app.get('/api/settings/qr', async (req, res) => {
     const host = req.headers.host?.replace(/:3002$/, '') || `${getLocalIP()}:${PORT}`;
-    const url = process.env.HOST_IP
-      ? `http://${process.env.HOST_IP}`
-      : `http://${host}`;
+    const hostIP = process.env.HOST_IP && process.env.HOST_IP !== '0.0.0.0' ? process.env.HOST_IP : null;
+    const url = hostIP ? `http://${hostIP}` : `http://${host}`;
     try {
       const qrSvg = await QRCode.toString(url, { type: 'svg', width: 300, margin: 1 });
       res.json({ url, qrSvg });
@@ -105,9 +104,8 @@ export async function startServer(usePort) {
   // QR code page
   app.get('/qr', async (req, res) => {
     const host = req.headers.host?.replace(/:3002$/, '') || `${getLocalIP()}:${PORT}`;
-    const url = process.env.HOST_IP
-      ? `http://${process.env.HOST_IP}`
-      : `http://${host}`;
+    const hostIP = process.env.HOST_IP && process.env.HOST_IP !== '0.0.0.0' ? process.env.HOST_IP : null;
+    const url = hostIP ? `http://${hostIP}` : `http://${host}`;
     try {
       const qrSvg = await QRCode.toString(url, { type: 'svg', width: 400, margin: 2 });
       res.type('text/html').send(`<!DOCTYPE html>
