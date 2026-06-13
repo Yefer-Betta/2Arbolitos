@@ -104,7 +104,7 @@ export function Layout({ children, activeTab, setActiveTab }) {
 
             <aside
                 className={cn(
-                    "bg-primary text-white flex flex-col shadow-2xl z-30 md:relative fixed top-0 left-0 h-full w-72 md:translate-x-0 transform transition-transform duration-300",
+                    "bg-primary text-white flex flex-col shadow-2xl z-30 md:relative fixed top-0 left-0 h-dvh w-72 md:w-56 lg:w-72 md:translate-x-0 transform transition-transform duration-300 overflow-hidden",
                     isMobileNavOpen ? "translate-x-0" : "-translate-x-full",
                 )}
             >
@@ -182,7 +182,7 @@ export function Layout({ children, activeTab, setActiveTab }) {
                     </div>
                 </div>
 
-                <nav className="flex-1 p-4 space-y-1">
+                <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-thin">
                     {navItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = activeTab === item.id;

@@ -115,3 +115,17 @@ body {
   border-color: #1A4D2E;
   box-shadow: 0 0 0 2px rgb(26 77 46 / 0.2);
 }
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.2);
+  border-radius: 2px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 0.35);
+}
