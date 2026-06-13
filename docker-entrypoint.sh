@@ -1,15 +1,14 @@
 #!/bin/sh
 set -e
 
-if [ "$DOCKER" = "true" ] && [ "$HOST_IP" = "0.0.0.0" ]; then
+if [ "$DOCKER" = "true" ] && [ -z "$HOST_IP" -o "$HOST_IP" = "0.0.0.0" ]; then
   GATEWAY=$(ip route 2>/dev/null | awk '/default/ { print $3 }' | head -1)
   if [ -n "$GATEWAY" ]; then
     HOST_IP="$GATEWAY"
     export HOST_IP
     echo "  HOST_IP autodetectada: $HOST_IP"
   else
-    CONTAINER_IP=$(hostname -i 2>/dev/null | awk '{print $1}')
-    echo "  No se pudo detectar gateway, usando IP de contenedor: $CONTAINER_IP"
+    echo "  No se pudo detectar gateway. Si el QR falla, define HOST_IP en .env"
   fi
 fi
 
@@ -27,9 +26,11 @@ if [ $TRIES -eq $MAX_TRIES ]; then
 fi
 
 echo "✅ MySQL disponible. Sincronizando esquema..."
-
-cd /app/server
+cd /app
 npx prisma db push --accept-data-loss 2>&1 || echo "⚠️  prisma db push omitido (posiblemente ya sincronizado)"
+
+echo "Ejecutando seed de datos iniciales..."
+node prisma/seed.js 2>/dev/null && echo "✅ Seed completado" || echo "⚠️  Seed omitido (probablemente ya hay datos)"
 
 echo "🚀 Iniciando servidor 2Arbolitos..."
 exec "$@"
