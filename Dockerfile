@@ -11,6 +11,7 @@ COPY server/package*.json ./
 RUN npm ci --omit=dev
 
 FROM node:20-alpine
+RUN apk add --no-cache netcat-openbsd
 WORKDIR /app
 
 COPY --from=server-deps /app/server ./server
@@ -21,7 +22,7 @@ COPY --from=frontend-builder /app/dist ./dist
 
 RUN cd server && npx prisma generate
 
-COPY docker-entrypoint.sh /usr/local/bin/
+COPY server/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3002

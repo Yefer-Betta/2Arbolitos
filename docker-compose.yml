@@ -31,7 +31,6 @@ services:
     image: 2arbolitos-backend
     container_name: 2arbolitos-backend
     restart: unless-stopped
-    user: node
     init: true
     environment:
       PORT: 3002

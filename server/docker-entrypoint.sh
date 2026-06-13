@@ -26,11 +26,23 @@ if [ $TRIES -eq $MAX_TRIES ]; then
 fi
 
 echo "✅ MySQL disponible. Sincronizando esquema..."
-cd /app
-npx prisma db push --accept-data-loss 2>&1 || echo "⚠️  prisma db push omitido (posiblemente ya sincronizado)"
+
+# Detectar dónde está prisma/schema.prisma
+if [ -f /app/server/prisma/schema.prisma ]; then
+  PRISMA_DIR=/app/server
+elif [ -f /app/prisma/schema.prisma ]; then
+  PRISMA_DIR=/app
+else
+  echo "ERROR: prisma/schema.prisma no encontrado"
+  exit 1
+fi
+
+cd "$PRISMA_DIR"
+npx prisma db push --accept-data-loss 2>&1 || echo "⚠️  prisma db push omitido"
 
 echo "Ejecutando seed de datos iniciales..."
 node prisma/seed.js 2>/dev/null && echo "✅ Seed completado" || echo "⚠️  Seed omitido (probablemente ya hay datos)"
 
+cd /app
 echo "🚀 Iniciando servidor 2Arbolitos..."
 exec "$@"

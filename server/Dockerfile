@@ -13,7 +13,6 @@ COPY src ./src
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
-USER node
 EXPOSE 3002
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
