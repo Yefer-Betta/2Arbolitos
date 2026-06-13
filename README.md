@@ -4,47 +4,10 @@
 
 [![Versión](https://img.shields.io/badge/versión-1.0.0-1A4D2E?style=flat-square)]()
 [![Licencia](https://img.shields.io/badge/licencia-MIT-D4A373?style=flat-square)]()
-[![Node](https://img.shields.io/badge/node-%E2%89%A518-339933?style=flat-square&logo=node.js&logoColor=white)]()
-[![MySQL](https://img.shields.io/badge/MySQL-8.0%2B-4479A1?style=flat-square&logo=mysql&logoColor=white)]()
+[![Docker](https://img.shields.io/badge/Docker-requerido-2496ED?style=flat-square&logo=docker&logoColor=white)]()
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)]()
-[![Electron](https://img.shields.io/badge/Electron-33-47848F?style=flat-square&logo=electron&logoColor=white)]()
-[![Plataforma](https://img.shields.io/badge/plataforma-Win%20%7C%20Mac%20%7C%20Linux-lightgrey?style=flat-square)]()
 
-> _"Dos árboles, una raíz: tecnología que crece en el restaurante local."_
-
-Sistema POS (Punto de Venta) que opera en **red local (LAN) sin internet obligatorio**, integra gestión de mesas, cocina en tiempo real, ventas multi-moneda (COP/USD) y caja. Empaquetado como aplicación de escritorio **Electron multiplataforma** con instalador gráfico.
-
-A diferencia de soluciones SaaS como Alegra POS o Siigo, 2Arbolitos **no requiere internet**, no cobra suscripciones mensuales y el negocio es dueño de sus datos. Diseñado para restaurantes pequeños y medianos con 5 a 20 dispositivos.
-
-📷 **[CAPTURA REQUERIDA]**: Dashboard principal — `assets/screenshots/00-cover.png`
-
----
-
-## 📚 Documentación Completa
-
-La documentación técnica y de usuario detallada está en la carpeta [`docs/`](./docs/) — **17 archivos** con análisis, diagramas UML, modelo de base de datos, manuales, pruebas y más.
-
-| # | Documento | Descripción |
-|:-:|:----------|:------------|
-| 00 | [Portada](./docs/00-PORTADA.md) | Carátula del proyecto |
-| 01 | [Resumen Ejecutivo](./docs/01-RESUMEN-EJECUTIVO.md) | Abstract + keywords + ficha técnica |
-| 02 | [Introducción](./docs/02-INTRODUCCION.md) | Contexto, justificación, objetivos, alcance |
-| 03 | [Marco Teórico](./docs/03-MARCO-TEORICO.md) | 8+ tecnologías analizadas en profundidad |
-| 04 | [Arquitectura](./docs/04-ARQUITECTURA.md) | 3-capas + diagramas de componentes |
-| 05 | [Diagramas UML](./docs/05-DIAGRAMAS-UML.md) | 7 diagramas: casos de uso, clases, secuencias, estados |
-| 06 | [Base de Datos](./docs/06-BASE-DE-DATOS.md) | Diagrama ER + 11 modelos + versionado optimista |
-| 07 | [Despliegue](./docs/07-DESPLIEGUE.md) | Topología LAN + Docker + Electron + CI/CD |
-| 08 | [API Reference](./docs/08-API-REFERENCE.md) | 40+ endpoints REST + SSE documentados |
-| 09 | [Flujos de Negocio](./docs/09-FLUJOS-NEGOCIO.md) | POS, pago multi-moneda, sync conflict-merge |
-| 10 | [Interfaz UI/UX](./docs/10-INTERFAZ-UI.md) | Paleta, wireframes, navegación, responsive |
-| 11 | [Pruebas](./docs/11-PRUEBAS.md) | Plan + 10 casos detallados + métricas |
-| 12 | [Instalación](./docs/12-INSTALACION.md) | Wizard 4 pasos + 4 métodos + troubleshooting |
-| 13 | [Manual de Usuario](./docs/13-MANUAL-USUARIO.md) | Manual por rol (Admin/Mesero/Cocina/Cajero) |
-| 14 | [Manual Técnico](./docs/14-MANUAL-TECNICO.md) | Stack, estructura, scripts, build pipeline |
-| 15 | [Conclusiones](./docs/15-CONCLUSIONES.md) | Logros, métricas, lecciones, trabajo futuro |
-| 16 | [Bibliografía](./docs/16-BIBLIOGRAFIA.md) | 54 referencias, libros, RFCs, estándares |
-
-> 💡 Los diagramas están en sintaxis **Mermaid** y se renderizan automáticamente en GitHub.
+Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra gestión de mesas, cocina en tiempo real, ventas multi-moneda (COP/USD/Bs.) y caja. Se despliega únicamente con **Docker** y se accede desde el navegador de cualquier dispositivo en la red.
 
 ---
 
@@ -52,160 +15,152 @@ La documentación técnica y de usuario detallada está en la carpeta [`docs/`](
 
 | | |
 |:-|:--|
-| 🛒 **Punto de Venta táctil** | Interfaz optimizada para tablets y celulares, botones ≥ 44 px |
+| 🛒 **Punto de Venta táctil** | Interfaz optimizada para tablets y celulares |
 | 🪑 **Vista de Mesas en tiempo real** | Mapa visual con estados Libre / Ocupada / Tiempo de atención |
-| 🧑‍🍳 **Kitchen Display System (KDS)** | Tablero Kanban: Pendientes → En Preparación → Listas |
-| 💵 **Multi-moneda COP ↔ USD** | Cálculo automático de vueltos con tasa configurable |
-| 🔄 **Sincronización en tiempo real** | Server-Sent Events con versionado optimista y conflict-merge |
-| 📡 **Funciona sin internet** | Operación 100% offline-first en la red local del restaurante |
-| 🌐 **Descubrimiento automático** | mDNS/Bonjour: `2arbolitos-pos.local` |
+| 🧑‍🍳 **Kitchen Display System (KDS)** | Tablero Kanban para cocina |
+| 💵 **Multi-moneda COP/USD/Bs.** | Cálculo de vueltos con tasas configurables |
+| 🔄 **Sincronización en tiempo real** | Server-Sent Events con versionado optimista |
+| 📡 **Funciona sin internet** | Operación offline en la red local del restaurante |
 | 📱 **Acceso desde móviles por QR** | Escaneas y se abre la app, sin instalar nada |
-| 🖥️ **App de escritorio** | Electron con instalador NSIS, icono en bandeja, wizard gráfico |
-| 💾 **Multi-plataforma** | Windows, macOS, Linux + tablets/celulares en LAN |
-| 🐳 **Docker ready** | docker-compose para dev y prod |
+| 🐳 **Docker only** | Un solo comando para iniciar todo el sistema |
 | 🔒 **Autenticación JWT** | Roles: Admin, Mesero, Cocina, Cajero |
-| 📊 **Finanzas** | Cierre de caja Z, gastos operativos, historial completo |
-| 🔧 **Backup/Restore** | Desde la UI, exportable a JSON |
-| 🌳 **Branding 2Arbolitos** | Logo, paleta de marca verde bosque + dorado ocre |
+| 📊 **Finanzas** | Cierre de caja Z, gastos operativos, historial |
+| 💾 **Backup/Restore** | Scripts `.bat` para respaldo de base de datos |
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🚀 Inicio Rápido (Docker)
 
-### Frontend
-- **React 19** + **Vite 7** + **Tailwind CSS 4**
-- **Lucide React** (iconografía)
-- **vite-plugin-pwa** (Service Worker)
-- Context API + Hooks para estado global
+### Requisitos
+- Windows 10/11, macOS o Linux
+- **Docker Desktop** instalado y corriendo
 
-### Backend
-- **Node.js 18+** + **Express 4**
-- **Prisma 5** ORM con **MySQL 8.0+**
-- **JWT** para autenticación
-- **Server-Sent Events** (SSE) para tiempo real
-- **bonjour-service** para mDNS
-- **qrcode** para generación de QR
-- **multer / xlsx** (preparado para exports)
+### Instalación Automática (recomendada)
 
-### Desktop
-- **Electron 33** + **electron-builder 26**
-- Wizard gráfico HTML+CSS+JS para primera ejecución
-- Icono en bandeja del sistema con menú de control
-- Genera instaladores `.exe` (NSIS), `.dmg`, `.AppImage`
-
-### DevOps
-- **Docker** + **docker-compose**
-- **GitHub Actions** para CI (build Docker)
-- **PM2** para producción como servicio del SO
-
----
-
-## 🚀 Inicio Rápido
-
-### Requisitos Previos
-- **Node.js** 18 o superior
-- **MySQL** 8.0+ (o XAMPP/WAMP)
-
-### Instalación Asistida (recomendada)
-
-```bash
-# Clonar
+```batch
 git clone https://github.com/Yefer-Betta/2Arbolitos.git
 cd 2Arbolitos
-
-# Instalar dependencias
-npm install && cd server && npm install && cd ..
-
-# Menú interactivo (elige "Instalar Sistema por Primera Vez")
-npm start
+autoconfig.bat
 ```
 
-El menú interactivo ofrece:
+El script `autoconfig.bat` hace todo automáticamente:
+1. Detecta la IP local del servidor
+2. Configura `.env` con los valores correctos
+3. Abre el puerto 80 en el firewall de Windows
+4. Construye e inicia los contenedores Docker
+5. Muestra la URL y un código QR para acceder desde el celular
 
-| Opción | Acción |
-|:-------|:-------|
-| 1 | Instalar Sistema por Primera Vez (wizard completo) |
-| 2 | Iniciar en Producción (PM2 como servicio) |
-| 3 | Actualizar Código y Reiniciar |
-| 4 | Iniciar en Modo Desarrollo (Vite + API con hot-reload) |
+> Ejecutar como **Administrador** en Windows para que abra el puerto automáticamente.
 
-### Acceso
-
-- **App local**: `http://localhost:3002`
-- **App en LAN**: `http://<IP-servidor>:3002`
-- **App por mDNS**: `http://2arbolitos-pos.local:3002`
-- **Código QR de acceso**: `http://<IP-servidor>:3002/qr`
-
-### Empaquetar como App de Escritorio
-
-```bash
-npm run build
-npm run dist
-# Genera release/2Arbolitos POS Setup 1.0.0.exe (~168 MB)
-```
-
-> **Estado actual:** el instalador NSIS ya está generado en `release/2Arbolitos POS Setup 1.0.0.exe`. 
-> Probado en Windows 10/11 — instalación silenciosa, accesos directos en Escritorio y Menú Inicio, 
-> desinstalador en Panel de Control. Listo para distribuir al cliente.
-
-### Docker
+### Inicio Manual (si ya está configurado)
 
 ```bash
 docker compose up -d
 ```
 
+### Detener
+
+```bash
+docker compose down
+```
+
 ---
 
-## 🔐 Usuarios Iniciales (Seed)
+## 🔐 Usuarios Iniciales
 
 | Rol | Usuario | Contraseña |
 |:----|:--------|:-----------|
 | 👑 Administrador | `admin` | `admin123` |
 | 🛒 Mesero | `mesero` | `waiter123` |
+| 🛒 Cajero | `cajero` | `waiter123` |
 | 🧑‍🍳 Cocina | `cocina` | `cook123` |
 
-> ⚠️ **Cambiar inmediatamente en producción.**
+> ⚠️ **Cambiar las contraseñas inmediatamente en producción.**
 
 ---
 
-## 📂 Estructura del Proyecto
+## 💾 Backup / Restore
+
+```batch
+backup.bat        # Crea respaldo de la base de datos
+restore.bat       # Restaura desde un respaldo
+```
+
+---
+
+## 📁 Estructura del Proyecto
 
 ```
 2Arbolitos/
-├── docs/                        # 📚 17 archivos de documentación
-├── electron/                    # 🖥️ Wrapper Electron (main, tray, wizard)
-├── logo/                        # 🎨 Logo original fuente
-├── public/                      # 🖼️ Assets servidos (logo, iconos PWA)
-├── scripts/                     # 🔧 CLI + generadores de iconos
-│   ├── cli.js                   # Menú interactivo principal
-│   ├── generate-icons.js        # Genera iconos desde logo
-│   ├── generate-logo-variants.js
-│   └── commands/                # install, start-dev, start-prod, health, etc.
-├── server/                      # ⚙️ Backend Node.js
+├── server/                      # ⚙️ Backend Node.js + Prisma
 │   ├── prisma/
-│   │   ├── schema.prisma        # 11 modelos + 4 enums
+│   │   ├── schema.prisma        # Modelos de datos
 │   │   └── seed.js              # Datos iniciales
-│   └── src/
-│       ├── index.js             # Entry + startServer() exportable
-│       ├── sse.js               # Hub de Server-Sent Events
-│       ├── config/database.js
-│       ├── controllers/         # 8 controladores
-│       ├── middleware/auth.js   # JWT
-│       └── routes/              # 8 rutas REST
+│   ├── src/
+│   │   ├── index.js             # Servidor Express
+│   │   ├── sse.js               # Server-Sent Events
+│   │   ├── controllers/         # Lógica de negocio
+│   │   ├── middleware/          # JWT
+│   │   └── routes/              # Endpoints REST
+│   └── docker-entrypoint.sh     # Inicialización automática
 ├── src/                         # 🎨 Frontend React
-│   ├── components/              # 17 componentes (POS, KDS, VistaMesas, etc.)
-│   ├── context/                 # 6 contextos (Orders, Menu, Settings, etc.)
-│   ├── lib/                     # api.js, syncManager.js, utils.js
-│   └── services/                # (legacy)
-├── build/                       # 📦 Recursos para electron-builder (icon.ico)
-├── .github/workflows/           # CI: docker-build.yml
-├── docker-compose.yml           # Producción
-├── Dockerfile                   # Build producción
-├── index.html                   # HTML raíz
-├── package.json                 # Deps + scripts
-├── tailwind.config.js           # Paleta de marca
-└── vite.config.js               # Vite + PWA
+│   ├── components/              # POS, KDS, Mesas, Finanzas, etc.
+│   ├── context/                 # Estado global
+│   └── lib/                     # API, sync, utilidades
+├── Documentación del Proyecto/  # 📚 Documentación APA (.docx)
+├── docker-compose.yml           # Orquestación de servicios
+├── Dockerfile                   # Build multi-etapa (CI)
+├── Dockerfile.frontend          # Frontend con Nginx
+├── nginx.conf                   # Proxy reverso
+├── autoconfig.bat               # Configuración automática
+├── backup.bat                   # Respaldo de base de datos
+├── restore.bat                  # Restauración de base de datos
+├── start.bat                    # Inicio rápido
+├── .env.example.docker          # Plantilla de variables de entorno
+└── .gitignore
 ```
+
+---
+
+## 📄 Documentación
+
+La documentación completa del proyecto en **formato APA** (normas APA 7ª edición) está disponible en:
+
+- `Documentación del Proyecto/2Arbolitos_POS_Documento_Proyecto_APA.docx`
+
+Incluye: portada, resumen, glosario, introducción, marco teórico, arquitectura, diagramas UML, modelo de base de datos, despliegue, API, flujos de negocio, interfaz, pruebas, manual de usuario, manual técnico, conclusiones y referencias.
+
+También puedes regenerar el documento ejecutando:
+
+```bash
+cd scripts
+npm install
+node gen_apa_doc.js
+```
+
+---
+
+## 🌐 Acceso a la App
+
+| Desde | URL |
+|:------|:----|
+| Mismo equipo servidor | `http://localhost` |
+| Celular/tablet en LAN | `http://<IP-del-servidor>` |
+| QR automático | Se muestra al ejecutar `autoconfig.bat` |
+
+---
+
+## 🛠️ Stack Tecnológico
+
+| Capa | Tecnología |
+|:-----|:-----------|
+| Frontend | React 19 + Vite 7 + Tailwind CSS 4 |
+| Backend | Node.js + Express |
+| Base de datos | MySQL 8 (Docker) |
+| ORM | Prisma 5 |
+| Proxy | Nginx |
+| Tiempo real | Server-Sent Events (SSE) |
+| Despliegue | Docker + docker-compose |
 
 ---
 
@@ -214,9 +169,7 @@ docker compose up -d
 - **Verde bosque profundo** `#1A4D2E` — Primary
 - **Dorado ocre terroso** `#D4A373` — Secondary
 - **Crema suave** `#F9F7F2` — Background
-- **Tipografía**: [Outfit](https://fonts.google.com/specimen/Outfit)
-
-Logo generado en variantes: `logo.png` (original), `logo-light.png` (sidebar oscuro), `logo-dark.png` (fondos claros).
+- **Tipografía**: Outfit
 
 ---
 
@@ -225,40 +178,22 @@ Logo generado en variantes: `logo.png` (original), `logo-light.png` (sidebar osc
 | Métrica | Valor |
 |:--------|:------|
 | Componentes React | 17 |
-| Contextos | 6 |
-| Controladores backend | 8 |
 | Endpoints API | 40+ |
 | Modelos de datos | 11 |
-| Enums | 4 |
-| Líneas de código (frontend) | ~6,500 |
-| Líneas de código (backend) | ~2,800 |
-| Documentación | ~4,500 líneas / 17 archivos |
-| Tamaño instalador | 189 MB |
+| Líneas de código | ~12,000 |
+| Documentación APA | 1 documento completo |
 | Latencia sync | < 500 ms |
 
 ---
 
 ## 🧪 Estado del Proyecto
 
-- ✅ Funcionalidad core completa
-- ✅ Sincronización robusta con conflict-merge
-- ✅ Multi-plataforma (Win/Mac/Linux)
-- ✅ Mobile responsive
-- ✅ Documentación completa
-- ⚠️ Tests automatizados pendientes (mejora v1.1)
-- ⚠️ Facturación electrónica no incluida (roadmap v1.2)
-
-Ver [`docs/15-CONCLUSIONES.md`](./docs/15-CONCLUSIONES.md) para logros, limitaciones y roadmap completo.
-
----
-
-## 🤝 Contribuir
-
-1. Fork el repositorio
-2. Crea una rama (`git checkout -b feature/mi-mejora`)
-3. Commit tus cambios (`git commit -m 'feat: mi mejora'`)
-4. Push (`git push origin feature/mi-mejora`)
-5. Abre un Pull Request
+- ✅ Funcionalidad core completa (POS, KDS, Mesas, Finanzas)
+- ✅ Multi-moneda (COP, USD, Bs.)
+- ✅ Sincronización en tiempo real
+- ✅ Despliegue Docker automático
+- ✅ Documentación APA completa
+- ⚠️ Facturación electrónica (roadmap v1.2)
 
 ---
 
@@ -271,9 +206,8 @@ Ver [`docs/15-CONCLUSIONES.md`](./docs/15-CONCLUSIONES.md) para logros, limitaci
 ## 👤 Autor
 
 **Yefer Betta**
-- Repositorio: [github.com/Yefer-Betta/2Arbolitos](https://github.com/Yefer-Betta/2Arbolitos)
-- Documentación completa: [`docs/`](./docs/)
+- GitHub: [github.com/Yefer-Betta/2Arbolitos](https://github.com/Yefer-Betta/2Arbolitos)
 
 ---
 
-> 🌳 _Construido con React, Node.js, Prisma, MySQL, Electron y mucho café._
+> 🌳 _Construido con React, Node.js, Prisma, MySQL, Docker y mucho café._
