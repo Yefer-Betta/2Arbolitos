@@ -276,6 +276,7 @@ export function POS({ tableId, onBack }) {
         };
 
         const currentSplits = paymentSplitsRef.current;
+        console.log('[handleFinalizeSale] paymentSplits:', JSON.stringify(currentSplits));
         const rate = exchangeRate > 0 ? exchangeRate : 4000;
         const rateBs = exchangeRateBs > 0 ? exchangeRateBs : 40;
         const totalPaidCopVal = currentSplits.reduce((sum, s) => {
@@ -284,6 +285,7 @@ export function POS({ tableId, onBack }) {
             if (s.method === 'cash_bs') return sum + amt * rateBs;
             return sum + amt;
         }, 0);
+        console.log('[handleFinalizeSale] totalPaidCop:', totalPaidCopVal);
         const factor = totalPaidCopVal > 0 ? 1 - (totals.cop / totalPaidCopVal) : 0;
 
         const splitsPayload = currentSplits.map(s => {
@@ -296,6 +298,7 @@ export function POS({ tableId, onBack }) {
                 change,
             };
         });
+        console.log('[handleFinalizeSale] splitsPayload:', JSON.stringify(splitsPayload));
 
         const orderData = {
             tableId: tableId || null,
@@ -531,6 +534,13 @@ export function POS({ tableId, onBack }) {
                                 >
                                     {isFullyPaid ? 'Confirmar y Facturar' : `Faltan $${remaining.toLocaleString()} COP`}
                                 </button>
+
+                                {/* DEBUG: raw payment splits */}
+                                {typeof paymentSplitsRef.current !== 'undefined' && (
+                                    <pre className="mt-2 text-[10px] text-gray-300 max-h-20 overflow-auto">
+                                        {JSON.stringify(paymentSplitsRef.current.map(s => ({m: s.method, c: s.currency, a: s.amount})))}
+                                    </pre>
+                                )}
                             </div>
                         ) : (
                             <div className="p-4 sm:p-8 flex flex-col items-center">
