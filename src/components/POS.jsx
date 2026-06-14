@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useMenu } from '../context/MenuContext';
 import { useSettings } from '../context/SettingsContext';
 import { useOrders } from '../context/OrdersContext';
@@ -27,6 +27,8 @@ export function POS({ tableId, onBack }) {
     // Checkout State - Mixed Payments
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [paymentSplits, setPaymentSplits] = useState([]);
+    const paymentSplitsRef = useRef([]);
+    paymentSplitsRef.current = paymentSplits;
     const [showRecipe, setShowRecipe] = useState(false);
     const [lastOrder, setLastOrder] = useState(null);
 
@@ -199,7 +201,7 @@ export function POS({ tableId, onBack }) {
     // Checkout Logic - Mixed Payments
     const addPaymentSplit = useCallback(() => {
         const newSplit = {
-            id: Date.now() + Math.random(),
+            id: crypto.randomUUID(),
             method: 'cash_cop',
             currency: 'COP',
             amount: 0,
@@ -273,11 +275,12 @@ export function POS({ tableId, onBack }) {
             return tableId;
         };
 
-        const splitsPayload = paymentSplits.map(s => ({
+        const currentSplits = paymentSplitsRef.current;
+        const splitsPayload = currentSplits.map(s => ({
             method: s.method.toUpperCase(),
             currency: s.currency,
             amount: parseFloat(s.amount) || 0,
-            change: s.method === 'nequi' ? 0 : 0,
+            change: s.method === 'nequi' || s.method === 'card' ? 0 : 0,
         }));
 
         const orderData = {
