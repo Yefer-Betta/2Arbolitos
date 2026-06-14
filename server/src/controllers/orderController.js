@@ -139,9 +139,8 @@ export const orderController = {
 
       const rate = exchangeRate || 4000;
       const rateBs = exchangeRateBsSnapshot || 40;
-      let totalCop = 0;
-      let totalUsd = 0;
 
+      // Validate tableId early
       let dbTableId = tableId;
       if (tableId && tableId.startsWith('mesa-')) {
         const tableNumber = parseInt(tableId.split('-')[1]);
@@ -175,133 +174,162 @@ export const orderController = {
         }
       }
 
-      const orderItems = [];
-      for (const item of items) {
-        const price = item.unitPrice || 0;
-        const unitPrice = price;
-        const totalPrice = unitPrice * item.quantity;
+      // Wrap all DB writes in a single transaction
+      const { order, createdPayments } = await prisma.$transaction(async (tx) => {
+        let totalCop = 0;
+        let totalUsd = 0;
 
-        totalCop += totalPrice;
-        totalUsd += totalPrice / rate;
+        const orderItems = [];
+        for (const item of items) {
+          const price = item.unitPrice || 0;
+          const unitPrice = price;
+          const totalPrice = unitPrice * item.quantity;
 
-        let productId = item.productId;
-        
-        if (productId) {
-          try {
-            const existing = await prisma.product.findUnique({ where: { id: productId } });
-            if (!existing) {
-              let categoryId;
-              const firstCategory = await prisma.category.findFirst({ where: { active: true } });
-              if (firstCategory) {
-                categoryId = firstCategory.id;
-              } else {
-                const newCat = await prisma.category.create({
-                  data: { name: 'General', order: 0 },
+          totalCop += totalPrice;
+          totalUsd += totalPrice / rate;
+
+          let productId = item.productId;
+          
+          if (productId) {
+            try {
+              const existing = await tx.product.findUnique({ where: { id: productId } });
+              if (!existing) {
+                let categoryId;
+                const firstCategory = await tx.category.findFirst({ where: { active: true } });
+                if (firstCategory) {
+                  categoryId = firstCategory.id;
+                } else {
+                  const newCat = await tx.category.create({
+                    data: { name: 'General', order: 0 },
+                  });
+                  categoryId = newCat.id;
+                }
+                const newProduct = await tx.product.create({
+                  data: {
+                    id: productId,
+                    name: `Producto ${productId.slice(0, 8)}`,
+                    categoryId,
+                    price: unitPrice,
+                    active: true,
+                  },
                 });
-                categoryId = newCat.id;
+                console.log('Auto-creado producto:', newProduct.id);
               }
-              const newProduct = await prisma.product.create({
-                data: {
-                  id: productId,
-                  name: `Producto ${productId.slice(0, 8)}`,
-                  categoryId,
-                  price: unitPrice,
-                  active: true,
-                },
-              });
-              console.log('Auto-creado producto:', newProduct.id);
+            } catch (e) {
+              console.log('Error al auto-crear producto:', e.message);
             }
-          } catch (e) {
-            console.log('Error al auto-crear producto:', e.message);
+          }
+
+          orderItems.push({
+            productId: productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice,
+            notes: item.notes,
+            modifiers: item.modifiers || null,
+          });
+        }
+
+        const discount = discountPercent > 0 ? discountPercent : 0;
+        const finalTotalCop = discount > 0
+          ? totalCop - (totalCop * discount / 100)
+          : totalCop;
+        const finalTotalUsd = discount > 0
+          ? totalUsd - (totalUsd * discount / 100)
+          : totalUsd;
+
+        const order = await tx.order.create({
+          data: {
+            tableId: dbTableId,
+            userId,
+            customerId: customerId || null,
+            orderType: orderType ? orderType.toUpperCase() : 'MESA',
+            totalCop: finalTotalCop,
+            totalUsd: finalTotalUsd,
+            exchangeRate: exchangeRate || 4000,
+            exchangeRateBs: rateBs,
+            discountValue: discountValue || 0,
+            discountPercent: discountPercent || 0,
+            notes,
+            deliveryAddress: deliveryAddress || null,
+            deliveryCost: deliveryCost || 0,
+            items: {
+              create: orderItems,
+            },
+          },
+          include: {
+            table: true,
+            user: {
+              select: { id: true, name: true, username: true },
+            },
+            items: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        });
+
+        // Create payments if provided
+        let createdPayments = [];
+        if (payments && Array.isArray(payments) && payments.length > 0) {
+          for (const p of payments) {
+            const payment = await tx.payment.create({
+              data: {
+                orderId: order.id,
+                method: p.method,
+                currency: p.currency || 'COP',
+                amount: p.amount,
+                change: p.change || 0,
+                reference: p.reference,
+              },
+            });
+            createdPayments.push(payment);
+          }
+
+          const totalPaid = createdPayments.reduce((sum, p) => {
+            if (p.currency === 'USD') return sum + p.amount * rate;
+            if (p.currency === 'Bs.') return sum + p.amount * rateBs;
+            return sum + p.amount; // COP
+          }, 0);
+          const shouldServe = totalPaid >= finalTotalCop;
+          if (shouldServe) {
+            await tx.order.update({
+              where: { id: order.id },
+              data: { status: 'SERVED', completedAt: new Date() },
+            });
+            order.status = 'SERVED';
+            order.completedAt = new Date();
           }
         }
 
-        orderItems.push({
-          productId: productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice,
-          notes: item.notes,
-          modifiers: item.modifiers || null,
-        });
-      }
+        // Include payments in response
+        order.payments = createdPayments || [];
 
-      const discount = discountPercent > 0 ? discountPercent : 0;
-      const finalTotalCop = discount > 0
-        ? totalCop - (totalCop * discount / 100)
-        : totalCop;
-      const finalTotalUsd = discount > 0
-        ? totalUsd - (totalUsd * discount / 100)
-        : totalUsd;
+        // Descontar inventario
+        try {
+          for (const item of order.items) {
+            if (item.productId) {
+              const invItems = await tx.inventoryItem.findMany({
+                where: { productId: item.productId },
+              });
+              for (const inv of invItems) {
+                const newQty = Math.max(0, inv.quantity - item.quantity);
+                await tx.inventoryItem.update({
+                  where: { id: inv.id },
+                  data: { quantity: newQty },
+                });
+              }
+            }
+          }
+        } catch (invErr) {
+          console.error('Error al descontar inventario:', invErr);
+        }
 
-      const order = await prisma.order.create({
-        data: {
-          tableId: dbTableId,
-          userId,
-          customerId: customerId || null,
-          orderType: orderType ? orderType.toUpperCase() : 'MESA',
-          totalCop: finalTotalCop,
-          totalUsd: finalTotalUsd,
-          exchangeRate: exchangeRate || 4000,
-          exchangeRateBs: rateBs,
-          discountValue: discountValue || 0,
-          discountPercent: discountPercent || 0,
-          notes,
-          deliveryAddress: deliveryAddress || null,
-          deliveryCost: deliveryCost || 0,
-          items: {
-            create: orderItems,
-          },
-        },
-        include: {
-          table: true,
-          user: {
-            select: { id: true, name: true, username: true },
-          },
-          items: {
-            include: {
-              product: true,
-            },
-          },
-        },
+        return { order, createdPayments };
       });
 
-      // Create payments if provided
-      let createdPayments = [];
-      if (payments && Array.isArray(payments) && payments.length > 0) {
-        for (const p of payments) {
-          const payment = await prisma.payment.create({
-            data: {
-              orderId: order.id,
-              method: p.method,
-              currency: p.currency || 'COP',
-              amount: p.amount,
-              change: p.change || 0,
-              reference: p.reference,
-            },
-          });
-          createdPayments.push(payment);
-        }
-
-        const totalPaid = createdPayments.reduce((sum, p) => {
-          if (p.currency === 'USD') return sum + p.amount * rate;
-          if (p.currency === 'Bs.') return sum + p.amount * rateBs;
-          return sum + p.amount; // COP
-        }, 0);
-        const shouldServe = totalPaid >= finalTotalCop;
-        if (shouldServe) {
-          await prisma.order.update({
-            where: { id: order.id },
-            data: { status: 'SERVED', completedAt: new Date() },
-          });
-          order.status = 'SERVED';
-          order.completedAt = new Date();
-        }
-      }
-
-      // Include payments in response
-      order.payments = createdPayments || [];
-
+      // Delete table state after transaction succeeds
       if (tableId) {
         try {
           await prisma.tableState.delete({ where: { tableId } });
@@ -311,26 +339,6 @@ export const orderController = {
       }
 
       notifySSEClients('order:created', order);
-
-      // Descontar inventario por cada ítem del pedido
-      try {
-        for (const item of order.items) {
-          if (item.productId) {
-            const invItems = await prisma.inventoryItem.findMany({
-              where: { productId: item.productId },
-            });
-            for (const inv of invItems) {
-              const newQty = Math.max(0, inv.quantity - item.quantity);
-              await prisma.inventoryItem.update({
-                where: { id: inv.id },
-                data: { quantity: newQty },
-              });
-            }
-          }
-        }
-      } catch (invErr) {
-        console.error('Error al descontar inventario:', invErr);
-      }
 
       res.status(201).json(order);
     } catch (error) {

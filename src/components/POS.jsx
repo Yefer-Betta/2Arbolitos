@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useMenu } from '../context/MenuContext';
 import { useSettings } from '../context/SettingsContext';
 import { useOrders } from '../context/OrdersContext';
@@ -199,7 +199,7 @@ export function POS({ tableId, onBack }) {
     }), [discountData, exchangeRateBs]);
 
 
-    // Helpers for amount formatting with thousand separators
+    // Helper: extrae solo digitos (y punto decimal para USD/Bs.)
     const cleanAmount = (value, currency) => {
         if (currency === 'COP') return value.replace(/[^0-9]/g, '');
         const cleaned = value.replace(/[^0-9.]/g, '');
@@ -218,24 +218,10 @@ export function POS({ tableId, onBack }) {
             if (parts.length > 1) return formatted + '.' + parts[1].slice(0, 2);
             return formatted;
         }
-        // COP
         const num = parseInt(cleaned, 10);
         if (isNaN(num)) return '';
         return num.toLocaleString('es-CO');
     };
-    const inputRefs = useRef({});
-    const cursorPos = useRef({});
-
-    // Restore cursor position after formatted re-render
-    useEffect(() => {
-        Object.entries(cursorPos.current).forEach(([id, pos]) => {
-            const el = inputRefs.current[id];
-            if (el && document.activeElement === el) {
-                el.setSelectionRange(pos, pos);
-            }
-        });
-    });
-
 
     // Checkout Logic - Mixed Payments
     const genId = () => {
@@ -318,7 +304,6 @@ export function POS({ tableId, onBack }) {
         };
 
         const currentSplits = paymentSplitsRef.current;
-        console.log('[handleFinalizeSale] paymentSplits:', JSON.stringify(currentSplits));
         const rate = exchangeRate > 0 ? exchangeRate : 4000;
         const rateBs = exchangeRateBs > 0 ? exchangeRateBs : 40;
         const totalPaidCopVal = currentSplits.reduce((sum, s) => {
@@ -327,10 +312,11 @@ export function POS({ tableId, onBack }) {
             if (s.method === 'cash_bs') return sum + amt * rateBs;
             return sum + amt;
         }, 0);
-        console.log('[handleFinalizeSale] totalPaidCop:', totalPaidCopVal);
         const factor = totalPaidCopVal > 0 ? 1 - (totals.cop / totalPaidCopVal) : 0;
 
-        const splitsPayload = currentSplits.map(s => {
+        const splitsPayload = currentSplits
+            .filter(s => parseFloat(s.amount) > 0)
+            .map(s => {
             const amount = parseFloat(s.amount) || 0;
             const change = s.method === 'nequi' || s.method === 'card' ? 0 : Math.max(0, amount * factor);
             return {
@@ -340,7 +326,6 @@ export function POS({ tableId, onBack }) {
                 change,
             };
         });
-        console.log('[handleFinalizeSale] splitsPayload:', JSON.stringify(splitsPayload));
 
         const orderData = {
             tableId: tableId || null,
@@ -517,16 +502,22 @@ export function POS({ tableId, onBack }) {
                                                         <div className="relative">
                                                             <span className="absolute inset-y-0 left-2 flex items-center text-gray-500 text-xs font-bold">{split.currency === 'USD' ? '$' : split.currency === 'Bs.' ? 'Bs.' : '$'}</span>
                                                             <input
-                                                                ref={el => { inputRefs.current[split.id] = el; }}
                                                                 type="text"
                                                                 inputMode="numeric"
-                                                                value={formatAmount(split.amount, split.currency)}
+                                                                value={split.amount}
                                                                 onChange={e => {
-                                                                    cursorPos.current[split.id] = e.target.selectionStart;
                                                                     const raw = cleanAmount(e.target.value, split.currency);
                                                                     updatePaymentSplit(split.id, 'amount', raw);
                                                                 }}
-                                                                onSelect={e => { cursorPos.current[split.id] = e.target.selectionStart; }}
+                                                                onBlur={e => {
+                                                                    const formatted = formatAmount(split.amount, split.currency);
+                                                                    if (formatted && formatted !== e.target.value) {
+                                                                        e.target.value = formatted;
+                                                                    }
+                                                                }}
+                                                                onFocus={e => {
+                                                                    e.target.value = split.amount;
+                                                                }}
                                                                 className="input-field pl-6 text-sm font-bold text-right"
                                                                 placeholder="0"
                                                             />
