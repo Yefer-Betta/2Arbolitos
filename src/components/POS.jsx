@@ -199,9 +199,12 @@ export function POS({ tableId, onBack }) {
 
 
     // Checkout Logic - Mixed Payments
+    const genId = () => {
+        try { return crypto.randomUUID(); } catch { return Date.now() + '-' + Math.random().toString(36).slice(2, 9); }
+    };
     const addPaymentSplit = useCallback(() => {
         const newSplit = {
-            id: crypto.randomUUID(),
+            id: genId(),
             method: 'cash_cop',
             currency: 'COP',
             amount: 0,
@@ -534,13 +537,6 @@ export function POS({ tableId, onBack }) {
                                 >
                                     {isFullyPaid ? 'Confirmar y Facturar' : `Faltan $${remaining.toLocaleString()} COP`}
                                 </button>
-
-                                {/* DEBUG: raw payment splits */}
-                                {typeof paymentSplitsRef.current !== 'undefined' && (
-                                    <pre className="mt-2 text-[10px] text-gray-300 max-h-20 overflow-auto">
-                                        {JSON.stringify(paymentSplitsRef.current.map(s => ({m: s.method, c: s.currency, a: s.amount})))}
-                                    </pre>
-                                )}
                             </div>
                         ) : (
                             <div className="p-4 sm:p-8 flex flex-col items-center">
