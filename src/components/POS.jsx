@@ -194,8 +194,47 @@ export function POS({ tableId, onBack }) {
 
     const totals = useMemo(() => ({
         cop: discountData.finalCop > 0 ? discountData.finalCop : discountData.originalCop,
-        usd: discountData.finalUsd > 0 ? discountData.finalUsd : discountData.originalUsd
-    }), [discountData]);
+        usd: discountData.finalUsd > 0 ? discountData.finalUsd : discountData.originalUsd,
+        bs: (discountData.finalCop > 0 ? discountData.finalCop : discountData.originalCop) / (exchangeRateBs || 40),
+    }), [discountData, exchangeRateBs]);
+
+
+    // Helpers for amount formatting with thousand separators
+    const cleanAmount = (value, currency) => {
+        if (currency === 'COP') return value.replace(/[^0-9]/g, '');
+        const cleaned = value.replace(/[^0-9.]/g, '');
+        const parts = cleaned.split('.');
+        if (parts.length > 2) return parts[0] + '.' + parts.slice(1).join('');
+        return cleaned;
+    };
+    const formatAmount = (raw, currency) => {
+        const cleaned = cleanAmount(String(raw), currency);
+        if (!cleaned) return '';
+        if (currency === 'USD' || currency === 'Bs.') {
+            const parts = cleaned.split('.');
+            const intPart = parseInt(parts[0], 10);
+            if (isNaN(intPart)) return '';
+            const formatted = intPart.toLocaleString('es-CO');
+            if (parts.length > 1) return formatted + '.' + parts[1].slice(0, 2);
+            return formatted;
+        }
+        // COP
+        const num = parseInt(cleaned, 10);
+        if (isNaN(num)) return '';
+        return num.toLocaleString('es-CO');
+    };
+    const inputRefs = useRef({});
+    const cursorPos = useRef({});
+
+    // Restore cursor position after formatted re-render
+    useEffect(() => {
+        Object.entries(cursorPos.current).forEach(([id, pos]) => {
+            const el = inputRefs.current[id];
+            if (el && document.activeElement === el) {
+                el.setSelectionRange(pos, pos);
+            }
+        });
+    });
 
 
     // Checkout Logic - Mixed Payments
@@ -417,10 +456,15 @@ export function POS({ tableId, onBack }) {
                                             </p>
                                         )}
                                     </div>
-                                    <div className="flex-1 text-center py-2">
+                                    <div className="flex-1 text-center border-r border-gray-200 py-2">
                                         <p className="text-gray-500 text-xs font-bold uppercase">Equivalente</p>
                                         <p className="text-xl sm:text-3xl font-bold text-secondary">${totals.usd.toFixed(2)}</p>
                                         <p className="text-xs sm:text-sm text-gray-400">USD</p>
+                                    </div>
+                                    <div className="flex-1 text-center py-2">
+                                        <p className="text-gray-500 text-xs font-bold uppercase">Equivalente</p>
+                                        <p className="text-xl sm:text-3xl font-bold text-yellow-600">{totals.bs.toFixed(2)} Bs.</p>
+                                        <p className="text-xs sm:text-sm text-gray-400">Bs.</p>
                                     </div>
                                 </div>
 
@@ -473,9 +517,16 @@ export function POS({ tableId, onBack }) {
                                                         <div className="relative">
                                                             <span className="absolute inset-y-0 left-2 flex items-center text-gray-500 text-xs font-bold">{split.currency === 'USD' ? '$' : split.currency === 'Bs.' ? 'Bs.' : '$'}</span>
                                                             <input
-                                                                type="number"
-                                                                value={split.amount}
-                                                                onChange={e => updatePaymentSplit(split.id, 'amount', e.target.value)}
+                                                                ref={el => { inputRefs.current[split.id] = el; }}
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                value={formatAmount(split.amount, split.currency)}
+                                                                onChange={e => {
+                                                                    cursorPos.current[split.id] = e.target.selectionStart;
+                                                                    const raw = cleanAmount(e.target.value, split.currency);
+                                                                    updatePaymentSplit(split.id, 'amount', raw);
+                                                                }}
+                                                                onSelect={e => { cursorPos.current[split.id] = e.target.selectionStart; }}
                                                                 className="input-field pl-6 text-sm font-bold text-right"
                                                                 placeholder="0"
                                                             />

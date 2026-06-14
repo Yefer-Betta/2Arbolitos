@@ -56,6 +56,10 @@ export function Ticket({ order, business, orderType }) {
                     <span>USD:</span>
                     <span>${order.totalUsd?.toFixed(2)}</span>
                 </div>
+                <div className="flex justify-between text-gray-600">
+                    <span>Bs.:</span>
+                    <span>{((order.totalCop || 0) / (order.exchangeRateBs || 40)).toFixed(2)} Bs.</span>
+                </div>
             </div>
 
             <div className="space-y-1 text-xs mt-3 pt-2 border-t border-dashed">
