@@ -140,13 +140,16 @@ export function Finance() {
     const netBalance = totalSalesCOP - totalExpenses;
 
     const salesByMethod = currentOrders.reduce((acc, order) => {
-        const method = order.payment?.method || order.payment?.method?.toLowerCase() || order.paymentMethod || 'cash_cop';
-        const total = order.totalCop || 0;
-        if (method === 'cash_cop') acc.cash_cop += total;
-        else if (method === 'cash_usd') acc.cash_usd += order.totalUsd || 0;
-        else if (method === 'cash_bs') acc.cash_bs += total;
-        else if (method === 'nequi') acc.nequi += total;
-        else acc.debit += total;
+        const payments = order.payments?.length > 0 ? order.payments : (order.payment ? [order.payment] : []);
+        for (const p of payments) {
+            const method = (p.method || 'cash_cop').toLowerCase();
+            const amount = p.amount || 0;
+            if (method === 'cash_cop') acc.cash_cop += amount;
+            else if (method === 'cash_usd') acc.cash_usd += amount;
+            else if (method === 'cash_bs') acc.cash_bs += amount;
+            else if (method === 'nequi') acc.nequi += amount;
+            else acc.debit += amount;
+        }
         return acc;
     }, { cash_cop: 0, cash_usd: 0, cash_bs: 0, nequi: 0, debit: 0 });
 

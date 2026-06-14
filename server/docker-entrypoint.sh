@@ -16,11 +16,25 @@ fi
 
 echo "✅ MySQL disponible. Sincronizando esquema..."
 
-# Detectar dónde está prisma/schema.prisma
-if [ -f /app/server/prisma/schema.prisma ]; then
-  PRISMA_DIR=/app/server
-elif [ -f /app/prisma/schema.prisma ]; then
+# Pre-migration: crear índice no único en payments.orderId si hace falta
+node --input-type=module -e "
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+try {
+  await prisma.\$executeRawUnsafe('CREATE INDEX payments_orderId_idx ON payments (orderId)');
+  console.log('  Índice payments_orderId_idx creado');
+} catch (e) {
+  const msg = String(e.message || e);
+  if (!msg.includes('Duplicate key name') && !msg.includes('already exists')) {
+    console.log('  (pre-migration)', msg.slice(0, 100));
+  }
+}
+await prisma.\$disconnect();
+" 2>&1 || true
+if [ -f /app/prisma/schema.prisma ]; then
   PRISMA_DIR=/app
+elif [ -f /app/server/prisma/schema.prisma ]; then
+  PRISMA_DIR=/app/server
 else
   echo "ERROR: prisma/schema.prisma no encontrado"
   exit 1

@@ -41,7 +41,7 @@ export const orderController = {
               product: true,
             },
           },
-          payment: true,
+          payments: true,
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -103,7 +103,7 @@ export const orderController = {
               product: true,
             },
           },
-          payment: true,
+          payments: true,
         },
       });
 
@@ -120,7 +120,7 @@ export const orderController = {
 
   async createOrder(req, res) {
     try {
-      const { tableId, orderType, items, exchangeRate, discountValue, discountPercent, notes, payment, customerId, deliveryAddress, deliveryCost } = req.body;
+      const { tableId, orderType, items, exchangeRate, discountValue, discountPercent, notes, payments, customerId, deliveryAddress, deliveryCost } = req.body;
       
       let userId = req.user?.id;
       if (!userId) {
@@ -264,6 +264,38 @@ export const orderController = {
         },
       });
 
+      // Create payments if provided
+      let createdPayments = [];
+      if (payments && Array.isArray(payments) && payments.length > 0) {
+        for (const p of payments) {
+          const payment = await prisma.payment.create({
+            data: {
+              orderId: order.id,
+              method: p.method,
+              currency: p.currency || 'COP',
+              amount: p.amount,
+              change: p.change || 0,
+              reference: p.reference,
+            },
+          });
+          createdPayments.push(payment);
+        }
+
+        const totalPaid = createdPayments.reduce((sum, p) => sum + p.amount, 0);
+        const shouldServe = totalPaid >= finalTotalCop;
+        if (shouldServe) {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { status: 'SERVED', completedAt: new Date() },
+          });
+          order.status = 'SERVED';
+          order.completedAt = new Date();
+        }
+      }
+
+      // Include payments in response
+      order.payments = createdPayments || [];
+
       if (tableId) {
         try {
           await prisma.tableState.delete({ where: { tableId } });
@@ -331,6 +363,7 @@ export const orderController = {
               product: true,
             },
           },
+          payments: true,
         },
       });
 
@@ -345,33 +378,51 @@ export const orderController = {
   async addPayment(req, res) {
     try {
       const { id } = req.params;
-      const { method, currency, amount, change, reference } = req.body;
+      const paymentsData = req.body.payments || [req.body];
 
-      const payment = await prisma.payment.create({
-        data: {
-          orderId: id,
-          method,
-          currency,
-          amount,
-          change: change || 0,
-          reference,
-        },
+      const order = await prisma.order.findUnique({
+        where: { id },
+        select: { totalCop: true },
       });
+      if (!order) {
+        return res.status(404).json({ error: 'Pedido no encontrado' });
+      }
+
+      const createdPayments = [];
+      for (const p of paymentsData) {
+        const payment = await prisma.payment.create({
+          data: {
+            orderId: id,
+            method: p.method,
+            currency: p.currency || 'COP',
+            amount: p.amount,
+            change: p.change || 0,
+            reference: p.reference,
+          },
+        });
+        createdPayments.push(payment);
+      }
+
+      const allPayments = await prisma.payment.findMany({
+        where: { orderId: id },
+        select: { amount: true },
+      });
+      const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
+      const shouldServe = totalPaid >= order.totalCop;
 
       const updatedOrder = await prisma.order.update({
         where: { id },
-        data: { status: 'SERVED', completedAt: new Date() },
+        data: shouldServe ? { status: 'SERVED', completedAt: new Date() } : {},
         include: {
           table: true,
           user: { select: { id: true, name: true, username: true } },
           items: { include: { product: true } },
-          payment: true,
+          payments: true,
         },
       });
 
       notifySSEClients('order:updated', updatedOrder);
-
-      res.status(201).json(payment);
+      res.status(201).json({ payments: createdPayments, order: updatedOrder });
     } catch (error) {
       console.error('Error al añadir pago:', error);
       res.status(500).json({ error: 'Error interno del servidor' });

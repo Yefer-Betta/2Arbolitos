@@ -38,7 +38,7 @@ export function History() {
                 Items: (order.items || []).map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', '),
                 'Total COP': order.totalCop,
                 'Total USD': order.totalUsd,
-                'Método Pago': order.payment?.method || 'N/A',
+                'Método Pago': order.payments?.map(p => p.method).join(', ') || order.payment?.method || 'N/A',
                 'Tasa Cambio': order.exchangeRateSnapshot
             };
         });
@@ -141,7 +141,7 @@ export function History() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 text-right uppercase font-bold">
-                                            {order.payment?.method?.replace('_', ' ') || 'N/A'}
+                                            {order.payments?.map(p => p.method?.replace('_', ' ')).join(' + ') || order.payment?.method?.replace('_', ' ') || 'N/A'}
                                         </td>
                                     </tr>
                                 ))

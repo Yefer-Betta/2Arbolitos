@@ -24,10 +24,9 @@ export function POS({ tableId, onBack }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todos');
 
-    // Checkout State
+    // Checkout State - Mixed Payments
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-    const [amountReceived, setAmountReceived] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState('cash_cop'); // 'cash_cop', 'cash_usd', 'cash_bs', 'nequi'
+    const [paymentSplits, setPaymentSplits] = useState([]);
     const [showRecipe, setShowRecipe] = useState(false);
     const [lastOrder, setLastOrder] = useState(null);
 
@@ -197,46 +196,89 @@ export function POS({ tableId, onBack }) {
     }), [discountData]);
 
 
-    // Checkout Logic
+    // Checkout Logic - Mixed Payments
+    const addPaymentSplit = useCallback(() => {
+        const newSplit = {
+            id: Date.now() + Math.random(),
+            method: 'cash_cop',
+            currency: 'COP',
+            amount: 0,
+            change: 0,
+        };
+        setPaymentSplits(prev => [...prev, newSplit]);
+    }, []);
+
+    const removePaymentSplit = useCallback((id) => {
+        setPaymentSplits(prev => prev.filter(s => s.id !== id));
+    }, []);
+
+    const updatePaymentSplit = useCallback((id, field, value) => {
+        setPaymentSplits(prev => prev.map(s => {
+            if (s.id !== id) return s;
+            const updated = { ...s, [field]: value };
+            // Auto-set currency based on method
+            if (field === 'method') {
+                if (value === 'cash_usd') updated.currency = 'USD';
+                else if (value === 'cash_bs') updated.currency = 'Bs.';
+                else updated.currency = 'COP';
+            }
+            return updated;
+        }));
+    }, []);
+
+    const totalPaid = useMemo(() =>
+        paymentSplits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0)
+    , [paymentSplits]);
+
+    const remaining = useMemo(() =>
+        Math.max(0, totals.cop - totalPaid)
+    , [totals.cop, totalPaid]);
+
+    const isFullyPaid = useMemo(() =>
+        totalPaid >= totals.cop && paymentSplits.length > 0
+    , [totalPaid, totals.cop, paymentSplits.length]);
+
+    const getSplitChange = useCallback((split) => {
+        const rate = exchangeRate > 0 ? exchangeRate : 4000;
+        const rateBs = exchangeRateBs > 0 ? exchangeRateBs : 40;
+        const amount = parseFloat(split.amount) || 0;
+        if (split.method === 'nequi') return { changeCop: 0, changeUsd: 0, changeBs: 0, isShort: false };
+        if (split.method === 'cash_usd') {
+            const equivCop = amount * rate;
+            const changeUsd = amount - (totals.usd * (amount / (totalPaid || 1)));
+            return { changeUsd, changeCop: changeUsd * rate, changeBs: changeUsd * rate / rateBs, isShort: false };
+        }
+        if (split.method === 'cash_bs') {
+            const equivCop = amount * rateBs;
+            const changeCop = equivCop - (totals.cop * (equivCop / (totalPaid || 1)));
+            return { changeCop, changeUsd: changeCop / rate, changeBs: changeCop / rateBs, isShort: false };
+        }
+        // cash_cop
+        const changeCop = amount - (totals.cop * (amount / (totalPaid || 1)));
+        return { changeCop, changeUsd: changeCop / rate, changeBs: changeCop / rateBs, isShort: changeCop < 0 };
+    }, [exchangeRate, exchangeRateBs, totals, totalPaid]);
+
     const handleInitiateCheckout = () => {
         if (cart.length === 0) return;
         setIsCheckoutOpen(true);
-        setAmountReceived('');
-        setPaymentMethod('cash_cop');
+        setPaymentSplits([]);
         setShowRecipe(false);
     };
 
-    const changeData = useMemo(() => {
-        const rate = exchangeRate > 0 ? exchangeRate : 4000;
-        const rateBs = exchangeRateBs > 0 ? exchangeRateBs : 40;
-        const received = parseFloat(amountReceived) || 0;
-
-        if (paymentMethod === 'nequi') return { changeCop: 0, changeUsd: 0, changeBs: 0, isShort: false };
-
-        if (paymentMethod === 'cash_usd') {
-            const changeUsd = received - totals.usd;
-            const changeCop = changeUsd * rate;
-            return { changeUsd, changeCop, changeBs: changeCop / rateBs, isShort: changeUsd < 0 };
-        } else if (paymentMethod === 'cash_bs') {
-            const changeBs = received - (totals.cop / rateBs);
-            const changeCop = changeBs * rateBs;
-            return { changeBs, changeCop, changeUsd: changeCop / rate, isShort: changeBs < 0 };
-        } else {
-            const changeCop = received - totals.cop;
-            return { changeCop, changeUsd: changeCop / rate, changeBs: changeCop / rateBs, isShort: changeCop < 0 };
-        }
-    }, [amountReceived, paymentMethod, totals, exchangeRate, exchangeRateBs]);
-
     const handleFinalizeSale = () => {
-        const currency = paymentMethod === 'cash_usd' ? 'USD' : paymentMethod === 'cash_bs' ? 'Bs.' : 'COP';
-        const received = parseFloat(amountReceived) || (paymentMethod === 'nequi' ? totals.cop : 0);
-
         const getOrderType = () => {
             if (!tableId || tableId.startsWith('mesa-')) return 'mesa';
             if (tableId === 'para-llevar') return 'para-llevar';
             if (tableId === 'domicilio') return 'domicilio';
             return tableId;
         };
+
+        const splitsPayload = paymentSplits.map(s => ({
+            method: s.method.toUpperCase(),
+            currency: s.currency,
+            amount: parseFloat(s.amount) || 0,
+            change: s.method === 'nequi' ? 0 : 0,
+        }));
 
         const orderData = {
             tableId: tableId || null,
@@ -247,53 +289,33 @@ export function POS({ tableId, onBack }) {
             exchangeRateBsSnapshot: exchangeRateBs,
             date: new Date().toISOString(),
             orderType: getOrderType(),
-            // Discount data
             originalPriceCop: discountData.originalCop,
             originalPriceUsd: discountData.originalUsd,
             discountValue: discountData.discountValue,
             discountPercent: discountData.discountPercent,
-            payment: {
-                method: paymentMethod, // 'cash_cop', 'cash_usd', 'cash_bs', 'nequi'
-                currency: currency,
-                received: received,
-                change: currency === 'USD' ? (received - totals.usd) : (currency === 'Bs.' ? (received - totals.cop / exchangeRateBs) : (received - totals.cop)),
-                changeCop: changeData.changeCop,
-                changeUsd: changeData.changeUsd,
-                changeBs: changeData.changeBs,
-            },
+            payments: splitsPayload,
             customerId: selectedCustomer?.id || null,
             deliveryAddress: selectedCustomer?.address || null,
         };
 
-        // Auto-correct negative change for Nequi/Exact payment
-        if (orderData.payment.change < 0) {
-            orderData.payment.change = 0;
-            orderData.payment.changeCop = 0;
-            orderData.payment.changeUsd = 0;
-            orderData.payment.changeBs = 0;
-        }
-
         addOrder(orderData);
         setLastOrder(orderData);
         setShowRecipe(true);
-        // The table is cleared when the user closes the checkout modal
     };
 
     const closeCheckout = () => {
-        if (showRecipe) { // A sale was just completed
-            // Only clean up if it was a table order
+        if (showRecipe) {
             if (tableId && tableId.startsWith('mesa-')) {
                 limpiarMesa(tableId);
             } else if (tableId === 'para-llevar' || tableId === 'domicilio') {
-                // For direct sales, clear the cart but stay in POS for new orders
                 limpiarMesa(tableId);
             }
-            if (onBack) onBack(); // Go back to table view
+            if (onBack) onBack();
         }
-        // Reset state for next time
         setIsCheckoutOpen(false);
         setShowRecipe(false);
         setLastOrder(null);
+        setPaymentSplits([]);
         setDiscountFinalPrice('');
         setSelectedCustomer(null);
     };
@@ -388,96 +410,109 @@ export function POS({ tableId, onBack }) {
                                     <span className="font-bold">{discountData.discountValue > 0 ? 'Modificar Descuento' : 'Aplicar Descuento'}</span>
                                 </button>
 
-                                {/* Payment Method Selector */}
+                                {/* Mixed Payments Section */}
                                 <div>
-                                    <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">Método de Pago</label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                        <button
-                                            onClick={() => { setPaymentMethod('cash_cop'); setAmountReceived(''); }}
-                                            className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_cop' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-200 hover:bg-gray-50')}
-                                        >
-                                            <Banknote className="w-4 h-4 sm:w-5 sm:h-5" />
-                                            <span className="text-xs font-bold">Efectivo COP</span>
-                                        </button>
-                                        <button
-                                            onClick={() => { setPaymentMethod('cash_usd'); setAmountReceived(''); }}
-                                            className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_usd' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-200 hover:bg-gray-50')}
-                                        >
-                                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
-                                            <span className="text-xs font-bold">Efectivo USD</span>
-                                        </button>
-                                        <button
-                                            onClick={() => { setPaymentMethod('cash_bs'); setAmountReceived(''); }}
-                                            className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'cash_bs' ? 'bg-yellow-50 border-yellow-500 text-yellow-700' : 'border-gray-200 hover:bg-gray-50')}
-                                        >
-                                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
-                                            <span className="text-xs font-bold">Efectivo Bs.</span>
-                                        </button>
-                                        <button
-                                            onClick={() => { setPaymentMethod('nequi'); setAmountReceived(String(totals.cop)); }}
-                                            className={cn("p-2 sm:p-3 rounded-lg sm:rounded-xl border flex flex-col items-center gap-1 transition-all", paymentMethod === 'nequi' ? 'bg-purple-50 border-purple-500 text-purple-700' : 'border-gray-200 hover:bg-gray-50')}
-                                        >
-                                            <Smartphone className="w-4 h-4 sm:w-5 sm:h-5" />
-                                            <span className="text-xs font-bold">Nequi / Digital</span>
-                                        </button>
+                                    <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">Métodos de Pago</label>
+
+                                    {paymentSplits.length === 0 && (
+                                        <p className="text-sm text-gray-400 mb-3 text-center">Agrega uno o más métodos de pago</p>
+                                    )}
+
+                                    <div className="space-y-3">
+                                        {paymentSplits.map((split, idx) => {
+                                            const sc = getSplitChange(split);
+                                            return (
+                                                <div key={split.id} className="border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="text-xs font-bold text-gray-500 uppercase">Pago #{idx + 1}</span>
+                                                        <button
+                                                            onClick={() => removePaymentSplit(split.id)}
+                                                            className="text-red-400 hover:text-red-600 p-1"
+                                                            disabled={paymentSplits.length === 1}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <select
+                                                            value={split.method}
+                                                            onChange={e => updatePaymentSplit(split.id, 'method', e.target.value)}
+                                                            className="input-field text-sm col-span-2"
+                                                        >
+                                                            <option value="cash_cop">Efectivo COP</option>
+                                                            <option value="cash_usd">Efectivo USD</option>
+                                                            <option value="cash_bs">Efectivo Bs.</option>
+                                                            <option value="nequi">Nequi / Digital</option>
+                                                            <option value="card">Tarjeta Débito</option>
+                                                        </select>
+
+                                                        <div className="relative">
+                                                            <span className="absolute inset-y-0 left-2 flex items-center text-gray-500 text-xs font-bold">$</span>
+                                                            <input
+                                                                type="number"
+                                                                value={split.amount}
+                                                                onChange={e => updatePaymentSplit(split.id, 'amount', e.target.value)}
+                                                                className="input-field pl-6 text-sm font-bold text-right"
+                                                                placeholder="0"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {split.method !== 'nequi' && split.method !== 'card' && (
+                                                        <div className={cn(
+                                                            "text-xs font-bold px-2 py-1 rounded flex justify-between",
+                                                            sc.changeCop >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                        )}>
+                                                            {split.method === 'cash_usd' ? (
+                                                                <span>Cambio USD: ${Math.abs(sc.changeUsd).toFixed(2)}</span>
+                                                            ) : split.method === 'cash_bs' ? (
+                                                                <span>Cambio Bs.: ${Math.abs(sc.changeBs).toFixed(2)}</span>
+                                                            ) : (
+                                                                <span>Cambio COP: ${Math.abs(sc.changeCop).toLocaleString()}</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <button
+                                        onClick={addPaymentSplit}
+                                        className="w-full mt-2 py-2 px-3 rounded-xl border-2 border-dashed border-primary/30 text-primary font-bold text-sm hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        + Agregar método de pago
+                                    </button>
+                                </div>
+
+                                {/* Balance Summary */}
+                                <div className={cn(
+                                    "p-3 sm:p-4 rounded-xl border",
+                                    isFullyPaid
+                                        ? "bg-green-50 border-green-300 text-green-700"
+                                        : "bg-yellow-50 border-yellow-300 text-yellow-700"
+                                )}>
+                                    <div className="flex justify-between items-center text-sm font-bold">
+                                        <span>Total</span>
+                                        <span>${totals.cop.toLocaleString()} COP</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm mt-1">
+                                        <span>Pagado</span>
+                                        <span>${totalPaid.toLocaleString()} COP</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-base font-bold mt-1 pt-1 border-t border-white/50">
+                                        <span>{isFullyPaid ? 'Completado' : 'Faltante'}</span>
+                                        <span>${isFullyPaid ? '0' : remaining.toLocaleString()} COP</span>
                                     </div>
                                 </div>
 
-                                {/* Payment Input */}
-                                {paymentMethod !== 'nequi' && (
-                                    <div>
-                                        <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
-                                            Monto Recibido ({paymentMethod === 'cash_usd' ? 'USD' : paymentMethod === 'cash_bs' ? 'Bs.' : 'COP'})
-                                        </label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <span className="text-gray-500 font-bold">$</span>
-                                            </div>
-                                            <input
-                                                type="number"
-                                                autoFocus
-                                                value={amountReceived}
-                                                onChange={e => setAmountReceived(e.target.value)}
-                                                className="input-field pl-8 text-base sm:text-lg font-bold py-3 sm:py-2"
-                                                placeholder="0"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Change Calculation */}
-                                {paymentMethod !== 'nequi' && (
-                                    <div className={cn(
-                                        "p-3 sm:p-4 rounded-xl space-y-1 transition-colors",
-                                        !changeData.isShort ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                                    )}>
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-bold text-xs sm:text-sm uppercase flex items-center gap-2">
-                                                <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
-                                                {!changeData.isShort ? 'Vueltos' : 'Faltante'}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-base sm:text-lg font-bold">
-                                            <span className="text-xs opacity-70">COP</span>
-                                            <span>${Math.abs(changeData.changeCop).toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-base sm:text-lg font-bold">
-                                            <span className="text-xs opacity-70">USD</span>
-                                            <span>${Math.abs(changeData.changeUsd).toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-base sm:text-lg font-bold">
-                                            <span className="text-xs opacity-70">Bs.</span>
-                                            <span>${Math.abs(changeData.changeBs).toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                )}
-
                                 <button
                                     onClick={handleFinalizeSale}
-                                    disabled={(paymentMethod !== 'nequi' && changeData.isShort) || (paymentMethod !== 'nequi' && !amountReceived)}
+                                    disabled={!isFullyPaid}
                                     className="w-full btn-primary py-3 sm:py-4 text-base sm:text-lg shadow-xl disabled:opacity-50 disabled:shadow-none"
                                 >
-                                    Confirmar y Facturar
+                                    {isFullyPaid ? 'Confirmar y Facturar' : `Faltan $${remaining.toLocaleString()} COP`}
                                 </button>
                             </div>
                         ) : (

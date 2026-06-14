@@ -216,7 +216,7 @@ model Order {
   completedAt   DateTime?
 
   items     OrderItem[]
-  payment   Payment?
+  payments  Payment[]
 
   @@map("orders")
   @@index([createdAt])
@@ -256,8 +256,8 @@ model OrderItem {
 
 model Payment {
   id            String        @id @default(uuid())
-  orderId       String        @unique
-  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId       String
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   method        PaymentMethod
   currency      String        @default("COP")
   amount        Float
@@ -266,6 +266,7 @@ model Payment {
   createdAt     DateTime      @default(now())
 
   @@map("payments")
+  @@index([orderId])
 }
 
 enum PaymentMethod {

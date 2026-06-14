@@ -286,7 +286,7 @@ export function OrdersProvider({ children }) {
       exchangeRate: order.exchangeRateSnapshot || order.exchangeRate || 4000,
       discountValue: order.discountValue || 0,
       discountPercent: order.discountPercent || 0,
-      payment: order.payment,
+      payments: order.payments,
       customerId: order.customerId || null,
       deliveryAddress: order.deliveryAddress || null,
       deliveryCost: order.deliveryCost || 0,

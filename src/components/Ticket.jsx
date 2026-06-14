@@ -59,32 +59,17 @@ export function Ticket({ order, business, orderType }) {
             </div>
 
             <div className="space-y-1 text-xs mt-3 pt-2 border-t border-dashed">
-                <div className="flex justify-between">
-                    <span>Método:</span>
-                    <span className="uppercase font-bold">
-                        {order.payment?.method?.replaceAll('_', ' ') || 'N/A'}
-                    </span>
+                <div className="font-bold text-center mb-1">PAGOS</div>
+                {(order.payments && order.payments.length > 0 ? order.payments : order.payment ? [order.payment] : []).map((p, i) => (
+                    <div key={i} className="flex justify-between">
+                        <span className="uppercase font-bold">{p.method?.replaceAll('_', ' ') || 'N/A'}</span>
+                        <span>${p.amount?.toLocaleString()} {p.currency}</span>
+                    </div>
+                ))}
+                <div className="flex justify-between font-bold text-base pt-1">
+                    <span>Total Pagado</span>
+                    <span>${(order.payments || []).reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</span>
                 </div>
-                {order.payment?.received > 0 && (
-                    <>
-                        <div className="flex justify-between">
-                            <span>Recibido:</span>
-                            <span>${order.payment.received?.toLocaleString()} {order.payment.currency}</span>
-                        </div>
-                        <div className="flex justify-between font-bold">
-                            <span>Cambio COP:</span>
-                            <span>${(order.payment.changeCop ?? order.payment.change)?.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between font-bold">
-                            <span>Cambio USD:</span>
-                            <span>${(order.payment.changeUsd ?? order.payment.change)?.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between font-bold">
-                            <span>Cambio Bs.:</span>
-                            <span>${(order.payment.changeBs ?? 0)?.toFixed(2)}</span>
-                        </div>
-                    </>
-                )}
             </div>
 
             {order.observations && (
