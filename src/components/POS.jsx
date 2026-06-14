@@ -276,12 +276,26 @@ export function POS({ tableId, onBack }) {
         };
 
         const currentSplits = paymentSplitsRef.current;
-        const splitsPayload = currentSplits.map(s => ({
-            method: s.method.toUpperCase(),
-            currency: s.currency,
-            amount: parseFloat(s.amount) || 0,
-            change: s.method === 'nequi' || s.method === 'card' ? 0 : 0,
-        }));
+        const rate = exchangeRate > 0 ? exchangeRate : 4000;
+        const rateBs = exchangeRateBs > 0 ? exchangeRateBs : 40;
+        const totalPaidCopVal = currentSplits.reduce((sum, s) => {
+            const amt = parseFloat(s.amount) || 0;
+            if (s.method === 'cash_usd') return sum + amt * rate;
+            if (s.method === 'cash_bs') return sum + amt * rateBs;
+            return sum + amt;
+        }, 0);
+        const factor = totalPaidCopVal > 0 ? 1 - (totals.cop / totalPaidCopVal) : 0;
+
+        const splitsPayload = currentSplits.map(s => {
+            const amount = parseFloat(s.amount) || 0;
+            const change = s.method === 'nequi' || s.method === 'card' ? 0 : Math.max(0, amount * factor);
+            return {
+                method: s.method.toUpperCase(),
+                currency: s.currency,
+                amount,
+                change,
+            };
+        });
 
         const orderData = {
             tableId: tableId || null,

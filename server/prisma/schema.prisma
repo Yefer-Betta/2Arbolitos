@@ -206,6 +206,7 @@ model Order {
   totalCop      Float       @default(0)
   totalUsd      Float       @default(0)
   exchangeRate  Float       @default(4000)
+  exchangeRateBs Float      @default(40)
   discountValue Float       @default(0)
   discountPercent Float     @default(0)
   notes         String?

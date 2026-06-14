@@ -120,7 +120,7 @@ export const orderController = {
 
   async createOrder(req, res) {
     try {
-      const { tableId, orderType, items, exchangeRate, discountValue, discountPercent, notes, payments, customerId, deliveryAddress, deliveryCost } = req.body;
+      const { tableId, orderType, items, exchangeRate, exchangeRateBsSnapshot, discountValue, discountPercent, notes, payments, customerId, deliveryAddress, deliveryCost } = req.body;
       
       let userId = req.user?.id;
       if (!userId) {
@@ -138,6 +138,7 @@ export const orderController = {
       }
 
       const rate = exchangeRate || 4000;
+      const rateBs = exchangeRateBsSnapshot || 40;
       let totalCop = 0;
       let totalUsd = 0;
 
@@ -242,6 +243,7 @@ export const orderController = {
           totalCop: finalTotalCop,
           totalUsd: finalTotalUsd,
           exchangeRate: exchangeRate || 4000,
+          exchangeRateBs: rateBs,
           discountValue: discountValue || 0,
           discountPercent: discountPercent || 0,
           notes,
@@ -281,7 +283,11 @@ export const orderController = {
           createdPayments.push(payment);
         }
 
-        const totalPaid = createdPayments.reduce((sum, p) => sum + p.amount, 0);
+        const totalPaid = createdPayments.reduce((sum, p) => {
+          if (p.currency === 'USD') return sum + p.amount * rate;
+          if (p.currency === 'Bs.') return sum + p.amount * rateBs;
+          return sum + p.amount; // COP
+        }, 0);
         const shouldServe = totalPaid >= finalTotalCop;
         if (shouldServe) {
           await prisma.order.update({
@@ -382,7 +388,7 @@ export const orderController = {
 
       const order = await prisma.order.findUnique({
         where: { id },
-        select: { totalCop: true },
+        select: { totalCop: true, exchangeRate: true, exchangeRateBs: true },
       });
       if (!order) {
         return res.status(404).json({ error: 'Pedido no encontrado' });
@@ -405,9 +411,15 @@ export const orderController = {
 
       const allPayments = await prisma.payment.findMany({
         where: { orderId: id },
-        select: { amount: true },
+        select: { amount: true, currency: true },
       });
-      const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
+      const rate = order.exchangeRate || 4000;
+      const rateBs = order.exchangeRateBs || 40;
+      const totalPaid = allPayments.reduce((sum, p) => {
+        if (p.currency === 'USD') return sum + p.amount * rate;
+        if (p.currency === 'Bs.') return sum + p.amount * rateBs;
+        return sum + p.amount; // COP
+      }, 0);
       const shouldServe = totalPaid >= order.totalCop;
 
       const updatedOrder = await prisma.order.update({

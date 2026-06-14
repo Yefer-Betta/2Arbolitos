@@ -63,12 +63,16 @@ export function Ticket({ order, business, orderType }) {
                 {(order.payments && order.payments.length > 0 ? order.payments : order.payment ? [order.payment] : []).map((p, i) => (
                     <div key={i} className="flex justify-between">
                         <span className="uppercase font-bold">{p.method?.replaceAll('_', ' ') || 'N/A'}</span>
-                        <span>${p.amount?.toLocaleString()} {p.currency}</span>
+                        <span>{p.currency === 'USD' ? `$${p.amount?.toFixed(2)}` : p.currency === 'Bs.' ? `${p.amount?.toFixed(2)} Bs.` : `$${p.amount?.toLocaleString()}`} {p.currency !== 'USD' && p.currency !== 'Bs.' ? p.currency : ''}</span>
                     </div>
                 ))}
                 <div className="flex justify-between font-bold text-base pt-1">
                     <span>Total Pagado</span>
-                    <span>${(order.payments || []).reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</span>
+                    <span>${((order.payments || []).reduce((s, p) => {
+                        if (p.currency === 'USD') return s + (p.amount || 0) * (order.exchangeRate || 4000);
+                        if (p.currency === 'Bs.') return s + (p.amount || 0) * (order.exchangeRateBs || 40);
+                        return s + (p.amount || 0);
+                    }, 0)).toLocaleString()} COP</span>
                 </div>
             </div>
 

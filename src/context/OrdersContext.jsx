@@ -284,6 +284,7 @@ export function OrdersProvider({ children }) {
       orderType: order.orderType,
       items: transformedItems,
       exchangeRate: order.exchangeRateSnapshot || order.exchangeRate || 4000,
+      exchangeRateBsSnapshot: order.exchangeRateBsSnapshot || order.exchangeRateBs || 40,
       discountValue: order.discountValue || 0,
       discountPercent: order.discountPercent || 0,
       payments: order.payments,
