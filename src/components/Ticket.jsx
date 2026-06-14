@@ -13,11 +13,18 @@ export function Ticket({ order, business, orderType }) {
     return (
         <div className="bg-white p-4 rounded-lg w-full max-w-xs font-mono text-sm border border-gray-200 shadow-sm mx-auto">
             <div className="text-center mb-3 pb-3 border-b border-dashed border-gray-300">
-                <h2 className="font-bold text-lg uppercase">{business.name}</h2>
+                <h2 className="font-bold text-lg uppercase">{business?.name ?? ''}</h2>
                 <p className="text-xs font-bold text-green-600 mt-1">{getTypeLabel()}</p>
-                {business.nit && <p className="text-xs">NIT: {business.nit}</p>}
-                {business.address && <p className="text-xs">{business.address}</p>}
-                {business.phone && <p className="text-xs">Tel: {business.phone}</p>}
+                {business?.nit && <p className="text-xs">NIT: {business.nit}</p>}
+                {business?.address && <p className="text-xs">{business.address}</p>}
+                {business?.phone && <p className="text-xs">Tel: {business.phone}</p>}
+                {(order.orderType?.toUpperCase() === 'DOMICILIO' || getTypeLabel() === 'DOMICILIO') && (
+                    <div className="mt-2 pt-2 border-t border-dashed border-gray-200 text-left">
+                        {order.deliveryAddress && <p className="text-xs"><strong>Dir:</strong> {order.deliveryAddress}</p>}
+                        {order.deliveryPhone && <p className="text-xs"><strong>Tel:</strong> {order.deliveryPhone}</p>}
+                        {order.deliveryCost > 0 && <p className="text-xs"><strong>Envío:</strong> +${Number(order.deliveryCost).toLocaleString()} COP</p>}
+                    </div>
+                )}
                 <p className="mt-1 text-xs text-gray-500">{new Date(order.date || order.createdAt).toLocaleString()}</p>
                 <p className="text-xs text-gray-400">#{order.id?.slice(0, 8).toUpperCase()}</p>
             </div>

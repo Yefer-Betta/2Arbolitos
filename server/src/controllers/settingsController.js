@@ -207,7 +207,7 @@ export const settingsController = {
       const orders = await prisma.order.findMany({
         where,
         include: {
-          payment: true,
+          payments: true,
           user: {
             select: { id: true, name: true },
           },
@@ -220,9 +220,9 @@ export const settingsController = {
       const orderCount = orders.length;
 
       const paymentsByMethod = orders.reduce((acc, order) => {
-        if (order.payment) {
-          acc[order.payment.method] = (acc[order.payment.method] || 0) + order.payment.amount;
-        }
+        (order.payments || []).forEach(p => {
+          acc[p.method] = (acc[p.method] || 0) + p.amount;
+        });
         return acc;
       }, {});
 

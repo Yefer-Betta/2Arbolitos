@@ -95,11 +95,19 @@ export function MenuProvider({ children }) {
             isUsd: newProduct.isUsd || false,
             imageUrl: newProduct.imageUrl || null,
             description: newProduct.description || null,
+            inventoryItemId: newProduct.inventoryItemId || null,
         };
 
         if (syncManager.isOnline) {
             try {
-                await apiPost('/products', productForServer);
+                const serverProduct = await apiPost('/products', productForServer);
+                if (serverProduct && serverProduct.id) {
+                    setProducts((prev) => {
+                        const next = prev.map(p => p.id === newProduct.id ? { ...serverProduct, category: serverProduct.category?.name || '' } : p);
+                        void setData('products', next);
+                        return next;
+                    });
+                }
             } catch {
                 await syncManager.addToQueue({
                     type: 'CREATE',
@@ -126,6 +134,7 @@ export function MenuProvider({ children }) {
             isUsd: updatedData.isUsd || false,
             imageUrl: updatedData.imageUrl || null,
             description: updatedData.description || null,
+            inventoryItemId: updatedData.inventoryItemId !== undefined ? updatedData.inventoryItemId : null,
         };
         
         setProducts((prev) => {
@@ -138,7 +147,14 @@ export function MenuProvider({ children }) {
 
         if (syncManager.isOnline) {
             try {
-                await apiPut(`/products/${id}`, cleanData);
+                const serverProduct = await apiPut(`/products/${id}`, cleanData);
+                if (serverProduct && serverProduct.id) {
+                    setProducts((prev) => {
+                        const next = prev.map(p => p.id === id ? { ...serverProduct, category: serverProduct.category?.name || '' } : p);
+                        void setData('products', next);
+                        return next;
+                    });
+                }
             } catch {
                 await syncManager.addToQueue({
                     type: 'UPDATE',

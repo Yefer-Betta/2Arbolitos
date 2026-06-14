@@ -42,7 +42,7 @@ export function MenuManager() {
             categoryId: product.categoryId,
             price: product.price,
             isUsd: product.isUsd || false,
-            inventoryItemId: product.inventoryItems?.[0]?.id || '',
+            inventoryItemId: product.inventoryItems?.[0]?.id || product.inventoryItemId || '',
         });
         setEditingId(product.id);
         setIsAdding(true);

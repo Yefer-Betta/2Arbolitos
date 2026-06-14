@@ -8,6 +8,7 @@ import { PARA_LLEVAR_ID } from './VistaMesas';
 function orderOriginLabel(order) {
     if (!order.tableId) return '—';
     if (order.tableId === PARA_LLEVAR_ID) return 'Para llevar';
+    if (order.tableId === 'domicilio' || order.tableId?.startsWith('domicilio-')) return 'Domicilio';
     return order.tableId.replace('mesa-', 'Mesa ');
 }
 

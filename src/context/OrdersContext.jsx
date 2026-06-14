@@ -290,6 +290,7 @@ export function OrdersProvider({ children }) {
       payments: order.payments,
       customerId: order.customerId || null,
       deliveryAddress: order.deliveryAddress || null,
+      deliveryPhone: order.deliveryPhone || null,
       deliveryCost: order.deliveryCost || 0,
     };
 
@@ -434,6 +435,17 @@ export function OrdersProvider({ children }) {
     actualizarCantidad(idMesa, idPlatillo, 0);
   };
 
+  const crearDomicilio = (direccion, telefono, costoEnvio = 0) => {
+    const id = 'domicilio-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+    setActiveTables(prevTables => {
+      const newEntry = { items: [], version: 0, deliveryAddress: direccion, deliveryPhone: telefono, deliveryCost: costoEnvio };
+      const newTables = { ...prevTables, [id]: newEntry };
+      setData('activeTables', newTables);
+      return newTables;
+    });
+    return id;
+  };
+
   const limpiarMesa = (idMesa) => {
     clearedTablesRef.current.add(idMesa);
 
@@ -483,6 +495,7 @@ export function OrdersProvider({ children }) {
     actualizarCantidad,
     eliminarPlatilloDeMesa,
     limpiarMesa,
+    crearDomicilio,
     transferTable,
     loaded,
     isSyncing,

@@ -120,7 +120,7 @@ export const orderController = {
 
   async createOrder(req, res) {
     try {
-      const { tableId, orderType, items, exchangeRate, exchangeRateBsSnapshot, discountValue, discountPercent, notes, payments, customerId, deliveryAddress, deliveryCost } = req.body;
+      const { tableId, orderType, items, exchangeRate, exchangeRateBsSnapshot, discountValue, discountPercent, notes, payments, customerId, deliveryAddress, deliveryPhone, deliveryCost } = req.body;
       
       let userId = req.user?.id;
       if (!userId) {
@@ -252,6 +252,7 @@ export const orderController = {
             discountPercent: discountPercent || 0,
             notes,
             deliveryAddress: deliveryAddress || null,
+            deliveryPhone: deliveryPhone || null,
             deliveryCost: deliveryCost || 0,
             items: {
               create: orderItems,
@@ -306,24 +307,34 @@ export const orderController = {
         // Include payments in response
         order.payments = createdPayments || [];
 
-        // Descontar inventario
-        try {
-          for (const item of order.items) {
-            if (item.productId) {
-              const invItems = await tx.inventoryItem.findMany({
-                where: { productId: item.productId },
-              });
-              for (const inv of invItems) {
-                const newQty = Math.max(0, inv.quantity - item.quantity);
-                await tx.inventoryItem.update({
-                  where: { id: inv.id },
-                  data: { quantity: newQty },
-                });
+        // Descontar inventario y crear movimientos
+        for (const item of order.items) {
+          if (item.productId) {
+            const invItems = await tx.inventoryItem.findMany({
+              where: { productId: item.productId },
+            });
+            for (const inv of invItems) {
+              if (inv.quantity < item.quantity) {
+                console.warn(`Stock insuficiente para "${inv.name}": disponible ${inv.quantity}, requerido ${item.quantity}`);
               }
+              const deducted = Math.min(item.quantity, inv.quantity);
+              const newQty = Math.max(0, inv.quantity - item.quantity);
+              await tx.inventoryItem.update({
+                where: { id: inv.id },
+                data: { quantity: newQty },
+              });
+              await tx.inventoryMovement.create({
+                data: {
+                  itemId: inv.id,
+                  quantity: -deducted,
+                  previous: inv.quantity,
+                  newQuantity: newQty,
+                  reason: 'venta',
+                  userId: userId,
+                },
+              });
             }
           }
-        } catch (invErr) {
-          console.error('Error al descontar inventario:', invErr);
         }
 
         return { order, createdPayments };
@@ -429,6 +440,43 @@ export const orderController = {
         return sum + p.amount; // COP
       }, 0);
       const shouldServe = totalPaid >= order.totalCop;
+
+      // Descontar inventario si se sirvió
+      if (shouldServe) {
+        const user = await prisma.user.findFirst({ where: { role: 'WAITER' } });
+        const orderItems = await prisma.orderItem.findMany({
+          where: { orderId: id },
+          select: { productId: true, quantity: true },
+        });
+        for (const item of orderItems) {
+          if (item.productId) {
+            const invItems = await prisma.inventoryItem.findMany({
+              where: { productId: item.productId },
+            });
+            for (const inv of invItems) {
+              if (inv.quantity < item.quantity) {
+                console.warn(`Stock insuficiente para "${inv.name}": disponible ${inv.quantity}, requerido ${item.quantity}`);
+              }
+              const deducted = Math.min(item.quantity, inv.quantity);
+              const newQty = Math.max(0, inv.quantity - item.quantity);
+              await prisma.inventoryItem.update({
+                where: { id: inv.id },
+                data: { quantity: newQty },
+              });
+              await prisma.inventoryMovement.create({
+                data: {
+                  itemId: inv.id,
+                  quantity: -deducted,
+                  previous: inv.quantity,
+                  newQuantity: newQty,
+                  reason: 'venta',
+                  userId: req.user?.id || user?.id,
+                },
+              });
+            }
+          }
+        }
+      }
 
       const updatedOrder = await prisma.order.update({
         where: { id },

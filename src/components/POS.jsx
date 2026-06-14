@@ -21,6 +21,17 @@ export function POS({ tableId, onBack }) {
     } = useOrders();
 
     const cart = useMemo(() => activeTables[tableId]?.items || [], [activeTables, tableId]);
+
+    // Cargar datos de domicilio desde activeTables al montar
+    const tableEntry = activeTables[tableId];
+    React.useEffect(() => {
+        if (tableId?.startsWith('domicilio') && tableEntry) {
+            setDeliveryAddressInput(tableEntry.deliveryAddress || '');
+            setDeliveryPhoneInput(tableEntry.deliveryPhone || '');
+            setDeliveryCostInput(tableEntry.deliveryCost ? String(tableEntry.deliveryCost) : '');
+        }
+    }, [tableId, tableEntry?.deliveryAddress, tableEntry?.deliveryPhone, tableEntry?.deliveryCost]);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todos');
 
@@ -46,6 +57,11 @@ export function POS({ tableId, onBack }) {
     const [customerSearch, setCustomerSearch] = useState('');
     const [customerResults, setCustomerResults] = useState([]);
     const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+
+    // Delivery fields
+    const [deliveryAddressInput, setDeliveryAddressInput] = useState('');
+    const [deliveryPhoneInput, setDeliveryPhoneInput] = useState('');
+    const [deliveryCostInput, setDeliveryCostInput] = useState('');
 
     // Split bill
     const [showSplitModal, setShowSplitModal] = useState(false);
@@ -192,11 +208,13 @@ export function POS({ tableId, onBack }) {
         };
     }, [cart, rate, discountFinalPrice, discountPercent]);
 
+    const deliveryCostNum = parseFloat(deliveryCostInput) || 0;
+
     const totals = useMemo(() => ({
-        cop: discountData.finalCop > 0 ? discountData.finalCop : discountData.originalCop,
-        usd: discountData.finalUsd > 0 ? discountData.finalUsd : discountData.originalUsd,
-        bs: (discountData.finalCop > 0 ? discountData.finalCop : discountData.originalCop) / (exchangeRateBs || 40),
-    }), [discountData, exchangeRateBs]);
+        cop: (discountData.finalCop > 0 ? discountData.finalCop : discountData.originalCop) + deliveryCostNum,
+        usd: (discountData.finalUsd > 0 ? discountData.finalUsd : discountData.originalUsd) + (deliveryCostNum / (exchangeRate || 4000)),
+        bs: ((discountData.finalCop > 0 ? discountData.finalCop : discountData.originalCop) + deliveryCostNum) / (exchangeRateBs || 40),
+    }), [discountData, exchangeRateBs, exchangeRate, deliveryCostNum]);
 
 
     // Helper: extrae solo digitos (y punto decimal para USD/Bs.)
@@ -299,7 +317,7 @@ export function POS({ tableId, onBack }) {
         const getOrderType = () => {
             if (!tableId || tableId.startsWith('mesa-')) return 'mesa';
             if (tableId === 'para-llevar') return 'para-llevar';
-            if (tableId === 'domicilio') return 'domicilio';
+            if (tableId?.startsWith('domicilio')) return 'domicilio';
             return tableId;
         };
 
@@ -342,7 +360,9 @@ export function POS({ tableId, onBack }) {
             discountPercent: discountData.discountPercent,
             payments: splitsPayload,
             customerId: selectedCustomer?.id || null,
-            deliveryAddress: selectedCustomer?.address || null,
+            deliveryAddress: tableId?.startsWith('domicilio') ? (deliveryAddressInput || selectedCustomer?.address || null) : (selectedCustomer?.address || null),
+            deliveryPhone: tableId?.startsWith('domicilio') ? (deliveryPhoneInput || selectedCustomer?.phone || null) : null,
+            deliveryCost: tableId?.startsWith('domicilio') ? deliveryCostNum : 0,
         };
 
         addOrder(orderData);
@@ -354,7 +374,7 @@ export function POS({ tableId, onBack }) {
         if (showRecipe) {
             if (tableId && tableId.startsWith('mesa-')) {
                 limpiarMesa(tableId);
-            } else if (tableId === 'para-llevar' || tableId === 'domicilio') {
+            } else if (tableId === 'para-llevar' || tableId?.startsWith('domicilio')) {
                 limpiarMesa(tableId);
             }
             if (onBack) onBack();
@@ -365,6 +385,9 @@ export function POS({ tableId, onBack }) {
         setPaymentSplits([]);
         setDiscountFinalPrice('');
         setSelectedCustomer(null);
+        setDeliveryAddressInput('');
+        setDeliveryPhoneInput('');
+        setDeliveryCostInput('');
     };
 
     // Customer search
@@ -382,6 +405,10 @@ export function POS({ tableId, onBack }) {
         setShowCustomerSearch(false);
         setCustomerSearch('');
         setCustomerResults([]);
+        if (tableId?.startsWith('domicilio')) {
+            if (c.address) setDeliveryAddressInput(c.address);
+            if (c.phone) setDeliveryPhoneInput(c.phone);
+        }
     };
 
     // Transfer
@@ -766,7 +793,7 @@ export function POS({ tableId, onBack }) {
                                             <h2 className="text-2xl font-bold text-gray-800"><span className="text-blue-600">Para Llevar</span></h2>
                                             <p className="text-gray-500 text-sm">Venta directa sin mesa.</p>
                                         </>
-                                    ) : tableId === 'domicilio' ? (
+                                    ) : tableId?.startsWith('domicilio') ? (
                                         <>
                                             <h2 className="text-2xl font-bold text-gray-800"><span className="text-purple-600">Domicilio</span></h2>
                                             <p className="text-gray-500 text-sm">Pedido para entrega a domicilio.</p>
@@ -861,7 +888,7 @@ export function POS({ tableId, onBack }) {
                             <p className="text-primary-light/80 text-xs lg:text-sm mt-1">Mesa {tableId.replace('mesa-', '')}</p>
                         ) : tableId === 'para-llevar' ? (
                             <p className="text-primary-light/80 text-xs lg:text-sm mt-1">Para Llevar</p>
-                        ) : tableId === 'domicilio' ? (
+                        ) : tableId?.startsWith('domicilio') ? (
                             <p className="text-primary-light/80 text-xs lg:text-sm mt-1">Domicilio</p>
                         ) : null
                     ) : (
@@ -956,7 +983,7 @@ export function POS({ tableId, onBack }) {
                                     <User className="w-4 h-4 text-amber-600" />
                                     <span className="text-sm font-medium text-amber-800">{selectedCustomer.name}</span>
                                 </div>
-                                <button onClick={() => setSelectedCustomer(null)} className="text-amber-500 hover:text-amber-700 p-1"><X className="w-3 h-3" /></button>
+                                <button onClick={() => { setSelectedCustomer(null); if (tableId?.startsWith('domicilio')) { setDeliveryAddressInput(''); setDeliveryPhoneInput(''); } }} className="text-amber-500 hover:text-amber-700 p-1"><X className="w-3 h-3" /></button>
                             </div>
                         ) : (
                             <div className="relative">
@@ -995,15 +1022,52 @@ export function POS({ tableId, onBack }) {
                         )}
                     </div>
 
+                    {tableId?.startsWith('domicilio') && (
+                        <div className="space-y-2 p-3 bg-purple-50 rounded-xl border border-purple-100">
+                            <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wide">Datos de entrega</h4>
+                            <input
+                                type="text" placeholder="Dirección de entrega *"
+                                value={deliveryAddressInput}
+                                onChange={e => setDeliveryAddressInput(e.target.value)}
+                                className="input-field text-sm"
+                            />
+                            <input
+                                type="text" placeholder="Teléfono de contacto *"
+                                value={deliveryPhoneInput}
+                                onChange={e => setDeliveryPhoneInput(e.target.value)}
+                                className="input-field text-sm"
+                            />
+                            <div>
+                                <label className="text-xs text-purple-600 font-medium">Costo de envío (COP)</label>
+                                <input
+                                    type="text" inputMode="numeric"
+                                    placeholder="0"
+                                    value={deliveryCostInput}
+                                    onChange={e => setDeliveryCostInput(cleanAmount(e.target.value, 'COP'))}
+                                    onBlur={e => setDeliveryCostInput(formatAmount(e.target.value, 'COP'))}
+                                    onFocus={e => setDeliveryCostInput(cleanAmount(e.target.value, 'COP'))}
+                                    className="input-field text-sm"
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     <div className="space-y-2 lg:space-y-3">
                         <div className="flex justify-between text-xs lg:text-sm text-gray-600">
                             <span>Subtotal COP</span>
-                            <span className="font-medium">${totals.cop.toLocaleString()}</span>
+                            <span className="font-medium">${(totals.cop - deliveryCostNum).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-xs lg:text-sm text-gray-600">
                             <span>Subtotal USD</span>
-                            <span className="font-medium">${totals.usd.toFixed(2)}</span>
+                            <span className="font-medium">${(totals.usd - (deliveryCostNum / (exchangeRate || 4000))).toFixed(2)}</span>
                         </div>
+
+                        {deliveryCostNum > 0 && (
+                            <div className="flex justify-between text-xs lg:text-sm text-purple-600 font-medium">
+                                <span>Envío</span>
+                                <span>+${deliveryCostNum.toLocaleString()}</span>
+                            </div>
+                        )}
 
                         <div className="h-px bg-gray-200 my-1 lg:my-2"></div>
 

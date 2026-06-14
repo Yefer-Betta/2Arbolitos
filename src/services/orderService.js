@@ -38,8 +38,8 @@ export const orderService = {
         const totals = { cop: 0, usd: 0 };
         
         items.forEach(item => {
-            const price = item.product.price;
-            const isUsd = item.product.isUsd;
+            const price = item.product?.price ?? 0;
+            const isUsd = item.product?.isUsd ?? false;
             const qty = item.quantity;
 
             if (isUsd) {

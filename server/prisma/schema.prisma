@@ -211,6 +211,7 @@ model Order {
   discountPercent Float     @default(0)
   notes         String?
   deliveryAddress String?
+  deliveryPhone  String?
   deliveryCost  Float       @default(0)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

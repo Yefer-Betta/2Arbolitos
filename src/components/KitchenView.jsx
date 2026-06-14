@@ -102,7 +102,7 @@ export function KitchenView() {
                         <span className="text-xs font-bold uppercase">{STATUS_LABELS[status]}</span>
                       </div>
                       <div className="p-4 space-y-3">
-                        {order.items.map(item => (
+                        {(order.items || []).map(item => (
                           <div key={item.id} className="flex justify-between items-center">
                             <div>
                               <span className="font-medium text-gray-800">{item.quantity}x </span>

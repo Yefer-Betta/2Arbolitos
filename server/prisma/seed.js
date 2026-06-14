@@ -6,6 +6,8 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting seed...');
 
+  await prisma.inventoryMovement.deleteMany();
+  await prisma.inventoryItem.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.rolePermission.deleteMany();
   await prisma.permission.deleteMany();
