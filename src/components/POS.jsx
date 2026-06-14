@@ -228,37 +228,37 @@ export function POS({ tableId, onBack }) {
         }));
     }, []);
 
-    const totalPaid = useMemo(() =>
-        paymentSplits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0)
-    , [paymentSplits]);
+    const totalPaidCop = useMemo(() =>
+        paymentSplits.reduce((sum, s) => {
+            const amt = parseFloat(s.amount) || 0;
+            if (s.method === 'cash_usd') return sum + amt * (exchangeRate || 4000);
+            if (s.method === 'cash_bs') return sum + amt * (exchangeRateBs || 40);
+            return sum + amt; // COP, nequi, card
+        }, 0)
+    , [paymentSplits, exchangeRate, exchangeRateBs]);
 
     const remaining = useMemo(() =>
-        Math.max(0, totals.cop - totalPaid)
-    , [totals.cop, totalPaid]);
+        Math.max(0, totals.cop - totalPaidCop)
+    , [totals.cop, totalPaidCop]);
 
     const isFullyPaid = useMemo(() =>
-        totalPaid >= totals.cop && paymentSplits.length > 0
-    , [totalPaid, totals.cop, paymentSplits.length]);
+        totalPaidCop >= totals.cop && paymentSplits.length > 0
+    , [totalPaidCop, totals.cop, paymentSplits.length]);
 
     const getSplitChange = useCallback((split) => {
+        const amount = parseFloat(split.amount) || 0;
+        if (split.method === 'nequi' || split.method === 'card') return { changeCop: 0, changeUsd: 0, changeBs: 0, isShort: false };
+        const factor = 1 - (totals.cop / (totalPaidCop || 1));
+        const changeCop = amount * factor;
         const rate = exchangeRate > 0 ? exchangeRate : 4000;
         const rateBs = exchangeRateBs > 0 ? exchangeRateBs : 40;
-        const amount = parseFloat(split.amount) || 0;
-        if (split.method === 'nequi') return { changeCop: 0, changeUsd: 0, changeBs: 0, isShort: false };
-        if (split.method === 'cash_usd') {
-            const equivCop = amount * rate;
-            const changeUsd = amount - (totals.usd * (amount / (totalPaid || 1)));
-            return { changeUsd, changeCop: changeUsd * rate, changeBs: changeUsd * rate / rateBs, isShort: false };
-        }
-        if (split.method === 'cash_bs') {
-            const equivCop = amount * rateBs;
-            const changeCop = equivCop - (totals.cop * (equivCop / (totalPaid || 1)));
-            return { changeCop, changeUsd: changeCop / rate, changeBs: changeCop / rateBs, isShort: false };
-        }
-        // cash_cop
-        const changeCop = amount - (totals.cop * (amount / (totalPaid || 1)));
-        return { changeCop, changeUsd: changeCop / rate, changeBs: changeCop / rateBs, isShort: changeCop < 0 };
-    }, [exchangeRate, exchangeRateBs, totals, totalPaid]);
+        return {
+            changeCop: changeCop,
+            changeUsd: split.method === 'cash_usd' ? changeCop : changeCop / rate,
+            changeBs: split.method === 'cash_bs' ? changeCop : changeCop / rateBs,
+            isShort: totalPaidCop < totals.cop
+        };
+    }, [exchangeRate, exchangeRateBs, totals.cop, totalPaidCop]);
 
     const handleInitiateCheckout = () => {
         if (cart.length === 0) return;
@@ -451,7 +451,7 @@ export function POS({ tableId, onBack }) {
                                                         </select>
 
                                                         <div className="relative">
-                                                            <span className="absolute inset-y-0 left-2 flex items-center text-gray-500 text-xs font-bold">$</span>
+                                                            <span className="absolute inset-y-0 left-2 flex items-center text-gray-500 text-xs font-bold">{split.currency === 'USD' ? '$' : split.currency === 'Bs.' ? 'Bs.' : '$'}</span>
                                                             <input
                                                                 type="number"
                                                                 value={split.amount}
@@ -470,7 +470,7 @@ export function POS({ tableId, onBack }) {
                                                             {split.method === 'cash_usd' ? (
                                                                 <span>Cambio USD: ${Math.abs(sc.changeUsd).toFixed(2)}</span>
                                                             ) : split.method === 'cash_bs' ? (
-                                                                <span>Cambio Bs.: ${Math.abs(sc.changeBs).toFixed(2)}</span>
+                                                                <span>Cambio Bs.: {Math.abs(sc.changeBs).toFixed(2)} Bs.</span>
                                                             ) : (
                                                                 <span>Cambio COP: ${Math.abs(sc.changeCop).toLocaleString()}</span>
                                                             )}
@@ -502,7 +502,7 @@ export function POS({ tableId, onBack }) {
                                     </div>
                                     <div className="flex justify-between items-center text-sm mt-1">
                                         <span>Pagado</span>
-                                        <span>${totalPaid.toLocaleString()} COP</span>
+                                        <span>${totalPaidCop.toLocaleString()} COP</span>
                                     </div>
                                     <div className="flex justify-between items-center text-base font-bold mt-1 pt-1 border-t border-white/50">
                                         <span>{isFullyPaid ? 'Completado' : 'Faltante'}</span>
