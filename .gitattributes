@@ -1,0 +1,19 @@
+# Force LF line endings for scripts that run inside Linux containers
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Normalize Dockerfiles
+Dockerfile* text eol=lf
+
+# Keep batch files with CRLF (Windows native)
+*.bat text eol=crlf
+
+# Auto-detect for source code
+*.js text
+*.jsx text
+*.json text
+*.css text
+*.yml text
+*.yaml text
+*.md text
+*.env* text

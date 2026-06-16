@@ -91,8 +91,26 @@ if %errorlevel% neq 0 (
     pause
     exit /b 1
 )
-echo    Contenedores iniciados.
+
+echo    Esperando a que el servidor esté listo (30-60s la primera vez)...
 echo.
+set /a TIMEOUT=0
+:wait_loop
+powershell -Command "& { try { $r = Invoke-WebRequest -Uri 'http://localhost/api/auth/verify' -UseBasicParsing -TimeoutSec 3; exit 0 } catch { try { $c = [int]$_.Exception.Response.StatusCode; if ($c -ne 502) { exit 0 } } catch {}; exit 1 } }" >nul 2>&1
+if %errorlevel% equ 0 goto :server_ready
+set /a TIMEOUT=TIMEOUT+1
+if %TIMEOUT% geq 45 (
+    echo    [ADVERTENCIA] Tiempo agotado. Abre http://localhost manualmente.
+    goto :skip_wait
+)
+ping -n 2 127.0.0.1 >nul
+goto :wait_loop
+
+:server_ready
+echo    Servidor listo.
+echo.
+
+:skip_wait
 
 :: --- 5. Resumen ---
 echo [5/5] Mostrando resumen...
@@ -114,5 +132,8 @@ echo    1. Verifica que esten en la misma red WiFi.
 echo    2. Revisa que el firewall permita el puerto 80.
 echo    3. Prueba escribiendo la IP manualmente.
 echo ==============================================
+echo.
+echo  Abriendo el navegador...
+start http://localhost
 echo.
 pause

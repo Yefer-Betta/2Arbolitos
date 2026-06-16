@@ -10,6 +10,15 @@ export function LoginScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const { login } = useUser();
 
+    const friendlyError = (msg) => {
+        if (!msg) return 'Usuario o contraseña incorrectos.';
+        const m = msg.toLowerCase();
+        if (m.includes('fetch') || m.includes('network') || m.includes('502') || m.includes('503') || m.includes('request failed')) {
+            return 'No se puede conectar con el servidor. Espera 10 segundos y vuelve a intentar.';
+        }
+        return msg;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -24,7 +33,7 @@ export function LoginScreen() {
         const result = await login(username, password);
         
         if (!result.success) {
-            setError(result.error || 'Usuario o contraseña incorrectos.');
+            setError(friendlyError(result.error));
         }
         
         setIsLoading(false);
