@@ -3,7 +3,7 @@ RUN apk add --no-cache openssl ca-certificates netcat-openbsd
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 COPY prisma ./prisma
 RUN npx prisma generate

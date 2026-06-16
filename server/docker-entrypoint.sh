@@ -43,11 +43,27 @@ fi
 cd "$PRISMA_DIR"
 npx prisma db push --accept-data-loss 2>&1 || echo "⚠️  prisma db push omitido"
 
-echo "Ejecutando seed de datos iniciales..."
-if node prisma/seed.js; then
-  echo "✅ Seed completado"
+echo "Verificando si ya hay datos en la base de datos..."
+ALREADY_SEEDED=$(node --input-type=module -e "
+import { PrismaClient } from '@prisma/client';
+const p = new PrismaClient();
+try {
+  const count = await p.user.count();
+  console.log(count);
+} finally {
+  await p.\$disconnect();
+}
+" 2>/dev/null)
+
+if [ "$ALREADY_SEEDED" != "0" ] && [ -n "$ALREADY_SEEDED" ]; then
+  echo "✅ Seed omitido — la base de datos ya tiene datos ($ALREADY_SEEDED usuarios)"
 else
-  echo "⚠️  ERROR durante el seed — revisa los logs arriba"
+  echo "Ejecutando seed de datos iniciales..."
+  if node prisma/seed.js; then
+    echo "✅ Seed completado"
+  else
+    echo "⚠️  ERROR durante el seed — revisa los logs arriba"
+  fi
 fi
 
 cd /app

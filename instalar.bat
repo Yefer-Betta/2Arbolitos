@@ -51,23 +51,47 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 echo    Docker corriendo: OK
-echo.
 
-:: --- 2. Clonar repositorio si es necesario ---
-echo [2/6] Verificando repositorio...
-
-if exist ".git" (
-    echo    Repositorio encontrado.
-) else (
-    echo    Clonando repositorio...
-    git clone https://github.com/Yefer-Betta/2Arbolitos.git
-    if %errorlevel% neq 0 (
-        echo    [ERROR] No se pudo clonar el repositorio.
+:: Detectar docker-compose v1/v2
+set COMPOSE_CMD=docker compose
+docker compose version >nul 2>&1
+if %errorlevel% neq 0 (
+    docker-compose version >nul 2>&1
+    if %errorlevel% equ 0 (
+        set COMPOSE_CMD=docker-compose
+    ) else (
+        echo    [ERROR] No se encontro docker-compose ni docker compose.
+        echo    Asegurate de tener Docker Compose instalado.
         pause
         exit /b 1
     )
-    cd 2Arbolitos
 )
+echo    Docker Compose: OK
+echo.
+
+:: --- 2. Verificar/clonar repositorio ---
+echo [2/6] Verificando repositorio...
+
+if exist "docker-compose.yml" if exist "package.json" if exist "server\prisma\schema.prisma" (
+    echo    Proyecto encontrado en esta carpeta.
+    goto :repo_ok
+)
+if exist ".git" (
+    echo    Repositorio encontrado.
+    goto :repo_ok
+)
+
+echo    No se encontro el proyecto en esta carpeta.
+echo    Clonando desde GitHub...
+git clone https://github.com/Yefer-Betta/2Arbolitos.git
+if %errorlevel% neq 0 (
+    echo    [ERROR] No se pudo clonar el repositorio.
+    pause
+    exit /b 1
+)
+cd 2Arbolitos
+
+:repo_ok
 echo.
 
 :: --- 3. Detectar IP Local ---
@@ -134,12 +158,26 @@ if %errorlevel% neq 0 (
 )
 echo.
 
+:: Verificar que el puerto 80 no este ocupado
+echo    Verificando puerto 80...
+netstat -ano | findstr ":80 " | findstr "LISTENING" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo    [AVISO] El puerto 80 esta en uso por otro programa.
+    echo    Puedes cambiar el puerto editando FRONTEND_PORT en el archivo .env
+    echo    Ejemplo: FRONTEND_PORT=8080  (accederias como http://localhost:8080)
+    echo.
+    echo    Continuando de todas formas...
+) else (
+    echo    Puerto 80 disponible.
+)
+echo.
+
 :: --- 6. Construir e iniciar contenedores ---
 echo [6/6] Construyendo e iniciando servidor...
 echo.
 
 echo    Construyendo imagenes (primera vez tarda 2-5 min)...
-docker compose build
+%COMPOSE_CMD% build
 if %errorlevel% neq 0 (
     echo    [ERROR] Fallo la construccion de imagenes.
     pause
@@ -148,7 +186,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo    Iniciando contenedores...
-docker compose up -d
+%COMPOSE_CMD% up -d
 if %errorlevel% neq 0 (
     echo    [ERROR] Fallo al iniciar los contenedores.
     pause
