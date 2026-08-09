@@ -146,6 +146,6 @@ Default users after seed: `admin/admin123`, `gerente/waiter123`, `cajero/waiter1
 
 `.env` is gitignored. `HOST_IP` controls QR‑code generation (detected by `instalar.bat`; falls back to request `Host` header if `0.0.0.0`).
 
-## No CI, no tests
+## No tests
 
-The project has no test framework or CI workflows. The `.github/workflows/` directory is empty.
+The project has no test framework. There is a single CI workflow (`.github/workflows/docker-build.yml`) that builds and pushes Docker images to GHCR — it does not run tests.

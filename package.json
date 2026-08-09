@@ -19,7 +19,6 @@
     "health": "node scripts/commands/health.js",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "docker:dev": "docker compose -f docker-compose.dev.yml up",
     "docker:logs": "docker compose logs -f",
     "docker:seed": "docker compose exec -T app node server/prisma/seed.js",
     "docker:rebuild": "docker compose up -d --build",

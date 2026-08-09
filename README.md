@@ -25,7 +25,7 @@ Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra g
 | 🐳 **Docker only** | Un solo comando para iniciar todo el sistema |
 | 🔒 **Autenticación JWT** | Roles: Admin, Mesero, Cocina, Cajero |
 | 📊 **Finanzas** | Cierre de caja Z, gastos operativos, historial |
-| 💾 **Backup/Restore** | Scripts `.bat` para respaldo de base de datos |
+| 💾 **Backup/Restore** | `npm run backup` para respaldar/restaurar la base de datos |
 
 ---
 
@@ -40,15 +40,16 @@ Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra g
 ```batch
 git clone https://github.com/Yefer-Betta/2Arbolitos.git
 cd 2Arbolitos
-autoconfig.bat
+instalar.bat
 ```
 
-El script `autoconfig.bat` hace todo automáticamente:
-1. Detecta la IP local del servidor
-2. Configura `.env` con los valores correctos
-3. Abre el puerto 80 en el firewall de Windows
-4. Construye e inicia los contenedores Docker
-5. Muestra la URL y un código QR para acceder desde el celular
+El script `instalar.bat` (solo instalación) hace todo automáticamente:
+1. Se auto-eleva a Administrador
+2. Detecta la IP local del servidor
+3. Genera `.env` con secretos aleatorios
+4. Abre el puerto 80 en el firewall de Windows
+5. Construye e inicia los contenedores Docker
+6. Muestra la URL y un código QR para acceder desde el celular
 
 > Ejecutar como **Administrador** en Windows para que abra el puerto automáticamente.
 
@@ -57,6 +58,8 @@ El script `autoconfig.bat` hace todo automáticamente:
 ```bash
 docker compose up -d
 ```
+
+Para uso diario, también puedes usar `iniciar.ps1` (clic derecho → Ejecutar con PowerShell), que ofrece menú para Iniciar, Detener, Reiniciar, QR y Estado, sin requerir Node.js.
 
 ### Detener
 
@@ -79,11 +82,11 @@ docker compose down
 
 ---
 
-## 💾 Backup / Restore
+## 💾 Backup
 
-```batch
-backup.bat        # Crea respaldo de la base de datos
-restore.bat       # Restaura desde un respaldo
+```bash
+npm run backup                              # Genera respaldo SQL de la base de datos en backups/
+docker compose exec db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arbolitos' > restore.sql   # manual
 ```
 
 ---
@@ -107,15 +110,13 @@ restore.bat       # Restaura desde un respaldo
 │   ├── components/              # POS, KDS, Mesas, Finanzas, etc.
 │   ├── context/                 # Estado global
 │   └── lib/                     # API, sync, utilidades
-├── Documentación del Proyecto/  # 📚 Documentación APA (.docx)
+├── scripts/                     # Utilidades (backup, cli, asistentes)
 ├── docker-compose.yml           # Orquestación de servicios
-├── Dockerfile                   # Build multi-etapa (CI)
+├── Dockerfile                   # Build backend
 ├── Dockerfile.frontend          # Frontend con Nginx
 ├── nginx.conf                   # Proxy reverso
-├── autoconfig.bat               # Configuración automática
-├── backup.bat                   # Respaldo de base de datos
-├── restore.bat                  # Restauración de base de datos
-├── start.bat                    # Inicio rápido
+├── instalar.bat                 # Instalación única (auto-eleva a admin)
+├── iniciar.ps1                  # Uso diario (iniciar/detener/QR)
 ├── .env.example.docker          # Plantilla de variables de entorno
 └── .gitignore
 ```
@@ -124,19 +125,7 @@ restore.bat       # Restaura desde un respaldo
 
 ## 📄 Documentación
 
-La documentación completa del proyecto en **formato APA** (normas APA 7ª edición) está disponible en:
-
-- `Documentación del Proyecto/2Arbolitos_POS_Documento_Proyecto_APA.docx`
-
-Incluye: portada, resumen, glosario, introducción, marco teórico, arquitectura, diagramas UML, modelo de base de datos, despliegue, API, flujos de negocio, interfaz, pruebas, manual de usuario, manual técnico, conclusiones y referencias.
-
-También puedes regenerar el documento ejecutando:
-
-```bash
-cd scripts
-npm install
-node gen_apa_doc.js
-```
+La documentación de referencia del desarrollador está en [`AGENTS.md`](./AGENTS.md) (arquitectura, comandos Docker, base de datos y despliegue).
 
 ---
 
@@ -146,7 +135,7 @@ node gen_apa_doc.js
 |:------|:----|
 | Mismo equipo servidor | `http://localhost` |
 | Celular/tablet en LAN | `http://<IP-del-servidor>` |
-| QR automático | Se muestra al ejecutar `autoconfig.bat` |
+| QR automático | Se muestra al ejecutar `instalar.bat` |
 
 ---
 
@@ -181,7 +170,7 @@ node gen_apa_doc.js
 | Endpoints API | 40+ |
 | Modelos de datos | 11 |
 | Líneas de código | ~12,000 |
-| Documentación APA | 1 documento completo |
+| Documentación técnica | 1 guía (`AGENTS.md`) |
 | Latencia sync | < 500 ms |
 
 ---
@@ -192,7 +181,6 @@ node gen_apa_doc.js
 - ✅ Multi-moneda (COP, USD, Bs.)
 - ✅ Sincronización en tiempo real
 - ✅ Despliegue Docker automático
-- ✅ Documentación APA completa
 - ⚠️ Facturación electrónica (roadmap v1.2)
 
 ---
