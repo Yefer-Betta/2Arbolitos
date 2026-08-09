@@ -1,10 +1,11 @@
 #requires -version 5.1
 <#
 .SYNOPSIS
-    Lanzador de 2Arbolitos POS
+    Lanzador diario de 2Arbolitos POS (Docker)
 .DESCRIPTION
-    Inicia el servidor, muestra QR de acceso y abre el navegador.
-    Sin .bat, sin comandos raros.
+    Inicia/detiene los contenedores ya instalados y abre el sistema.
+    Solo necesita Docker. No requiere Node.js.
+    La primera instalacion se hace con instalar.bat (doble clic).
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -23,157 +24,150 @@ function Show-Header {
     Write-Host ""
 }
 
-function Test-NodeInstalled {
+function Test-DockerReady {
     try {
-        $v = node --version
-        return $true
+        $null = docker info 2>$null
+        return $LASTEXITCODE -eq 0
     } catch {
         return $false
     }
 }
 
-function Test-SetupDone {
-    $serverEnv = Join-Path $ROOT "server\.env"
-    $nodeModules = Join-Path $ROOT "node_modules"
-    return (Test-Path $serverEnv) -and (Test-Path $nodeModules)
+function Get-FrontendPort {
+    $envFile = Join-Path $ROOT ".env"
+    if (Test-Path $envFile) {
+        $line = (Get-Content $envFile | Select-String '^FRONTEND_PORT=' | Select-Object -First 1)
+        if ($line) {
+            $port = $line -replace '^FRONTEND_PORT=', ''
+            if ($port) { return $port.Trim() }
+        }
+    }
+    return '80'
 }
 
-function Get-LocalIP {
-    $ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
-        $_.IPAddress -like '192.168.*' -or $_.IPAddress -like '10.*'
-    } | Select-Object -First 1).IPAddress
-    if (-not $ip) { $ip = '127.0.0.1' }
-    return $ip
+function Get-AccessUrl {
+    $port = Get-FrontendPort
+    if ($port -eq '80') { return 'http://localhost' }
+    return "http://localhost:$port"
+}
+
+function Start-System {
+    Show-Header
+    if (-not (Test-DockerReady)) {
+        Write-Color "[ERROR] Docker no esta corriendo." Red
+        Write-Color "  Abre Docker Desktop y espera a que diga"
+        Write-Color "  'Motor en ejecucion', luego vuelve a intentar." Yellow
+        Write-Host ""
+        Read-Host "Presiona Enter para continuar"
+        return
+    }
+
+    if (-not (Test-Path (Join-Path $ROOT '.env'))) {
+        Write-Color "[ERROR] No se encontro configuracion." Red
+        Write-Color "  Ejecuta instalar.bat (doble clic) para la primera instalacion." Yellow
+        Write-Host ""
+        Read-Host "Presiona Enter para continuar"
+        return
+    }
+
+    Write-Color ">> Levantando contenedores Docker..." Yellow
+    pushd $ROOT
+    docker compose up -d
+    $code = $LASTEXITCODE
+    popd
+    if ($code -ne 0) {
+        Write-Color "[ERROR] No se pudieron levantar los contenedores." Red
+        Write-Host ""
+        Read-Host "Presiona Enter para continuar"
+        return
+    }
+
+    $url = Get-AccessUrl
+    Write-Color ">> Abriendo el sistema..." Yellow
+    Start-Process $url
+    Write-Host ""
+    Write-Color "  Sistema corriendo en: $url" Green
+    Write-Color "  QR desde celulares:   $url/qr" Cyan
+    Write-Host ""
+}
+
+function Stop-System {
+    Show-Header
+    Write-Color ">> Deteniendo contenedores Docker..." Yellow
+    pushd $ROOT
+    docker compose down
+    popd
+    Write-Color ">> Sistema detenido." Green
+    Write-Host ""
+}
+
+function Restart-System {
+    Show-Header
+    Write-Color ">> Reiniciando contenedores..." Yellow
+    pushd $ROOT
+    docker compose restart
+    popd
+    $url = Get-AccessUrl
+    Write-Color ">> Listo. Abriendo el sistema..." Yellow
+    Start-Process $url
+    Write-Color ">> Sistema listo en: $url" Green
+    Write-Host ""
 }
 
 function Show-QR {
-    param([string]$Url)
-    try {
-        $qrJs = @"
-const QR = require('qrcode');
-QR.toString('$Url', { type: 'terminal', small: true }, (e, s) => console.log(s || ''));
-"@
-        $result = node -e $qrJs 2>$null
-        if ($result) { Write-Host $result }
-    } catch {}
+    Show-Header
+    $url = Get-AccessUrl
+    Write-Color "  Abriendo la pagina QR para escanear desde el celular" Yellow
+    Write-Color "  (misma red WiFi)." Yellow
+    Write-Host ""
+    Write-Color "  Pagina QR: $url/qr" Cyan
+    Write-Host ""
+    Start-Process "$url/qr"
+    Write-Host ""
 }
 
-function Start-Server {
+function Show-Status {
     Show-Header
-
-    $serverDir = Join-Path $ROOT "server"
-    $nodeModules = Join-Path $ROOT "node_modules"
-
-    if (-not (Test-Path $nodeModules)) {
-        Write-Color ">> Instalando dependencias..." Yellow
-        pushd $ROOT
-        npm install --silent 2>&1 | Out-Null
-        popd
-    }
-
-    $serverModules = Join-Path $serverDir "node_modules"
-    if (-not (Test-Path $serverModules)) {
-        Write-Color ">> Instalando dependencias del servidor..." Yellow
-        pushd $serverDir
-        npm install --silent 2>&1 | Out-Null
-        popd
-    }
-
-    $localIP = Get-LocalIP
-
-    Write-Color ">> Iniciando servidor en ventana separada..." Green
-    $env:FORCE_COLOR = 1
-    $serverProcess = Start-Process -FilePath "node" -ArgumentList "$serverDir\src\index.js" -WorkingDirectory $ROOT -PassThru -WindowStyle Normal
-    Start-Sleep -Seconds 4
-
-    Show-Header
-    Write-Color "  SERVIDOR CORRIENDO" Green
+    Write-Color "  Estado de los contenedores:" Yellow
     Write-Host ""
-    Write-Color "  Local:    http://localhost:3002" Cyan
-    Write-Color "  Red:      http://$localIP`:3002" Cyan
+    pushd $ROOT
+    docker compose ps
+    popd
     Write-Host ""
-
-    Write-Color "  Desde tu celular (misma red WiFi):" Yellow
-    Write-Color "  http://$localIP`:3002" Cyan
-    Write-Host ""
-    Write-Color "  O escanea el QR en:" Yellow
-    Write-Color "  http://localhost:3002/qr" Cyan
-
-    Write-Host ""
-    Write-Color "  Abriendo navegador..." Yellow
-    Start-Process "http://localhost:3002"
-
-    Write-Host ""
-    Write-Color "  Presiona ENTER para cerrar el servidor" DarkGray
-    Read-Host
-
-    try { Stop-Process -Id $serverProcess.Id -Force } catch {}
 }
 
 function Show-Menu {
     Show-Header
-    Write-Color "  1. Iniciar 2Arbolitos" White
-    Write-Color "  2. Abrir en el navegador" White
-    Write-Color "  3. Mostrar codigo QR" White
-    Write-Color "  4. Instalar / configurar" White
-    Write-Color "  5. Salir" White
+    Write-Color "  1. Iniciar sistema (y abrir navegador)" White
+    Write-Color "  2. Detener sistema" White
+    Write-Color "  3. Reiniciar sistema" White
+    Write-Color "  4. Ver QR de acceso (celulares)" White
+    Write-Color "  5. Estado de contenedores" White
+    Write-Color "  6. Abrir en el navegador" White
+    Write-Color "  7. Salir" White
     Write-Host ""
     Write-Host -NoNewline "  Elige una opcion: " -ForegroundColor Yellow
     $opt = Read-Host
 
     switch ($opt) {
-        '1' { Start-Server }
-        '2' { Start-Process "http://localhost:3002"; Show-Menu }
-        '3' {
-            $ip = Get-LocalIP
-            Show-QR "http://${ip}:3002"
-            Write-Host ""
-            Pause
-            Show-Menu
-        }
-        '4' {
-            Show-Header
-            Write-Color ">> Ejecutando instalador..." Yellow
-            pushd $ROOT
-            node scripts/commands/install.js
-            popd
-            Pause
-            Show-Menu
-        }
-        '5' { exit }
+        '1' { Start-System }
+        '2' { Stop-System }
+        '3' { Restart-System }
+        '4' { Show-QR }
+        '5' { Show-Status }
+        '6' { Start-Process (Get-AccessUrl) }
+        '7' { exit }
         default { Show-Menu }
     }
+    Read-Host "Presiona Enter para volver al menu"
+    Show-Menu
 }
 
 # Main
 try {
-    if (-not (Test-NodeInstalled)) {
-        Show-Header
-        Write-Color "[ERROR] Node.js no esta instalado" Red
-        Write-Color ""
-        Write-Color "Descargalo desde: https://nodejs.org" Yellow
-        Write-Color "Instalalo y vuelve a ejecutar este lanzador." Yellow
-        Write-Host ""
-        Pause
-        exit 1
-    }
-
-    if (-not (Test-SetupDone)) {
-        Show-Header
-        Write-Color ">> Parece que es la primera vez." Yellow
-        Write-Color ">> Vamos a configurar todo..." Yellow
-        Write-Host ""
-        pushd $ROOT
-        node scripts/commands/install.js
-        popd
-        Write-Host ""
-        Write-Color "Configuracion completada. Iniciando servidor..." Green
-        Start-Sleep 1
-    }
-
     Show-Menu
 } catch {
     Write-Color "[ERROR] $($_.Exception.Message)" Red
-    Pause
+    Read-Host "Presiona Enter para continuar"
     exit 1
 }

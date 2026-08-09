@@ -10,13 +10,16 @@ Copia SkillsForOpenCode desde la configuración global al proyecto. Después pue
 
 ## Para el usuario final
 
-| Método | Cómo |
-|--------|------|
-| **PowerShell** (recomendado) | Clic derecho en `iniciar.ps1` → "Ejecutar con PowerShell" |
-| **Node.js** | `npm start` (menú interactivo) |
-| **Setup completo** | `npm run setup` |
+El único instalador es **Docker**. La máquina solo necesita Docker Desktop.
 
-No más `.bat` raro — todo es `node` o PowerShell moderno.
+| Paso | Qué se hace |
+|------|-------------|
+| **1. Instalar** | Doble clic en `instalar.bat` → crea `.env`, abre firewall y levanta todo |
+| **2. Usar cada día** | Doble clic en `iniciar.ps1` → menú para Iniciar/Detener/Reiniciar/QR |
+
+- `instalar.bat` (solo instalación): auto‑eleva a admin, valida Docker, detecta IP LAN, genera secretos, `docker compose up -d --build`, espera respuesta y abre el navegador.
+- `iniciar.ps1` (uso diario): solo `docker compose` — iniciar, detener, reiniciar, QR, estado. **No requiere Node.js.**
+- `npm start` / `npm run setup` quedan para developers (menú interactivo).
 
 ## Quick start
 
@@ -36,7 +39,7 @@ npm run lint                            # ESLint on src/
 npm run build                           # Vite production build
 ```
 
-On Windows, `instalar.bat` (admin elevation, prereq check, clone, build, start, open browser).
+On Windows, `instalar.bat` is the single installer: auto‑elevates to admin, validates Docker CLI + engine, detects LAN IP, generates secret `.env`, enables firewall port 80, runs `docker compose up -d --build`, waits for HTTP and opens the browser. Docker is the **only** supported install path (no local MySQL/Node setup).
 
 Single‑PC production: `docker compose up -d` → `http://localhost`.
 
@@ -137,7 +140,7 @@ Shell scripts **must remain LF** or the Docker container will fail to execute th
 
 ## Deployment
 
-**Windows only** (Linux/Mac need manual `docker compose`): `instalar.bat` auto‑elevates to admin, checks Git+Docker, clones if needed, detects local IP, creates `.env`, opens firewall port 80, builds, starts, and opens browser.
+**Windows only** (Linux/Mac need manual `docker compose`): `instalar.bat` auto‑elevates to admin, validates Docker, detects local IP, creates `.env`, opens firewall port 80, runs `docker compose up -d --build`, waits for HTTP and opens browser. Docker is the only supported path.
 
 Default users after seed: `admin/admin123`, `gerente/waiter123`, `cajero/waiter123`, `mesero/waiter123`, `cocina/cook123`.
 
