@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { useOrders } from '../context/OrdersContext';
 import { useFinance } from '../context/FinanceContext';
 import { Clock, DollarSign, Calendar, TrendingUp, Download, History as HistoryIcon } from 'lucide-react';
-import { utils, writeFile } from 'xlsx';
 import { PARA_LLEVAR_ID } from './VistaMesas';
 
 function orderOriginLabel(order) {
@@ -28,26 +27,32 @@ export function History() {
     const totalShiftCOP = currentShiftOrders.reduce((sum, o) => sum + o.totalCop, 0);
     const totalShiftUSD = currentShiftOrders.reduce((sum, o) => sum + o.totalUsd, 0);
 
-    // Export Functionality
+    // Export to CSV (opens in Excel)
     const exportToExcel = () => {
-        const data = currentShiftOrders.map(order => {
+        const headers = ['Fecha', 'Hora', 'Origen', 'Items', 'Total COP', 'Total USD', 'Método Pago', 'Tasa Cambio'];
+        const rows = currentShiftOrders.map(order => {
             const orderDate = order.date || order.createdAt;
-            return {
-                Fecha: new Date(orderDate).toLocaleDateString(),
-                Hora: new Date(orderDate).toLocaleTimeString(),
-                Origen: orderOriginLabel(order),
-                Items: (order.items || []).map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', '),
-                'Total COP': order.totalCop,
-                'Total USD': order.totalUsd,
-                'Método Pago': order.payments?.map(p => p.method).join(', ') || order.payment?.method || 'N/A',
-                'Tasa Cambio': order.exchangeRateSnapshot
-            };
+            return [
+                new Date(orderDate).toLocaleDateString(),
+                new Date(orderDate).toLocaleTimeString(),
+                orderOriginLabel(order),
+                (order.items || []).map(i => `${i.quantity}x ${i.product?.name || 'Producto'}`).join(', '),
+                order.totalCop,
+                order.totalUsd,
+                order.payments?.map(p => p.method).join(', ') || order.payment?.method || 'N/A',
+                order.exchangeRateSnapshot ?? ''
+            ];
         });
 
-        const ws = utils.json_to_sheet(data);
-        const wb = utils.book_new();
-        utils.book_append_sheet(wb, ws, "Ventas Turno Actual");
-        writeFile(wb, `Ventas_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        const BOM = '\uFEFF';
+        const csv = BOM + [headers.join(','), ...rows.map(r => r.map(v => JSON.stringify(v ?? '')).join(','))].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Ventas_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     return (

@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../config/database.js';
 
 /**
  * Middleware que verifica si el rol del usuario tiene los permisos solicitados.

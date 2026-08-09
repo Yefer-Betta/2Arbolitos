@@ -1,13 +1,11 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 import { authorizePermissions } from '../middleware/authorizePermissions.js';
-
-const prisma = new PrismaClient();
+import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 const router = Router();
 
-// Listar log de auditoría con filtros opcionales
-router.get('/audit', authenticate, authorizePermissions(['VIEW_AUDIT']), async (req, res) => {
+router.get('/audit', authenticate, authorizePermissions(['VIEW_AUDIT']), asyncHandler(async (req, res) => {
   const { entity, userId, days, limit } = req.query;
 
   const where = {};
@@ -25,13 +23,12 @@ router.get('/audit', authenticate, authorizePermissions(['VIEW_AUDIT']), async (
     take: parseInt(limit) || 100,
   });
   res.json(logs);
-});
+}));
 
-// Obtener detalle de un log
-router.get('/audit/:id', authenticate, authorizePermissions(['VIEW_AUDIT']), async (req, res) => {
+router.get('/audit/:id', authenticate, authorizePermissions(['VIEW_AUDIT']), asyncHandler(async (req, res) => {
   const log = await prisma.auditLog.findUnique({ where: { id: req.params.id } });
-  if (!log) return res.status(404).json({ error: 'No encontrado' });
+  if (!log) throw new AppError('No encontrado', 404);
   res.json(log);
-});
+}));
 
 export default router;

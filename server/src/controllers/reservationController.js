@@ -1,105 +1,81 @@
 import prisma from '../config/database.js';
+import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 
 export const reservationController = {
-  async list(req, res) {
-    try {
-      const { date, status } = req.query;
-      const where = {};
-      if (date) {
-        const start = new Date(date);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
-        where.dateTime = { gte: start, lt: end };
-      }
-      if (status) where.status = status;
-      const reservations = await prisma.reservation.findMany({
-        where,
-        include: { table: { select: { number: true, name: true } } },
-        orderBy: { dateTime: 'asc' },
-      });
-      res.json(reservations);
-    } catch (error) {
-      console.error('Error al listar reservas:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+  list: asyncHandler(async (req, res) => {
+    const { date, status } = req.query;
+    const where = {};
+    if (date) {
+      const start = new Date(date);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      where.dateTime = { gte: start, lt: end };
     }
-  },
+    if (status) where.status = status;
+    const reservations = await prisma.reservation.findMany({
+      where,
+      include: { table: { select: { number: true, name: true } } },
+      orderBy: { dateTime: 'asc' },
+    });
+    res.json(reservations);
+  }),
 
-  async getById(req, res) {
-    try {
-      const reservation = await prisma.reservation.findUnique({
-        where: { id: req.params.id },
-        include: { table: { select: { number: true, name: true } } },
-      });
-      if (!reservation) return res.status(404).json({ error: 'Reserva no encontrada' });
-      res.json(reservation);
-    } catch (error) {
-      console.error('Error al obtener reserva:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
+  getById: asyncHandler(async (req, res) => {
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: req.params.id },
+      include: { table: { select: { number: true, name: true } } },
+    });
+    if (!reservation) throw new AppError('Reserva no encontrada', 404);
+    res.json(reservation);
+  }),
+
+  create: asyncHandler(async (req, res) => {
+    const { customerName, phone, email, guests, dateTime, tableId, notes, status } = req.body;
+    if (!customerName || !dateTime) {
+      throw new AppError('Nombre y fecha/hora requeridos', 400);
     }
-  },
+    const reservation = await prisma.reservation.create({
+      data: {
+        customerName,
+        phone,
+        email,
+        guests: guests || 1,
+        dateTime: new Date(dateTime),
+        tableId: tableId || null,
+        notes,
+        status: status || 'PENDING',
+      },
+      include: { table: { select: { number: true, name: true } } },
+    });
+    res.status(201).json(reservation);
+  }),
 
-  async create(req, res) {
-    try {
-      const { customerName, phone, email, guests, dateTime, tableId, notes, status } = req.body;
-      if (!customerName || !dateTime) {
-        return res.status(400).json({ error: 'Nombre y fecha/hora requeridos' });
-      }
-      const reservation = await prisma.reservation.create({
-        data: {
-          customerName,
-          phone,
-          email,
-          guests: guests || 1,
-          dateTime: new Date(dateTime),
-          tableId: tableId || null,
-          notes,
-          status: status || 'PENDING',
-        },
-        include: { table: { select: { number: true, name: true } } },
-      });
-      res.status(201).json(reservation);
-    } catch (error) {
-      console.error('Error al crear reserva:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
-    }
-  },
+  update: asyncHandler(async (req, res) => {
+    const { customerName, phone, email, guests, dateTime, tableId, notes, status } = req.body;
+    const existing = await prisma.reservation.findUnique({ where: { id: req.params.id } });
+    if (!existing) throw new AppError('Reserva no encontrada', 404);
 
-  async update(req, res) {
-    try {
-      const { customerName, phone, email, guests, dateTime, tableId, notes, status } = req.body;
-      const existing = await prisma.reservation.findUnique({ where: { id: req.params.id } });
-      if (!existing) return res.status(404).json({ error: 'Reserva no encontrada' });
+    const reservation = await prisma.reservation.update({
+      where: { id: req.params.id },
+      data: {
+        customerName,
+        phone,
+        email,
+        guests,
+        dateTime: dateTime ? new Date(dateTime) : undefined,
+        tableId: tableId !== undefined ? tableId : undefined,
+        notes,
+        status,
+      },
+      include: { table: { select: { number: true, name: true } } },
+    });
+    res.json(reservation);
+  }),
 
-      const reservation = await prisma.reservation.update({
-        where: { id: req.params.id },
-        data: {
-          customerName,
-          phone,
-          email,
-          guests,
-          dateTime: dateTime ? new Date(dateTime) : undefined,
-          tableId: tableId !== undefined ? tableId : undefined,
-          notes,
-          status,
-        },
-        include: { table: { select: { number: true, name: true } } },
-      });
-      res.json(reservation);
-    } catch (error) {
-      console.error('Error al actualizar reserva:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
-    }
-  },
-
-  async delete(req, res) {
-    try {
-      const existing = await prisma.reservation.findUnique({ where: { id: req.params.id } });
-      if (!existing) return res.status(404).json({ error: 'Reserva no encontrada' });
-      await prisma.reservation.delete({ where: { id: req.params.id } });
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Error al eliminar reserva:', error);
-      res.status(500).json({ error: 'Error interno del servidor' });
-    }
-  },
+  delete: asyncHandler(async (req, res) => {
+    const existing = await prisma.reservation.findUnique({ where: { id: req.params.id } });
+    if (!existing) throw new AppError('Reserva no encontrada', 404);
+    await prisma.reservation.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
+  }),
 };

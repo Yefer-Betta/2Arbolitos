@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { authController } from '../controllers/index.js';
 import { authenticate, authorize } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { loginSchema, registerSchema } from '../validations/auth.js';
 
 const router = Router();
 
-router.post('/login', authController.login);
-router.post('/register', authenticate, authorize('ADMIN'), authController.register);
+router.post('/login', validate(loginSchema), authController.login);
+router.post('/register', authenticate, authorize('ADMIN'), validate(registerSchema), authController.register);
 router.get('/verify', authenticate, authController.verifyToken);
 
 router.get('/users', authenticate, authorize('ADMIN', 'MANAGER'), authController.getUsers);

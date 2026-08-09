@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import jwt from 'jsonwebtoken';
 import os from 'os';
 import net from 'net';
 import path from 'path';
@@ -11,6 +14,7 @@ import routes from './routes/index.js';
 import QRCode from 'qrcode';
 import { addSSEClient, removeSSEClient, notifySSEClients } from './sse.js';
 import { initScheduler } from './scheduler.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,6 +57,13 @@ export async function startServer(usePort) {
 
   await connectDB();
 
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'tu_secreto_jwt_aqui_muy_seguro_cambialo' || process.env.JWT_SECRET === 'super_secret_jwt_change_this_in_production') {
+    console.error('\n⚠️  JWT_SECRET está usando el valor por defecto. Cámbialo en server/.env\n');
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET debe cambiarse del valor por defecto en producción');
+    }
+  }
+
   const localIP = getLocalIP();
   const serverUrl = `http://${localIP}:${PORT}`;
 
@@ -64,9 +75,9 @@ export async function startServer(usePort) {
   app.use(cors({
     origin: function(origin, callback) {
       if (!origin) {
-        callback(null, true);
-        return;
+        return callback(null, true);
       }
+
       const allowedPatterns = [
         /^http:\/\/localhost(:\d+)?$/,
         /^http:\/\/127\.0\.0\.1(:\d+)?$/,
@@ -74,15 +85,34 @@ export async function startServer(usePort) {
         /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/,
         ...extraPatterns,
       ];
-      const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        callback(null, false);
-      }
+      callback(null, allowedPatterns.some(pattern => pattern.test(origin)));
     },
     credentials: true,
   }));
+
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false,
+  }));
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Demasiados intentos. Intenta de nuevo en 15 minutos.' },
+  });
+
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 500,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.' },
+  });
+
+  app.use('/api', apiLimiter);
+  app.use('/api/auth/login', authLimiter);
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -136,6 +166,16 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
   });
 
   app.get('/api/events', (req, res) => {
+    const token = req.query.token || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Token requerido para SSE' });
+    }
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
+
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -163,12 +203,7 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
     res.sendFile(path.join(distPath, 'index.html'));
   });
 
-  app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(err.status || 500).json({
-      error: err.message || 'Error interno del servidor',
-    });
-  });
+  app.use(errorHandler);
 
   return new Promise((resolve, reject) => {
     serverInstance = app.listen(PORT, '0.0.0.0', async () => {
