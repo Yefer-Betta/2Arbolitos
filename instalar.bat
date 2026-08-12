@@ -139,21 +139,74 @@ echo.
 echo [OK] Contenedores levantados
 echo.
 
-rem --- Esperar a que el sistema responda ---
+rem --- Esperar a que el frontend responda ---
 echo [..] Esperando a que el sistema responda...
 set tries=0
 :wait_ready
 powershell -NoProfile -Command "try { $r = Invoke-WebRequest 'http://localhost/' -UseBasicParsing -TimeoutSec 2; if ($r.StatusCode -eq 200) { exit 0 } } catch {}; exit 1" >nul 2>&1
-if not errorlevel 1 goto :ready_done
+if not errorlevel 1 goto :backend_wait
 timeout /t 3 /nobreak >nul
 set /a tries+=1
 if %tries% LSS 30 goto :wait_ready
-echo [AVISO] El sistema sigue arrancando. Abre http://localhost manualmente.
-goto :open_browser
+echo [ERROR] El servidor web no responde.
+goto :diagnose
+
+rem --- Esperar a que el API del backend responda ---
+:backend_wait
+echo [..] Esperando a que el API del backend responda...
+set tries=0
+:wait_api
+powershell -NoProfile -Command "try { $r = Invoke-WebRequest 'http://localhost/api/auth/verify' -UseBasicParsing -TimeoutSec 2; if ($r.StatusCode -eq 401 -or $r.StatusCode -eq 200) { exit 0 } } catch { try { if ([int]$_.Exception.Response.StatusCode -eq 401) { exit 0 } } catch {} }; exit 1" >nul 2>&1
+if not errorlevel 1 goto :ready_done
+timeout /t 3 /nobreak >nul
+set /a tries+=1
+if %tries% LSS 30 goto :wait_api
+echo [ERROR] El frontend carga pero el backend no responde.
+goto :diagnose
 
 :ready_done
 echo [OK] Sistema respondiendo
 echo.
+goto :open_browser
+
+rem --- Diagnostico automatico ---
+:diagnose
+echo.
+echo ==============================================
+echo  DIAGNOSTICO - Causa del problema
+echo ==============================================
+echo.
+echo  Estado de los contenedores:
+echo  ---------------------------
+docker compose ps 2>&1
+echo.
+echo  Ultimas lineas del backend (ahi esta la causa):
+echo  ----------------------------------------------
+docker compose logs backend --tail 40 2>&1
+echo  ----------------------------------------------
+echo.
+echo  Interpretacion:
+echo.
+echo   1) Si el log menciona "@prisma/client" o "prisma"
+echo      -> Instalacion de una version VIEJA. Descarga la
+echo         version nueva y reinstala desde cero.
+echo.
+echo   2) Si el log muestra  $'\r': command not found
+echo      -> Line endings de Windows en los scripts. Descarga
+echo         la version nueva (ya esta corregido).
+echo.
+echo   3) Si el puerto 80 esta ocupado por otro programa
+echo      -> Edita FRONTEND_PORT en .env y usa otro (ej: 8080),
+echo         luego vuelve a ejecutar.
+echo.
+echo   4) Si docker ps falla o Docker Desktop no abre
+echo      -> Problema de WSL2. Reinicia Docker Desktop y
+echo         vuelve a ejecutar.
+echo.
+echo   5) Si el log se ve normal, comparte este log para revisar.
+echo.
+pause
+goto :open_browser
 
 :open_browser
 rem --- Abrir navegador ---
