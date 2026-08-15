@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Utensils, ShoppingBag, Truck, Plus, X, MapPin, Phone, DollarSign, Package } from 'lucide-react';
+import { Utensils, ShoppingBag, Truck, Plus, X, MapPin, Phone, DollarSign } from 'lucide-react';
 import { useOrders } from '../context/OrdersContext';
 import { useSettings } from '../context/SettingsContext';
+import { Modal } from './Modal';
 
 export const PARA_LLEVAR_ID = 'para-llevar';
 
@@ -156,7 +157,7 @@ export function VistaMesas({ onSelectTable }) {
                 <h3 className="text-xl font-bold text-gray-700 mb-4">Mesas del Restaurante</h3>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 md:gap-5">
                 {Array.from({ length: TOTAL_TABLES }, (_, i) => i + 1).map(tableNumber => {
                     const tableId = `mesa-${tableNumber}`;
                     const tableOrder = activeTables[tableId]?.items || [];
@@ -167,21 +168,21 @@ export function VistaMesas({ onSelectTable }) {
                         <button
                             key={tableId}
                             onClick={() => onSelectTable(tableId)}
-                            className={`card p-6 text-left flex flex-col justify-between group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden ${
+                            className={`card p-4 md:p-6 text-left flex flex-col justify-between group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden ${
                                 isOccupied
                                     ? 'bg-orange-50 border-2 border-orange-200 hover:border-orange-400'
                                     : 'bg-white hover:border-primary/30'
                             }`}
                         >
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                            <div className="flex items-center gap-2 md:gap-4 mb-3 md:mb-4">
+                                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
                                     isOccupied ? 'bg-orange-100 text-orange-600' : 'bg-surface text-primary'
                                 }`}>
-                                    <Utensils className="w-6 h-6" />
+                                    <Utensils className="w-5 h-5 md:w-6 md:h-6" />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-xl text-gray-800">Mesa {tableNumber}</h3>
-                                    <span className={`text-sm font-bold transition-colors ${
+                                <div className="min-w-0">
+                                    <h3 className="font-bold text-base md:text-xl text-gray-800 truncate">Mesa {tableNumber}</h3>
+                                    <span className={`text-xs md:text-sm font-bold transition-colors ${
                                         isOccupied ? 'text-orange-600' : 'text-green-600'
                                     }`}>
                                         {isOccupied ? 'Ocupada' : 'Libre'}
@@ -189,14 +190,14 @@ export function VistaMesas({ onSelectTable }) {
                                 </div>
                             </div>
 
-                            <div className="mt-auto pt-4 border-t border-gray-100">
+                            <div className="mt-auto pt-2 md:pt-4 border-t border-gray-100">
                                 {isOccupied ? (
                                     <div className="text-right">
-                                        <div className="text-2xl font-bold text-primary">${totals.cop.toLocaleString()}</div>
-                                        <div className="text-xs font-medium text-gray-400">Total Cuenta</div>
+                                        <div className="text-lg md:text-2xl font-bold text-primary leading-tight break-words">${totals.cop.toLocaleString()}</div>
+                                        <div className="text-[11px] md:text-xs font-medium text-gray-400">Total Cuenta</div>
                                     </div>
                                 ) : (
-                                    <p className="text-gray-400 text-sm">Haz clic para iniciar un nuevo pedido.</p>
+                                    <p className="text-gray-400 text-xs md:text-sm leading-snug">Haz clic para iniciar un nuevo pedido.</p>
                                 )}
                             </div>
                         </button>
@@ -205,21 +206,21 @@ export function VistaMesas({ onSelectTable }) {
             </div>
 
             {/* Modal Nuevo Domicilio */}
-            {showNuevoDomicilio && (
-                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowNuevoDomicilio(false)}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <Modal isOpen={showNuevoDomicilio} onClose={() => { setShowNuevoDomicilio(false); setDomForm({ direccion: '', telefono: '', costoEnvio: '' }); }} label="Nuevo domicilio" maxWidth="max-w-md">
+                    <div className="p-6">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                                 <ShoppingBag className="w-5 h-5 text-purple-600" />
                                 Nuevo Domicilio
                             </h3>
-                            <button onClick={() => { setShowNuevoDomicilio(false); setDomForm({ direccion: '', telefono: '', costoEnvio: '' }); }} className="text-gray-400 hover:text-red-500"><X className="w-5 h-5" /></button>
+                            <button onClick={() => { setShowNuevoDomicilio(false); setDomForm({ direccion: '', telefono: '', costoEnvio: '' }); }} className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-red-500 transition-colors" aria-label="Cerrar"><X className="w-5 h-5" /></button>
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Dirección de entrega *</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2" htmlFor="dom-direccion">Dirección de entrega *</label>
                                 <input
+                                    id="dom-direccion"
                                     type="text"
                                     placeholder="Ej. Cra 5 #10-20, Barrio Centro"
                                     value={domForm.direccion}
@@ -229,9 +230,11 @@ export function VistaMesas({ onSelectTable }) {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Teléfono de contacto *</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2" htmlFor="dom-telefono">Teléfono de contacto *</label>
                                 <input
-                                    type="text"
+                                    id="dom-telefono"
+                                    type="tel"
+                                    inputMode="tel"
                                     placeholder="Ej. 310 555 1234"
                                     value={domForm.telefono}
                                     onChange={e => setDomForm({ ...domForm, telefono: e.target.value })}
@@ -239,8 +242,9 @@ export function VistaMesas({ onSelectTable }) {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Costo de envío (COP)</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-2" htmlFor="dom-costo">Costo de envío (COP)</label>
                                 <input
+                                    id="dom-costo"
                                     type="text"
                                     inputMode="numeric"
                                     placeholder="0"
@@ -269,8 +273,7 @@ export function VistaMesas({ onSelectTable }) {
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
+                </Modal>
         </div>
     );
 }

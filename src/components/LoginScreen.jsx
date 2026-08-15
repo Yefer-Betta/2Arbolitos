@@ -40,7 +40,7 @@ export function LoginScreen() {
     };
 
     return (
-        <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="flex items-center justify-center min-h-dvh bg-gray-100 px-4 py-6 overflow-y-auto">
             <div className="p-8 bg-white rounded-xl shadow-2xl w-full max-w-sm border-t-4 border-primary">
                 <div className="flex justify-center mb-6">
                     <img src="./logo.png" alt="2Arbolitos" className="w-40 h-auto" />
@@ -64,27 +64,35 @@ export function LoginScreen() {
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Usuario</label>
+                        <label htmlFor="login-username" className="block text-sm font-bold text-gray-700 mb-1">Usuario</label>
                         <input
+                            id="login-username"
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             className="input-field"
                             autoFocus
                             disabled={isLoading}
+                            autoComplete="username"
+                            aria-invalid={!!error}
+                            aria-describedby={error ? 'login-error' : undefined}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Contraseña</label>
+                        <label htmlFor="login-password" className="block text-sm font-bold text-gray-700 mb-1">Contraseña</label>
                         <input
+                            id="login-password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="input-field"
                             disabled={isLoading}
+                            autoComplete="current-password"
+                            aria-invalid={!!error}
+                            aria-describedby={error ? 'login-error' : undefined}
                         />
                     </div>
-                    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                    {error ? <p id="login-error" role="alert" className="text-red-500 text-sm text-center">{error}</p> : null}
                     <button 
                         type="submit" 
                         className="w-full btn-primary py-3 mt-4 disabled:opacity-50"

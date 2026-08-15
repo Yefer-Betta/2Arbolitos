@@ -75,6 +75,10 @@ body {
   padding: 0.5rem 1rem;
   border-radius: 0.75rem;
   box-shadow: 0 4px 6px -1px rgb(26 77 46 / 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
 }
 
 .btn-primary:hover {
@@ -88,6 +92,10 @@ body {
   padding: 0.5rem 1rem;
   border-radius: 0.75rem;
   background-color: var(--color-bg-paper);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
 }
 
 .btn-secondary:hover {
@@ -128,4 +136,31 @@ body {
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: rgb(255 255 255 / 0.35);
+}
+
+/* Ocultar scrollbar (fila de categorías, etc.) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Foco visible consistente en todos los navegadores */
+:focus-visible {
+  outline: 2px solid #2D6A42;
+  outline-offset: 2px;
+}
+
+/* Reducir movimiento cuando el usuario lo pide */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -66,6 +66,8 @@ export default defineConfig(({ mode }) => {
         name: '2Arbolitos POS',
         short_name: '2Arbolitos',
         description: 'Aplicación de Punto de Venta para 2Arbolitos',
+        display: 'standalone',
+        start_url: '/',
         theme_color: '#1A4D2E',
         background_color: '#ffffff',
         icons: [

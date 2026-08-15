@@ -7,6 +7,7 @@ import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Utensils, X, Pri
 import { PARA_LLEVAR_ID } from './VistaMesas';
 import { cn } from '../lib/utils';
 import { Ticket } from './Ticket';
+import { Modal } from './Modal';
 
 export function POS({ tableId, onBack }) {
     const { products } = useMenu();
@@ -73,6 +74,29 @@ export function POS({ tableId, onBack }) {
 
     // Mobile view state
     const [mobileView, setMobileView] = useState('products');
+
+    // Keyboard navigation for product grid
+    const gridRef = useRef(null);
+    const handleGridKeys = (e) => {
+        const buttons = gridRef.current
+            ? Array.from(gridRef.current.querySelectorAll('button[data-grid-index]'))
+            : [];
+        if (buttons.length === 0) return;
+        const current = buttons.findIndex(b => b === document.activeElement);
+        if (current === -1) return;
+        let next = current;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            next = current + 1;
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            next = current - 1;
+        } else {
+            return;
+        }
+        e.preventDefault();
+        if (next >= 0 && next < buttons.length) {
+            buttons[next].focus();
+        }
+    };
 
     // Modifier selection
     const [showModifierModal, setShowModifierModal] = useState(false);
@@ -439,17 +463,16 @@ export function POS({ tableId, onBack }) {
 
 
     return (
-        <div className="flex flex-col md:flex-row h-full md:h-[calc(100dvh-theme(spacing.32))] gap-6 relative pb-20 md:pb-0">
+        <div className="flex flex-col md:flex-row h-full md:h-[calc(100dvh-theme(spacing.32))] gap-6 relative pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
             {/* Checkout Modal Overlay */}
-            {isCheckoutOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md sm:max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[95vh] overflow-y-auto">
+            <Modal isOpen={isCheckoutOpen} onClose={closeCheckout} label={showRecipe ? 'Venta exitosa' : 'Finalizar compra'} maxWidth="max-w-md sm:max-w-lg">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md sm:max-w-lg overflow-hidden">
                         <div className="p-4 sm:p-6 bg-primary text-white flex justify-between items-center sticky top-0">
                             <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                                 {showRecipe ? <Check className="w-5 h-5 sm:w-6 sm:h-6" /> : <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />}
                                 {showRecipe ? '¡Venta Exitosa!' : 'Finalizar Compra'}
                             </h2>
-                            <button onClick={closeCheckout} className="hover:bg-white/20 p-1 sm:p-2 rounded-full transition-colors">
+                            <button onClick={closeCheckout} className="hover:bg-white/20 p-1 sm:p-2 rounded-full transition-colors" aria-label="Cerrar">
                                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         </div>
@@ -579,7 +602,7 @@ export function POS({ tableId, onBack }) {
                                 </div>
 
                                 {/* Balance Summary */}
-                                <div className={cn(
+                                <div aria-live="polite" className={cn(
                                     "p-3 sm:p-4 rounded-xl border",
                                     isFullyPaid
                                         ? "bg-green-50 border-green-300 text-green-700"
@@ -630,17 +653,21 @@ export function POS({ tableId, onBack }) {
                             </div>
                         )}
                     </div>
-                </div>
-            )}
+                </Modal>
 
             {/* Modifier Modal */}
-            {showModifierModal && modifierProduct && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                        <div className="p-4 sm:p-6 bg-gradient-to-r from-secondary to-secondary-dark text-white">
+            <Modal isOpen={showModifierModal && !!modifierProduct} onClose={() => { setShowModifierModal(false); setModifierProduct(null); }} label={modifierProduct ? `Personalizar ${modifierProduct.name}` : 'Personalizar'}>
+                <div className="p-4 sm:p-6 bg-gradient-to-r from-secondary to-secondary-dark text-white">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
                             <h2 className="text-lg sm:text-xl font-bold">Personalizar</h2>
-                            <p className="text-sm opacity-80">{modifierProduct.name}</p>
+                            <p className="text-sm opacity-80">{modifierProduct?.name}</p>
                         </div>
+                        <button onClick={() => { setShowModifierModal(false); setModifierProduct(null); }} className="shrink-0 p-2 rounded-full hover:bg-white/20 transition-colors" aria-label="Cerrar">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
                         <div className="p-4 sm:p-6 space-y-5">
                             {modifierGroups.map(g => (
                                 <div key={g.id}>
@@ -665,14 +692,11 @@ export function POS({ tableId, onBack }) {
                                 <button onClick={() => { setShowModifierModal(false); setModifierProduct(null); }} className="btn-secondary">Cancelar</button>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
+                </Modal>
 
             {/* Discount Modal */}
-            {showDiscountModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <Modal isOpen={showDiscountModal} onClose={() => setShowDiscountModal(false)} label="Aplicar descuento">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md overflow-hidden">
                         <div className="p-4 sm:p-6 bg-orange-500 text-white flex justify-between items-center">
                             <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
                                 <Percent className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -771,11 +795,10 @@ export function POS({ tableId, onBack }) {
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                </Modal>
 
             {/* Left: Product Grid (Same as before) */}
-            <div className={cn("flex-1 flex flex-col gap-6 h-[calc(100dvh-160px)] md:h-auto", mobileView !== 'products' && "hidden md:flex")}>
+            <div className={cn("flex flex-col gap-6 min-h-0 md:flex-1 md:h-auto", mobileView !== 'products' && "hidden md:flex")}>
                 {/* Header Section */}
                 <div className="flex flex-col gap-4">
                     <div>
@@ -838,30 +861,35 @@ export function POS({ tableId, onBack }) {
                 </div>
 
                 {/* Grid */}
-                <div className="flex-1 overflow-y-auto pr-2">
-                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {filteredProducts.map(product => (
+                <div className="flex-1 overflow-y-auto pr-2 min-h-0">
+                    <div
+                        ref={gridRef}
+                        onKeyDown={handleGridKeys}
+                        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
+                    >
+                        {filteredProducts.map((product, idx) => (
                             <button
                                 key={product.id}
+                                data-grid-index={idx}
                                 onClick={() => addToCart(product)}
                                 className="flex flex-col p-5 bg-white hover:bg-surface border border-transparent hover:border-primary/20 rounded-2xl shadow-sm hover:shadow-md transition-all text-left group relative overflow-hidden"
                             >
                                 <div className="absolute top-0 right-0 p-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                    <div className="bg-primary text-white p-1.5 rounded-lg shadow-lg">
+                                    <div className="bg-primary text-white p-2 rounded-lg shadow-lg">
                                         <Plus className="w-4 h-4" />
                                     </div>
                                 </div>
-                                <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-3 text-secondary">
+                                <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-3 text-secondary shrink-0">
                                     <Utensils className="w-5 h-5" />
                                 </div>
 
                                 <span className="text-xs font-bold text-secondary uppercase tracking-wider mb-1">{product.category}</span>
-                                <span className="font-bold text-gray-800 mb-2 line-clamp-2 h-10 text-lg leading-tight">{product.name}</span>
+                                <span className="font-bold text-gray-800 mb-2 line-clamp-2 text-base lg:text-lg leading-snug">{product.name}</span>
 
                                 <div className="mt-auto pt-3 border-t border-gray-50 w-full">
-                                    <span className="font-bold text-xl text-primary block">
+                                    <span className="font-bold text-base lg:text-xl text-primary block break-words leading-snug">
                                         {product.isUsd ? `$${product.price.toFixed(2)}` : `$${product.price.toLocaleString()}`}
-                                        <span className="text-xs font-medium text-gray-400 ml-1 align-top">{product.isUsd ? 'USD' : 'COP'}</span>
+                                        <span className="text-[11px] lg:text-xs font-medium text-gray-500 ml-1 align-top">{product.isUsd ? 'USD' : 'COP'}</span>
                                     </span>
                                 </div>
                             </button>
@@ -877,7 +905,7 @@ export function POS({ tableId, onBack }) {
             </div>
 
             {/* Right: Cart */}
-            <div className={cn("w-full md:w-[350px] lg:w-[400px] bg-white rounded-2xl lg:rounded-3xl shadow-xl flex flex-col h-[calc(100dvh-140px)] md:h-full overflow-hidden border border-black/5 mt-4 md:mt-0", mobileView !== 'cart' && "hidden md:flex")}>
+            <div className={cn("w-full md:w-[350px] lg:w-[400px] bg-white rounded-2xl lg:rounded-3xl shadow-xl flex flex-col md:h-full overflow-hidden border border-black/5 mt-4 md:mt-0", mobileView !== 'cart' && "hidden md:flex")}>
                 <div className="p-4 lg:p-6 bg-primary text-white">
                     <h2 className="text-lg lg:text-xl font-bold flex items-center gap-2 lg:gap-3">
                         <ShoppingCart className="w-5 h-5 lg:w-6 lg:h-6" />
@@ -885,14 +913,14 @@ export function POS({ tableId, onBack }) {
                     </h2>
                     {tableId ? (
                         tableId.startsWith('mesa-') ? (
-                            <p className="text-primary-light/80 text-xs lg:text-sm mt-1">Mesa {tableId.replace('mesa-', '')}</p>
+                            <p className="text-white/80 text-xs lg:text-sm mt-1">Mesa {tableId.replace('mesa-', '')}</p>
                         ) : tableId === 'para-llevar' ? (
-                            <p className="text-primary-light/80 text-xs lg:text-sm mt-1">Para Llevar</p>
+                            <p className="text-white/80 text-xs lg:text-sm mt-1">Para Llevar</p>
                         ) : tableId?.startsWith('domicilio') ? (
-                            <p className="text-primary-light/80 text-xs lg:text-sm mt-1">Domicilio</p>
+                            <p className="text-white/80 text-xs lg:text-sm mt-1">Domicilio</p>
                         ) : null
                     ) : (
-                        <p className="text-primary-light/80 text-xs lg:text-sm mt-1">{cart.length} ítems</p>
+                        <p className="text-white/80 text-xs lg:text-sm mt-1">{cart.length} ítems</p>
                     )}
                 </div>
 
@@ -902,7 +930,7 @@ export function POS({ tableId, onBack }) {
                             <div className="w-14 lg:w-20 h-14 lg:h-20 bg-gray-50 rounded-full flex items-center justify-center">
                                 <ShoppingCart className="w-7 lg:w-10 h-7 lg:h-10 opacity-50" />
                             </div>
-                            <p className="font-medium text-sm">El carrito está vacío</p>
+                            <p className="font-medium text-sm text-gray-500">El carrito está vacío</p>
                         </div>
                     ) : (
                         cart.map(item => {
@@ -924,6 +952,7 @@ export function POS({ tableId, onBack }) {
                                         <button
                                             onClick={() => updateQuantity(pid, -1)}
                                             className="min-w-[44px] min-h-[44px] w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-red-500 hover:scale-110 transition-all"
+                                            aria-label={`Disminuir cantidad de ${item.product?.name || 'producto'}`}
                                         >
                                             <Minus className="w-2 lg:w-3 h-2 lg:h-3" />
                                         </button>
@@ -931,6 +960,7 @@ export function POS({ tableId, onBack }) {
                                         <button
                                             onClick={() => updateQuantity(pid, 1)}
                                             className="min-w-[44px] min-h-[44px] w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-green-600 hover:scale-110 transition-all"
+                                            aria-label={`Aumentar cantidad de ${item.product?.name || 'producto'}`}
                                         >
                                             <Plus className="w-2 lg:w-3 h-2 lg:h-3" />
                                         </button>
@@ -940,6 +970,7 @@ export function POS({ tableId, onBack }) {
                                         onClick={() => setEditingNote(editingNote === pid ? null : pid)}
                                         className={`p-2 rounded-xl transition-all ${itemNotes[pid] ? 'text-yellow-600 bg-yellow-50' : 'text-gray-300 hover:text-yellow-500 hover:bg-yellow-50'} opacity-100 md:opacity-0 md:group-hover:opacity-100`}
                                         title="Agregar nota"
+                                        aria-label={itemNotes[pid] ? `Editar nota de ${item.product?.name || 'producto'}` : `Agregar nota a ${item.product?.name || 'producto'}`}
                                     >
                                         <MessageSquare className="w-4 h-4" />
                                     </button>
@@ -947,6 +978,7 @@ export function POS({ tableId, onBack }) {
                                     <button
                                         onClick={() => removeFromCart(pid)}
                                         className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                                        aria-label={`Eliminar ${item.product?.name || 'producto'} del pedido`}
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
@@ -1080,14 +1112,14 @@ export function POS({ tableId, onBack }) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2 lg:gap-3">
+                    <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3">
                         {tableId && tableId.startsWith('mesa-') && (
                             <>
-                                <button onClick={() => setShowTransferModal(true)} disabled={cart.length === 0} className="col-span-1 px-1 lg:px-2 py-2 lg:py-3 text-blue-600 bg-white border border-blue-200 rounded-xl hover:bg-blue-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs flex flex-col items-center gap-1">
+                                <button onClick={() => setShowTransferModal(true)} disabled={cart.length === 0} className="col-span-1 px-1 lg:px-2 py-3 lg:py-3 text-blue-600 bg-white border border-blue-200 rounded-xl hover:bg-blue-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs lg:text-sm flex flex-col items-center justify-center gap-1 min-h-11">
                                     <ArrowRight className="w-4 h-4" />
                                     <span>Transferir</span>
                                 </button>
-                                <button onClick={() => setShowSplitModal(true)} disabled={cart.length === 0} className="col-span-1 px-1 lg:px-2 py-2 lg:py-3 text-purple-600 bg-white border border-purple-200 rounded-xl hover:bg-purple-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs flex flex-col items-center gap-1">
+                                <button onClick={() => setShowSplitModal(true)} disabled={cart.length === 0} className="col-span-1 px-1 lg:px-2 py-3 lg:py-3 text-purple-600 bg-white border border-purple-200 rounded-xl hover:bg-purple-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs lg:text-sm flex flex-col items-center justify-center gap-1 min-h-11">
                                     <Users className="w-4 h-4" />
                                     <span>Dividir</span>
                                 </button>
@@ -1096,14 +1128,14 @@ export function POS({ tableId, onBack }) {
                         <button
                             onClick={clearCart}
                             disabled={cart.length === 0}
-                            className={`${tableId && tableId.startsWith('mesa-') ? 'col-span-1' : 'col-span-1'} px-2 lg:px-4 py-2 lg:py-3 text-red-500 bg-white border border-red-100 rounded-xl hover:bg-red-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs`}
+                            className={`${tableId && tableId.startsWith('mesa-') ? 'col-span-1' : 'col-span-1'} px-2 lg:px-4 py-3 lg:py-3 text-red-500 bg-white border border-red-100 rounded-xl hover:bg-red-50 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm min-h-11`}
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleInitiateCheckout}
                             disabled={cart.length === 0}
-                            className={`${tableId && tableId.startsWith('mesa-') ? 'col-span-1' : 'col-span-3'} px-2 lg:px-4 py-2 lg:py-3 bg-primary text-white rounded-xl hover:bg-primary-light font-bold shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 lg:gap-2 text-sm transform active:scale-95`}
+                            className={`${tableId && tableId.startsWith('mesa-') ? 'col-span-1' : 'col-span-1 lg:col-span-3'} px-2 lg:px-4 py-3 lg:py-3 bg-primary text-white rounded-xl hover:bg-primary-light font-bold shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 lg:gap-2 text-base lg:text-sm transform active:scale-95 min-h-11`}
                         >
                             <CreditCard className="w-4 lg:w-5 h-4 lg:h-5" />
                             <span>Pagar</span>
@@ -1113,56 +1145,52 @@ export function POS({ tableId, onBack }) {
                     </div>
 
                     {/* Transfer Modal */}
-                    {showTransferModal && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowTransferModal(false)}>
-                            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-                                <h3 className="text-lg font-bold mb-4">Transferir a otra mesa</h3>
-                                <p className="text-sm text-gray-500 mb-4">Los items se moverán a la mesa seleccionada</p>
-                                <input type="number" min="1" placeholder="Número de mesa" value={targetTable} onChange={e => setTargetTable(e.target.value ? `mesa-${e.target.value}` : '')} className="input-field w-full mb-4" autoFocus />
-                                <div className="flex gap-2">
-                                    <button onClick={handleTransfer} disabled={!targetTable} className="flex-1 btn-primary bg-blue-600 hover:bg-blue-700 disabled:opacity-50">Transferir</button>
-                                    <button onClick={() => setShowTransferModal(false)} className="btn-secondary">Cancelar</button>
-                                </div>
+                    <Modal isOpen={showTransferModal} onClose={() => setShowTransferModal(false)} label="Transferir a otra mesa" maxWidth="max-w-sm">
+                        <div className="p-6 w-full max-w-sm">
+                            <h3 className="text-lg font-bold mb-4">Transferir a otra mesa</h3>
+                            <p className="text-sm text-gray-500 mb-4">Los items se moverán a la mesa seleccionada</p>
+                            <input type="number" min="1" inputMode="numeric" placeholder="Número de mesa" value={targetTable} onChange={e => setTargetTable(e.target.value ? `mesa-${e.target.value}` : '')} className="input-field w-full mb-4" autoFocus />
+                            <div className="flex gap-2">
+                                <button onClick={handleTransfer} disabled={!targetTable} className="flex-1 btn-primary bg-blue-600 hover:bg-blue-700 disabled:opacity-50">Transferir</button>
+                                <button onClick={() => setShowTransferModal(false)} className="btn-secondary">Cancelar</button>
                             </div>
                         </div>
-                    )}
+                    </Modal>
 
                     {/* Split Modal */}
-                    {showSplitModal && (
-                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSplitModal(false)}>
-                            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-purple-500" /> Dividir cuenta</h3>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Número de personas</label>
-                                        <div className="flex items-center gap-3">
-                                            <button onClick={() => setSplitPersons(Math.max(1, splitPersons - 1))} className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold hover:bg-gray-200"><Minus className="w-4 h-4" /></button>
-                                            <span className="text-3xl font-bold text-gray-800 w-12 text-center">{splitPersons}</span>
-                                            <button onClick={() => setSplitPersons(splitPersons + 1)} className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold hover:bg-gray-200"><Plus className="w-4 h-4" /></button>
-                                        </div>
+                    <Modal isOpen={showSplitModal} onClose={() => setShowSplitModal(false)} label="Dividir cuenta" maxWidth="max-w-sm">
+                        <div className="p-6 w-full max-w-sm">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-purple-500" /> Dividir cuenta</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Número de personas</label>
+                                    <div className="flex items-center gap-3">
+                                        <button onClick={() => setSplitPersons(Math.max(1, splitPersons - 1))} className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold hover:bg-gray-200" aria-label="Reducir número de personas"><Minus className="w-4 h-4" /></button>
+                                        <span className="text-3xl font-bold text-gray-800 w-12 text-center">{splitPersons}</span>
+                                        <button onClick={() => setSplitPersons(splitPersons + 1)} className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-bold hover:bg-gray-200" aria-label="Aumentar número de personas"><Plus className="w-4 h-4" /></button>
                                     </div>
-                                    <div className="bg-purple-50 rounded-xl p-4 space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Por persona (COP)</span>
-                                            <span className="font-bold">${perPerson.cop.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Por persona (USD)</span>
-                                            <span className="font-bold">${perPerson.usd.toFixed(2)}</span>
-                                        </div>
-                                        <div className="border-t border-purple-200 pt-2 flex justify-between text-sm">
-                                            <span className="text-gray-600">Total</span>
-                                            <span className="font-bold">${totals.cop.toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setShowSplitModal(false)} className="w-full btn-primary bg-purple-600 hover:bg-purple-700">Entendido</button>
                                 </div>
+                                <div className="bg-purple-50 rounded-xl p-4 space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Por persona (COP)</span>
+                                        <span className="font-bold">${perPerson.cop.toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Por persona (USD)</span>
+                                        <span className="font-bold">${perPerson.usd.toFixed(2)}</span>
+                                    </div>
+                                    <div className="border-t border-purple-200 pt-2 flex justify-between text-sm">
+                                        <span className="text-gray-600">Total</span>
+                                        <span className="font-bold">${totals.cop.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowSplitModal(false)} className="w-full btn-primary bg-purple-600 hover:bg-purple-700">Entendido</button>
                             </div>
                         </div>
-                    )}
+                    </Modal>
 
                     {/* Mobile Bottom Bar */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex gap-3 z-40 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] rounded-t-3xl">
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex gap-3 z-40 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] rounded-t-3xl">
                 <button
                     onClick={() => setMobileView('products')}
                     className={cn("flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all", mobileView === 'products' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-gray-100 text-gray-500 hover:bg-gray-200")}
@@ -1176,12 +1204,15 @@ export function POS({ tableId, onBack }) {
                 >
                     <ShoppingCart className="w-5 h-5" />
                     Carrito
-                    {cart.length > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+                    {cart.length > 0 ? (
+                        <span aria-hidden="true" className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
                             {cart.length}
                         </span>
-                    )}
+                    ) : null}
                 </button>
+            </div>
+            <div aria-live="polite" className="sr-only">
+                {cart.length} {cart.length === 1 ? 'ítem' : 'ítems'} en el pedido
             </div>
         </div>
     );

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Coffee, Settings, ShoppingCart, TrendingUp, Calculator, Menu, X, LogOut, Users, Wifi, WifiOff, RefreshCw, Package, Shield, ClipboardList, UserCog, ChefHat, Clock, Moon, Sun, Layers, Building2 } from 'lucide-react';
+import { Menu, X, LogOut, Clock, Wifi, WifiOff, RefreshCw, Moon, Sun } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
-import { useSettings } from '../context/SettingsContext';
 import { useTheme } from '../context/ThemeContext';
 import { syncManager } from '../lib/syncManager.js';
+import { allTabs } from '../lib/tabs';
 
 export function Layout({ children, activeTab, setActiveTab }) {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -13,7 +13,6 @@ export function Layout({ children, activeTab, setActiveTab }) {
     const [isSyncing, setIsSyncing] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
     const { currentUser, logout } = useUser();
-    const { business } = useSettings();
     const { isDark, toggleTheme } = useTheme();
     useEffect(() => {
         const unsubscribe = syncManager.addListener((event, data) => {
@@ -49,22 +48,6 @@ export function Layout({ children, activeTab, setActiveTab }) {
         }
     };
 
-    const allTabs = [
-        { id: 'pos', label: 'Pedidos', icon: ShoppingCart, roles: ['ADMIN', 'WAITER'], permissions: ['VIEW_ORDERS', 'MANAGE_ORDERS'] },
-        { id: 'kitchen', label: 'Cocina', icon: ChefHat, roles: ['ADMIN', 'COOK'], permissions: ['VIEW_ORDERS'] },
-        { id: 'history', label: 'Historial', icon: Clock, roles: ['ADMIN', 'MANAGER', 'CASHIER'], permissions: ['VIEW_REPORTS'] },
-        { id: 'menu', label: 'Menú', icon: Coffee, roles: ['ADMIN'], permissions: ['CREATE_PRODUCT', 'EDIT_PRODUCT'] },
-        { id: 'inventory', label: 'Inventario', icon: Package, roles: ['ADMIN', 'MANAGER'], permissions: ['MANAGE_INVENTORY'] },
-        { id: 'customers', label: 'Clientes', icon: Users, roles: ['ADMIN', 'MANAGER'], permissions: ['VIEW_REPORTS'] },
-        { id: 'modifiers', label: 'Modificadores', icon: Layers, roles: ['ADMIN'], permissions: ['CREATE_PRODUCT', 'EDIT_PRODUCT'] },
-        { id: 'suppliers', label: 'Proveedores', icon: Building2, roles: ['ADMIN', 'MANAGER'], permissions: ['MANAGE_INVENTORY'] },
-        { id: 'finance', label: 'Contabilidad', icon: TrendingUp, roles: ['ADMIN'], permissions: ['VIEW_REPORTS'] },
-        { id: 'escandallo', label: 'Escandallo', icon: Calculator, roles: ['ADMIN'], permissions: ['VIEW_REPORTS'] },
-        { id: 'admin', label: 'Administración', icon: UserCog, roles: ['ADMIN', 'MANAGER'], permissions: ['MANAGE_USERS', 'MANAGE_PERMISSIONS'] },
-        { id: 'audit', label: 'Auditoría', icon: ClipboardList, roles: ['ADMIN'], permissions: ['VIEW_AUDIT'] },
-        { id: 'settings', label: 'Configuración', icon: Settings, roles: ['ADMIN'], permissions: ['MANAGE_SETTINGS'] },
-    ];
-
     const userPerms = currentUser.permissions || [];
 
     const navItems = allTabs.filter(tab =>
@@ -74,12 +57,21 @@ export function Layout({ children, activeTab, setActiveTab }) {
 
     return (
         <div className="flex flex-col md:flex-row h-screen bg-background text-gray-800 font-sans">
+            {/* Skip link for keyboard users */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-white focus:text-gray-900 focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:text-sm focus:font-bold"
+            >
+                Saltar al contenido principal
+            </a>
             {/* Mobile top bar */}
             <header className="md:hidden flex items-center justify-between bg-primary text-white px-4 py-3 shadow">
                 <button
                     onClick={() => setIsMobileNavOpen(true)}
                     className="p-2 rounded-lg hover:bg-primary-light/20 transition"
                     aria-label="Abrir menú"
+                    aria-expanded={isMobileNavOpen}
+                    aria-controls="mobile-nav"
                 >
                     <Menu className="w-6 h-6" />
                 </button>
@@ -88,12 +80,13 @@ export function Layout({ children, activeTab, setActiveTab }) {
                 </div>
                 
                 {/* Connection status on mobile */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" aria-label={isOnline ? 'Conexión: online' : 'Conexión: offline'}>
                     {isOnline ? (
-                        <Wifi className="w-4 h-4 text-green-400" />
+                        <Wifi className="w-4 h-4 text-green-400" aria-hidden="true" />
                     ) : (
-                        <WifiOff className="w-4 h-4 text-red-400" />
+                        <WifiOff className="w-4 h-4 text-red-400" aria-hidden="true" />
                     )}
+                    <span className="sr-only">{isOnline ? 'Online' : 'Offline'}</span>
                 </div>
             </header>
 
@@ -103,6 +96,7 @@ export function Layout({ children, activeTab, setActiveTab }) {
             )}
 
             <aside
+                id="mobile-nav"
                 className={cn(
                     "bg-primary text-white flex flex-col shadow-2xl z-30 md:relative fixed top-0 left-0 h-dvh w-72 md:w-56 lg:w-72 md:translate-x-0 transform transition-transform duration-300 overflow-hidden",
                     isMobileNavOpen ? "translate-x-0" : "-translate-x-full",
@@ -134,7 +128,7 @@ export function Layout({ children, activeTab, setActiveTab }) {
                         <span className="font-bold text-secondary tracking-wider">
                             {currentTime.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
                         </span>
-                        <span className="text-secondary/60 text-[10px]">
+                        <span className="text-secondary/80 text-[10px]">
                             {currentTime.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })}
                         </span>
                     </div>
@@ -174,8 +168,9 @@ export function Layout({ children, activeTab, setActiveTab }) {
                         )}
                         <button
                             onClick={toggleTheme}
-                            className="p-2 rounded-lg text-primary-light/70 hover:bg-primary-light/20 hover:text-white transition-colors"
+                            className="p-2 rounded-lg text-white/70 hover:bg-primary-light/20 hover:text-white transition-colors"
                             title={isDark ? 'Modo claro' : 'Modo oscuro'}
+                            aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
                         >
                             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                         </button>
@@ -214,12 +209,13 @@ export function Layout({ children, activeTab, setActiveTab }) {
                         </div>
                         <div className="flex-1 min-w-0 leading-tight">
                             <p className="text-sm font-bold text-white truncate">{currentUser.name}</p>
-                            <p className="text-xs text-primary-light/70 truncate">{currentUser.role}</p>
+                            <p className="text-xs text-white/70 truncate">{currentUser.role}</p>
                         </div>
                         <button 
                             onClick={logout} 
-                            className="p-2 text-primary-light/70 hover:text-white hover:bg-primary-light/20 rounded-full transition-colors" 
+                            className="p-2 text-white/70 hover:text-white hover:bg-primary-light/20 rounded-full transition-colors" 
                             title="Cerrar Sesión"
+                            aria-label="Cerrar sesión"
                         >
                             <LogOut className="w-5 h-5" />
                         </button>
@@ -228,7 +224,7 @@ export function Layout({ children, activeTab, setActiveTab }) {
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 overflow-auto relative">
+            <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto relative outline-none">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 bg-[radial-gradient(#1A4D2E_1px,transparent_1px)] [background-size:20px_20px] opacity-[0.03] pointer-events-none"></div>
 
