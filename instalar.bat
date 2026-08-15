@@ -82,6 +82,33 @@ if errorlevel 1 (
 )
 echo.
 
+rem --- Verificar consistencia entre la BD anterior y la configuracion ---
+rem El volumen mysql_data persiste aunque borres la carpeta. Si existe el
+rem volumen pero no hay .env, la contrasena nueva no coincidira con la
+rem guardada en MySQL -> error P1000. En ese caso hay que resetearla.
+docker volume inspect 2arbolitos_mysql_data >nul 2>&1
+if errorlevel 1 goto :verify_env
+if exist ".env" goto :verify_env
+echo.
+echo [AVISO] Se detecto una base de datos de una instalacion anterior
+echo que no coincide con la configuracion nueva.
+echo Para poder arrancar hay que BORRAR esa base de datos
+echo (los datos previos se pierden).
+echo.
+choice /c SN /m "Borrar la base de datos anterior y continuar"
+if errorlevel 2 (
+    echo.
+    echo Cancelado: no se borro nada.
+    pause
+    exit /b 1
+)
+echo.
+echo [OK] Eliminando base de datos anterior...
+docker compose down -v >nul 2>&1
+echo [OK] Listo. Reinstalando con datos limpios...
+echo.
+:verify_env
+
 rem --- Generar configuracion (.env) si no existe ---
 if exist ".env" goto :env_exists
 
@@ -185,6 +212,10 @@ echo  ----------------------------------------------
 docker compose logs backend --tail 40 2>&1
 echo  ----------------------------------------------
 echo.
+
+docker compose logs backend 2>&1 | findstr /c:"P1000" >nul 2>&1
+if not errorlevel 1 goto :fix_p1000
+
 echo  Interpretacion:
 echo.
 echo   1) Si el log menciona "@prisma/client" o "prisma"
@@ -204,6 +235,27 @@ echo      -> Problema de WSL2. Reinicia Docker Desktop y
 echo         vuelve a ejecutar.
 echo.
 echo   5) Si el log se ve normal, comparte este log para revisar.
+echo.
+pause
+goto :open_browser
+
+:fix_p1000
+echo  SE DETECTO EL ERROR P1000: el backend no puede entrar a MySQL.
+echo  Causa: quedaron datos de una instalacion anterior con otra
+echo  contrasena guardada en el volumen de Docker.
+echo.
+choice /c SN /m "Borrar la base de datos anterior y reinstalar"
+if errorlevel 2 (
+    echo.
+    echo Sin cambios. Vuelve a ejecutar el instalador cuando quieras.
+    pause
+    goto :open_browser
+)
+echo.
+echo [OK] Eliminando base de datos anterior...
+docker compose down -v >nul 2>&1
+echo [OK] Base de datos eliminada. Ejecuta de nuevo este
+echo      instalador para completar la instalacion.
 echo.
 pause
 goto :open_browser
