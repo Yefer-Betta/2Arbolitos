@@ -20,6 +20,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const prisma = new PrismaClient();
 
+process.on('unhandledRejection', (reason) => {
+  console.error('[CRASH] Promesa rechazada sin manejar:', reason);
+  process.exit(1);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[CRASH] Excepción no capturada:', err);
+  process.exit(1);
+});
+
 export function getLocalIP() {
   if (process.env.HOST_IP && process.env.HOST_IP !== '0.0.0.0') {
     return process.env.HOST_IP;
@@ -54,6 +63,9 @@ let serverInstance;
 export async function startServer(usePort) {
   app = express();
   const PORT = usePort || await findFreePort(parseInt(process.env.PORT) || 3002);
+
+  // Detras de nginx: confiamos en el proxy para X-Forwarded-For (rate-limit)
+  app.set('trust proxy', 1);
 
   await connectDB();
 

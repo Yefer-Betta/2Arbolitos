@@ -8,6 +8,7 @@ services:
       MYSQL_DATABASE: 2arbolitos
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    command: --innodb-buffer-pool-size=64M --performance-schema=OFF --max-connections=100
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -40,6 +41,8 @@ services:
       JWT_EXPIRES_IN: 7d
       HOST_IP: ${HOST_IP:-0.0.0.0}
       DOCKER: "true"
+      NODE_OPTIONS: "--max-old-space-size=512"
+    mem_limit: 1024m
     depends_on:
       db:
         condition: service_healthy
