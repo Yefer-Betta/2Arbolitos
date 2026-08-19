@@ -1,15 +1,23 @@
 import prisma from '../config/database.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 
+function parseLocalDate(value) {
+  const parts = String(value).split('-').map(Number);
+  if (parts.length === 3 && parts.every(Number.isFinite)) {
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  return new Date(value);
+}
+
 export const attendanceController = {
   list: asyncHandler(async (req, res) => {
     const { startDate, endDate, userId } = req.query;
     const where = {};
     if (startDate || endDate) {
       where.date = {};
-      if (startDate) where.date.gte = new Date(startDate);
+      if (startDate) where.date.gte = parseLocalDate(startDate);
       if (endDate) {
-        const end = new Date(endDate);
+        const end = parseLocalDate(endDate);
         end.setDate(end.getDate() + 1);
         where.date.lt = end;
       }
@@ -26,18 +34,18 @@ export const attendanceController = {
   }),
 
   checkIn: asyncHandler(async (req, res) => {
-    const userId = req.body.userId || req.user?.id;
-    if (!userId) throw new AppError('Usuario requerido', 400);
+    const userId = req.user?.id;
+    if (!userId) throw new AppError('Usuario no autenticado', 401);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const existing = await prisma.attendance.findFirst({
-      where: { userId, date: { gte: today, lt: tomorrow } },
+    const active = await prisma.attendance.findFirst({
+      where: { userId, date: { gte: today, lt: tomorrow }, checkOut: null },
     });
-    if (existing) throw new AppError('Ya tiene un registro de entrada hoy', 400);
+    if (active) throw new AppError('Ya tiene un registro de entrada activo hoy', 400);
 
     const record = await prisma.attendance.create({
       data: { userId, date: new Date(), checkIn: new Date() },
@@ -47,8 +55,8 @@ export const attendanceController = {
   }),
 
   checkOut: asyncHandler(async (req, res) => {
-    const userId = req.body.userId || req.user?.id;
-    if (!userId) throw new AppError('Usuario requerido', 400);
+    const userId = req.user?.id;
+    if (!userId) throw new AppError('Usuario no autenticado', 401);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -81,11 +89,11 @@ export const attendanceController = {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const record = await prisma.attendance.findFirst({
-      where: { userId, date: { gte: today, lt: tomorrow } },
+      where: { userId, date: { gte: today, lt: tomorrow }, checkOut: null },
     });
     res.json({
       checkedIn: !!record,
-      checkedOut: !!record?.checkOut,
+      checkedOut: false,
       record,
     });
   }),

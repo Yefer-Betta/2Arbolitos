@@ -2,6 +2,14 @@ import prisma from '../config/database.js';
 import { notifySSEClients } from '../sse.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 
+function parseLocalDate(value) {
+  const parts = String(value).split('-').map(Number);
+  if (parts.length === 3 && parts.every(Number.isFinite)) {
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  return new Date(value);
+}
+
 export const orderController = {
   getOrders: asyncHandler(async (req, res) => {
     const { status, startDate, endDate, orderType } = req.query;
@@ -19,10 +27,12 @@ export const orderController = {
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) {
-        where.createdAt.gte = new Date(startDate);
+        where.createdAt.gte = parseLocalDate(startDate);
       }
       if (endDate) {
-        where.createdAt.lte = new Date(endDate);
+        const end = parseLocalDate(endDate);
+        end.setDate(end.getDate() + 1);
+        where.createdAt.lt = end;
       }
     }
 
@@ -105,12 +115,33 @@ export const orderController = {
   }),
 
   createOrder: asyncHandler(async (req, res) => {
-    const { tableId, orderType, items, exchangeRate, exchangeRateBsSnapshot, discountValue, discountPercent, notes, payments, customerId, deliveryAddress, deliveryPhone, deliveryCost } = req.body;
+    const { tableId, orderType, items, exchangeRate, exchangeRateBsSnapshot, discountValue, discountPercent, notes, payments, customerId, deliveryAddress, deliveryPhone, deliveryCost, clientOrderId } = req.body;
     
     const userId = req.user?.id;
 
     if (!items || items.length === 0) {
       throw new AppError('El pedido debe tener al menos un producto', 400);
+    }
+
+    const fullInclude = {
+      table: true,
+      user: {
+        select: { id: true, name: true, username: true },
+      },
+      items: {
+        include: {
+          product: true,
+        },
+      },
+      payments: true,
+    };
+
+    if (clientOrderId) {
+      const existing = await prisma.order.findUnique({ where: { clientOrderId }, include: fullInclude });
+      if (existing) {
+        notifySSEClients('order:created', existing);
+        return res.status(201).json(existing);
+      }
     }
 
     const rate = exchangeRate || 4000;
@@ -197,6 +228,7 @@ export const orderController = {
           userId,
           customerId: customerId || null,
           orderType: orderType ? orderType.toUpperCase() : 'MESA',
+          clientOrderId: clientOrderId || null,
           totalCop: finalTotalCop,
           totalUsd: finalTotalUsd,
           exchangeRate: exchangeRate || 4000,

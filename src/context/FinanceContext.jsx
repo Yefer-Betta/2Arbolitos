@@ -46,7 +46,7 @@ export function FinanceProvider({ children }) {
             if (syncManager.isOnline) {
                 loadData();
             }
-        }, 3000);
+        }, 10000);
 
         const unsubscribe = syncManager.addListener((event) => {
             if (event === 'syncComplete' || event === 'timestamp') {
@@ -109,23 +109,13 @@ export function FinanceProvider({ children }) {
         setClosures(prev => [newClosure, ...prev]);
         setLastClosureDate(new Date().toISOString());
 
-        if (syncManager.isOnline) {
-            try {
-                await apiPost('/closures', newClosure);
-            } catch (error) {
-                console.warn('Closure sync failed, queueing for later:', error);
-                await syncManager.addToQueue({
-                    type: 'CREATE',
-                    endpoint: '/closures',
-                    data: newClosure,
-                });
+        try {
+            const saved = await apiPost('/closures', newClosure);
+            if (saved && !saved.offline && saved.id) {
+                setClosures(prev => [saved, ...prev.filter(c => c.id !== saved.id)]);
             }
-        } else {
-            await syncManager.addToQueue({
-                type: 'CREATE',
-                endpoint: '/closures',
-                data: newClosure,
-            });
+        } catch (error) {
+            console.warn('Cierre guardado en cola offline:', error);
         }
     };
 

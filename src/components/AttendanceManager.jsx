@@ -10,11 +10,18 @@ const STATUS_STYLES = {
   HALF_DAY: 'bg-orange-100 text-orange-800',
 };
 
+function toLocalDateString(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function AttendanceManager() {
   const { currentUser } = useUser();
   const [records, setRecords] = useState([]);
   const [users, setUsers] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(toLocalDateString());
   const [filterUser, setFilterUser] = useState('');
   const [todayStatus, setTodayStatus] = useState({ checkedIn: false, checkedOut: false });
 
@@ -54,7 +61,7 @@ export function AttendanceManager() {
     } catch (err) { alert('Error: ' + (err.message || '')); }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateString();
 
   return (
     <div className="space-y-6">

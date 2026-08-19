@@ -257,9 +257,11 @@ export function OrdersProvider({ children }) {
   }, []);
 
   const addOrder = async (order) => {
+    const clientOrderId = generateId();
     const newOrder = {
       ...order,
       id: generateId(),
+      clientOrderId,
       date: new Date().toISOString(),
       status: 'PENDING',
     };
@@ -281,6 +283,7 @@ export function OrdersProvider({ children }) {
     }));
 
     const orderDataForServer = {
+      clientOrderId,
       tableId: order.tableId,
       orderType: order.orderType,
       items: transformedItems,
@@ -295,45 +298,33 @@ export function OrdersProvider({ children }) {
       deliveryCost: order.deliveryCost || 0,
     };
 
-    if (syncManager.isOnline) {
-      try {
-        const created = await apiPost('/orders', orderDataForServer);
+    try {
+      const created = await apiPost('/orders', orderDataForServer);
 
-        if (created && !created.offline && created.id) {
-          setOrders((prev) => {
-            const rest = prev.filter((o) => o.id !== newOrder.id);
-            const next = [created, ...rest];
-            setData('orders', next);
-            return next;
-          });
-
-          if (order.tableId) {
-            setActiveTables(prevTables => {
-              const newTables = { ...prevTables };
-              delete newTables[order.tableId];
-              setData('activeTables', newTables);
-              return newTables;
-            });
-            syncManager
-              .fetchFromAPI(`/tables/state/${encodeURIComponent(order.tableId)}`, { method: 'DELETE' })
-              .catch(() => {});
-          }
-        } else {
-          throw new Error('Server did not return valid order');
-        }
-      } catch {
-        await syncManager.addToQueue({
-          type: 'CREATE',
-          endpoint: '/orders',
-          data: orderDataForServer,
+      if (created && !created.offline && created.id) {
+        setOrders((prev) => {
+          const rest = prev.filter((o) => o.id !== newOrder.id);
+          const next = [created, ...rest];
+          setData('orders', next);
+          return next;
         });
+
+        if (order.tableId) {
+          setActiveTables(prevTables => {
+            const newTables = { ...prevTables };
+            delete newTables[order.tableId];
+            setData('activeTables', newTables);
+            return newTables;
+          });
+          syncManager
+            .fetchFromAPI(`/tables/state/${encodeURIComponent(order.tableId)}`, { method: 'DELETE' })
+            .catch(() => {});
+        }
+
+        return created;
       }
-    } else {
-      await syncManager.addToQueue({
-        type: 'CREATE',
-        endpoint: '/orders',
-        data: orderDataForServer,
-      });
+    } catch (error) {
+      console.warn('Error al crear pedido:', error);
     }
 
     return newOrder;
@@ -350,25 +341,13 @@ export function OrdersProvider({ children }) {
       return next;
     });
 
-    if (syncManager.isOnline) {
-      try {
-        await syncManager.fetchFromAPI(`/orders/${orderId}/status`, {
-          method: 'PUT',
-          body: JSON.stringify({ status }),
-        });
-      } catch {
-        await syncManager.addToQueue({
-          type: 'UPDATE',
-          endpoint: `/orders/${orderId}/status`,
-          data: { status },
-        });
-      }
-    } else {
-      await syncManager.addToQueue({
-        type: 'UPDATE',
-        endpoint: `/orders/${orderId}/status`,
-        data: { status },
+    try {
+      await syncManager.fetchFromAPI(`/orders/${orderId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
       });
+    } catch (error) {
+      console.warn('No se pudo sincronizar el estado del pedido:', error);
     }
   };
 

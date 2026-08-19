@@ -58,7 +58,7 @@ export function MenuProvider({ children }) {
             if (syncManager.isOnline) {
                 loadData();
             }
-        }, 3000);
+        }, 10000);
         
         const unsubscribe = syncManager.addListener((event) => {
             if (event === 'syncComplete' || event === 'timestamp') {
@@ -101,26 +101,16 @@ export function MenuProvider({ children }) {
         if (syncManager.isOnline) {
             try {
                 const serverProduct = await apiPost('/products', productForServer);
-                if (serverProduct && serverProduct.id) {
+                if (serverProduct && !serverProduct.offline && serverProduct.id) {
                     setProducts((prev) => {
                         const next = prev.map(p => p.id === newProduct.id ? { ...serverProduct, category: serverProduct.category?.name || '' } : p);
                         void setData('products', next);
                         return next;
                     });
                 }
-            } catch {
-                await syncManager.addToQueue({
-                    type: 'CREATE',
-                    endpoint: '/products',
-                    data: productForServer,
-                });
+            } catch (error) {
+                console.warn('Error al crear producto:', error);
             }
-        } else {
-            await syncManager.addToQueue({
-                type: 'CREATE',
-                endpoint: '/products',
-                data: productForServer,
-            });
         }
     };
 
@@ -148,26 +138,16 @@ export function MenuProvider({ children }) {
         if (syncManager.isOnline) {
             try {
                 const serverProduct = await apiPut(`/products/${id}`, cleanData);
-                if (serverProduct && serverProduct.id) {
+                if (serverProduct && !serverProduct.offline && serverProduct.id) {
                     setProducts((prev) => {
                         const next = prev.map(p => p.id === id ? { ...serverProduct, category: serverProduct.category?.name || '' } : p);
                         void setData('products', next);
                         return next;
                     });
                 }
-            } catch {
-                await syncManager.addToQueue({
-                    type: 'UPDATE',
-                    endpoint: '/products',
-                    data: { id, ...cleanData },
-                });
+            } catch (error) {
+                console.warn('Error al actualizar producto:', error);
             }
-        } else {
-            await syncManager.addToQueue({
-                type: 'UPDATE',
-                endpoint: '/products',
-                data: { id, ...cleanData },
-            });
         }
     };
 
@@ -181,19 +161,9 @@ export function MenuProvider({ children }) {
         if (syncManager.isOnline) {
             try {
                 await apiDelete('/products', id);
-            } catch {
-                await syncManager.addToQueue({
-                    type: 'DELETE',
-                    endpoint: '/products',
-                    data: { id },
-                });
+            } catch (error) {
+                console.warn('Error al eliminar producto:', error);
             }
-        } else {
-            await syncManager.addToQueue({
-                type: 'DELETE',
-                endpoint: '/products',
-                data: { id },
-            });
         }
     };
 
@@ -213,19 +183,9 @@ export function MenuProvider({ children }) {
         if (syncManager.isOnline) {
             try {
                 await apiPost('/categories', category);
-            } catch {
-                await syncManager.addToQueue({
-                    type: 'CREATE',
-                    endpoint: '/categories',
-                    data: newCategory,
-                });
+            } catch (error) {
+                console.warn('Error al crear categoría:', error);
             }
-        } else {
-            await syncManager.addToQueue({
-                type: 'CREATE',
-                endpoint: '/categories',
-                data: newCategory,
-            });
         }
     };
 

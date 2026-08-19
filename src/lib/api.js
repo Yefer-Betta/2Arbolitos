@@ -1,4 +1,4 @@
-import { syncManager } from './syncManager.js';
+import { syncManager, isRetryableError } from './syncManager.js';
 
 const DB_NAME = '2arbolitos_db';
 const DB_VERSION = 1;
@@ -90,6 +90,7 @@ export async function apiGet(endpoint) {
       const data = await syncManager.fetchFromAPI(endpoint);
       return data;
     } catch (error) {
+      if (!isRetryableError(error)) throw error;
       console.warn('API fetch failed, using cached data:', error);
       const cached = await getData(cacheKey);
       if (cached) return cached;
@@ -109,6 +110,7 @@ export async function apiPost(endpoint, data) {
         body: JSON.stringify(data),
       });
     } catch (error) {
+      if (!isRetryableError(error)) throw error;
       console.warn('API request failed, queueing for later:', error);
       await syncManager.addToQueue({
         type: 'CREATE',
@@ -135,6 +137,7 @@ export async function apiPut(endpoint, data) {
         body: JSON.stringify(data),
       });
     } catch (error) {
+      if (!isRetryableError(error)) throw error;
       console.warn('API request failed, queueing for later:', error);
       await syncManager.addToQueue({
         type: 'UPDATE',
@@ -160,6 +163,7 @@ export async function apiDelete(endpoint, id) {
         method: 'DELETE',
       });
     } catch (error) {
+      if (!isRetryableError(error)) throw error;
       console.warn('API request failed, queueing for later:', error);
       await syncManager.addToQueue({
         type: 'DELETE',

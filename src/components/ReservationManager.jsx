@@ -10,9 +10,16 @@ const STATUS_COLORS = {
   NO_SHOW: 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
+function toLocalDateString(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function ReservationManager() {
   const [reservations, setReservations] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(toLocalDateString());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [tables, setTables] = useState([]);
@@ -75,11 +82,11 @@ export function ReservationManager() {
     } catch {}
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateString();
   const dates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
-    return d.toISOString().split('T')[0];
+    return toLocalDateString(d);
   });
 
   return (

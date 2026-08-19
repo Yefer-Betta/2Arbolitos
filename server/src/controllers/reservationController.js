@@ -1,12 +1,20 @@
 import prisma from '../config/database.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 
+function parseLocalDate(value) {
+  const parts = String(value).split('-').map(Number);
+  if (parts.length === 3 && parts.every(Number.isFinite)) {
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  return new Date(value);
+}
+
 export const reservationController = {
   list: asyncHandler(async (req, res) => {
     const { date, status } = req.query;
     const where = {};
     if (date) {
-      const start = new Date(date);
+      const start = parseLocalDate(date);
       const end = new Date(start);
       end.setDate(end.getDate() + 1);
       where.dateTime = { gte: start, lt: end };

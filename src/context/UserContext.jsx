@@ -68,7 +68,7 @@ export function UserProvider({ children }) {
             if (syncManager.isOnline) {
                 loadUsers();
             }
-        }, 3000);
+        }, 10000);
 
         const unsubscribe = syncManager.addListener((event) => {
             if (event === 'syncComplete' || event === 'timestamp') {

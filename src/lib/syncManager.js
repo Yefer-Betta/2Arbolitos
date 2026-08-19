@@ -1,7 +1,6 @@
-const SYNC_INTERVAL = 5000;
+const SYNC_INTERVAL = 10000;
 const FETCH_TIMEOUT = 10000;
-const MAX_RETRIES = 5;
-const RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000];
+const MAX_PENDING = 500;
 
 async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
   const controller = new AbortController();
@@ -33,6 +32,12 @@ function generateId() {
   });
 }
 
+export function isRetryableError(error) {
+  const status = error?.status;
+  if (status === undefined) return true;
+  return status >= 500;
+}
+
 class SyncManager {
   constructor() {
     this.isOnline = navigator.onLine;
@@ -41,7 +46,6 @@ class SyncManager {
     this.listeners = [];
     this.syncInterval = null;
     this.lastSyncTimestamp = null;
-    this.retryTimeout = null;
 
     this.init();
   }
@@ -80,7 +84,7 @@ class SyncManager {
   startAutoSync() {
     if (this.syncInterval) clearInterval(this.syncInterval);
     this.syncInterval = setInterval(() => {
-      if (this.isOnline && this.pendingChanges.length > 0) {
+      if (!this.syncInProgress && this.isOnline && this.pendingChanges.length > 0) {
         this.syncNow();
       }
     }, SYNC_INTERVAL);
@@ -94,14 +98,11 @@ class SyncManager {
         return;
       }
       let changes = JSON.parse(saved);
+      if (!Array.isArray(changes)) changes = [];
 
-      const ONE_HOUR = 60 * 60 * 1000;
-      const now = Date.now();
-      changes = changes.filter((c) => {
-        const age = now - new Date(c.timestamp).getTime();
-        if (age >= ONE_HOUR) return false;
-        return true;
-      });
+      if (changes.length > MAX_PENDING) {
+        changes = changes.slice(changes.length - MAX_PENDING);
+      }
 
       localStorage.setItem('pendingChanges', JSON.stringify(changes));
       this.pendingChanges = changes;
@@ -142,22 +143,17 @@ class SyncManager {
     const changesToSync = [...this.pendingChanges];
     const failedChanges = [];
     const successfulIds = [];
-    let minNextDelay = Infinity;
 
     for (const change of changesToSync) {
       try {
         await this.syncChange(change);
         successfulIds.push(change.id);
       } catch (error) {
-        console.error('Error syncing change:', change, error);
-        const retryCount = (change._retryCount || 0) + 1;
-        if (retryCount < MAX_RETRIES) {
-          failedChanges.push({ ...change, _retryCount: retryCount });
-          const delay = RETRY_DELAYS[Math.min(retryCount, RETRY_DELAYS.length - 1)];
-          if (delay < minNextDelay) minNextDelay = delay;
-        } else {
-          console.error('Sync failed after max retries, discarding:', change);
+        if (!isRetryableError(error)) {
+          console.error('Cambio rechazado por el servidor, descartado de la cola:', change, error);
           this.notifyListeners('syncFailed', change);
+        } else {
+          failedChanges.push(change);
         }
       }
     }
@@ -176,13 +172,6 @@ class SyncManager {
       timestamp: this.lastSyncTimestamp,
     });
     this.notifyListeners('timestamp', this.lastSyncTimestamp);
-
-    if (this.pendingChanges.length > 0 && minNextDelay < Infinity) {
-      if (this.retryTimeout) clearTimeout(this.retryTimeout);
-      this.retryTimeout = setTimeout(() => {
-        if (this.isOnline) this.syncNow();
-      }, minNextDelay);
-    }
 
     return {
       success: failedChanges.length === 0,
@@ -236,7 +225,9 @@ class SyncManager {
     });
 
     if (!response.ok) {
-      throw new Error(`Sync failed: ${response.status}`);
+      const error = new Error(`Sync failed: ${response.status}`);
+      error.status = response.status;
+      throw error;
     }
 
     return response.json();
@@ -260,8 +251,10 @@ class SyncManager {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || `HTTP ${response.status}`);
+      const body = await response.json().catch(() => ({}));
+      const error = new Error(body.error || `HTTP ${response.status}`);
+      error.status = response.status;
+      throw error;
     }
 
     return response.json();

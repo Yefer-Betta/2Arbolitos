@@ -10,15 +10,24 @@ export const closureController = {
   }),
 
   createClosure: asyncHandler(async (req, res) => {
-    const { orderCount, totalSalesCOP, totalSalesUSD, totalExpenses, exchangeRate, notes } = req.body;
+    const { id, orderCount, totalSalesCOP, totalSalesUSD, totalExpenses, exchangeRate, salesByMethod, countedCash, countedUsd, countedBs, countedNequi, countedDebit, differences, totalDifference, notes } = req.body;
 
     const closure = await prisma.closure.create({
       data: {
+        ...(id ? { id } : {}),
         orderCount: orderCount || 0,
         totalSalesCOP: totalSalesCOP || 0,
         totalSalesUSD: totalSalesUSD || 0,
         totalExpenses: totalExpenses || 0,
         exchangeRate: exchangeRate || 4000,
+        salesByMethod: salesByMethod || undefined,
+        countedCash: countedCash ?? undefined,
+        countedUsd: countedUsd ?? undefined,
+        countedBs: countedBs ?? undefined,
+        countedNequi: countedNequi ?? undefined,
+        countedDebit: countedDebit ?? undefined,
+        differences: differences || undefined,
+        totalDifference: totalDifference ?? undefined,
         notes: notes || null,
       },
     });

@@ -11,7 +11,7 @@ router.put('/settings', authenticate, authorize('ADMIN', 'CASHIER'), settingsCon
 
 router.post('/settings/auto-start', authenticate, authorize('ADMIN'), settingsController.setAutoStart);
 
-router.get('/reports/finances', authenticate, settingsController.getFinanceReport);
-router.post('/backup/download', authenticate, settingsController.downloadBackup);
+router.get('/reports/finances', authenticate, authorize('ADMIN', 'MANAGER'), settingsController.getFinanceReport);
+router.post('/backup/download', authenticate, authorize('ADMIN'), settingsController.downloadBackup);
 
 export default router;

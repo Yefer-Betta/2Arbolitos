@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const paymentSchema = z.object({
-  method: z.enum(['CASH', 'CARD', 'TRANSFER', 'OTHER']),
+  method: z.enum(['CASH_COP', 'CASH_USD', 'CASH_BS', 'NEQUI', 'CARD']),
   currency: z.enum(['COP', 'USD', 'Bs.']).optional().default('COP'),
   amount: z.number().positive(),
   change: z.number().min(0).optional().default(0),
@@ -30,6 +30,7 @@ export const createOrderSchema = z.object({
   deliveryAddress: z.string().optional().nullable(),
   deliveryPhone: z.string().optional().nullable(),
   deliveryCost: z.number().min(0).optional(),
+  clientOrderId: z.string().optional().nullable(),
 });
 
 export const addPaymentSchema = z.object({

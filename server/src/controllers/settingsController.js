@@ -9,6 +9,14 @@ import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function parseLocalDate(value) {
+  const parts = String(value).split('-').map(Number);
+  if (parts.length === 3 && parts.every(Number.isFinite)) {
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  return new Date(value);
+}
+
 export const settingsController = {
   getSettings: asyncHandler(async (req, res) => {
     const settings = await prisma.settings.findMany();
@@ -172,10 +180,12 @@ export const settingsController = {
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) {
-        where.createdAt.gte = new Date(startDate);
+        where.createdAt.gte = parseLocalDate(startDate);
       }
       if (endDate) {
-        where.createdAt.lte = new Date(endDate);
+        const end = parseLocalDate(endDate);
+        end.setDate(end.getDate() + 1);
+        where.createdAt.lt = end;
       }
     }
 
