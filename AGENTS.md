@@ -10,7 +10,14 @@ Copia SkillsForOpenCode desde la configuración global al proyecto. Después pue
 
 ## Para el usuario final
 
-El único instalador es **Docker**. La máquina solo necesita Docker Desktop.
+Hay dos formas soportadas de instalar. **Docker es la recomendada**; el paquete portable es para equipos donde no se puede o no se quiere instalar Docker.
+
+| Modo | Requisito único | Instalación |
+|------|-----------------|-------------|
+| **Docker** (recomendado) | Docker Desktop | `instalar.bat` (una vez) + `iniciar.ps1` (uso diario) |
+| **Portable Windows** (sin Docker) | MySQL 8 o MariaDB 10.4+ | ZIP `2Arbolitos-Portable-Windows-x64-<versión>.zip` → doble clic en `start.bat` |
+
+### Docker
 
 | Paso | Qué se hace |
 |------|-------------|
@@ -20,6 +27,13 @@ El único instalador es **Docker**. La máquina solo necesita Docker Desktop.
 - `instalar.bat` (solo instalación): auto‑eleva a admin, valida Docker, detecta IP LAN, genera secretos, `docker compose up -d --build`, espera respuesta y abre el navegador.
 - `iniciar.ps1` (uso diario): solo `docker compose` — iniciar, detener, reiniciar, QR, estado. **No requiere Node.js.**
 - `npm start` / `npm run setup` quedan para developers (menú interactivo).
+
+### Portable (sin Docker)
+
+- El ZIP se genera con `npm run pack:portable` (ver más abajo) y se distribuye como artefacto; no hay instalador `.bat` de «instalación», solo `start.bat`.
+- Incluye **Node.js embebido** (`node/node.exe`), el frontend compilado (`dist/`) y `server/` con dependencias de producción. `start.bat` prepara el esquema, corre el seed si la base está vacía y arranca el servidor.
+- El backend Express sirve también el frontend, así que **no usa Nginx**: todo corre en un solo proceso en `0.0.0.0:3002`.
+- Usa `prisma db push --accept-data-loss` (no migraciones) y crea la base de datos si no existe.
 
 ## Quick start
 
@@ -35,11 +49,12 @@ Dev (requires local MySQL or `docker compose up -d db`):
 npm run dev:full                        # Vite + Express concurrently
 npm run dev                             # frontend only (Vite, proxies /api → :3002)
 npm run api                             # backend only
-npm run lint                            # ESLint on src/
+npm run lint                            # ESLint
 npm run build                           # Vite production build
+npm run pack:portable                   # ZIP portable para Windows (ver sección)
 ```
 
-On Windows, `instalar.bat` is the single installer: auto‑elevates to admin, validates Docker CLI + engine, detects LAN IP, generates secret `.env`, enables firewall port 80, runs `docker compose up -d --build`, waits for HTTP and opens the browser. Docker is the **only** supported install path (no local MySQL/Node setup).
+On Windows, `instalar.bat` is the Docker installer: auto‑elevates to admin, validates Docker CLI + engine, detects LAN IP, generates secret `.env`, enables firewall port 80, runs `docker compose up -d --build`, waits for HTTP and opens the browser.
 
 Single‑PC production: `docker compose up -d` → `http://localhost`.
 
@@ -51,7 +66,7 @@ Three containers on bridge `2arbolitos-net`:
 |---------|-------|---------------|----------|
 | `db` | mysql:8.0 | 3306 | — |
 | `backend` | `2arbolitos-backend` (server/Dockerfile) | 3002 | — |
-| `frontend` | `2arbito-pwa` (Dockerfile.frontend) | 80 | `${FRONTEND_PORT:-80}` |
+| `frontend` | `2arbolitos-frontend` (Dockerfile.frontend → Nginx) | 80 | `${FRONTEND_PORT:-80}` |
 
 - `backend` waits for `db: service_healthy`
 - `frontend` waits for `backend: service_started` (nginx proxies `/api → backend:3002`)
@@ -60,14 +75,19 @@ Three containers on bridge `2arbolitos-net`:
 ## Backend (server/)
 
 - Express (ESM, `"type": "module"`), entrypoint `src/index.js`
-- Prisma ORM (MySQL 8, `prisma db push`, **no migrations**)
+- Prisma ORM (MySQL 8, `utf8mb4`)
+- **Dos modos de esquema según el despliegue:**
+  - Docker/compose → `prisma migrate deploy` (migraciones versionadas en `server/prisma/migrations/`)
+  - Portable/dev rápido → `prisma db push --accept-data-loss`
 - `docker-entrypoint.sh` runs on every start:
   1. Waits for MySQL (TCP check, up to 60s)
   2. Creates `payments_orderId_idx` (pre‑migration, error-tolerant)
-  3. `prisma db push --accept-data-loss`
-  4. Runs `prisma/seed.js` **only if `user.count() === 0`** (otherwise skips)
-  5. Starts Node server
+  3. Detects DB state: `migrated` (already has `_prisma_migrations`), `legacy` (tables from `db push`, no history) or `empty`. If legacy, baselines `20240101000000_init` with `prisma migrate resolve --applied`
+  4. `prisma migrate deploy`
+  5. Runs `prisma/seed.js` **only if `user.count() === 0`** (otherwise skips)
+  6. Starts Node server
 - **Seed wipes all data on run** — it only runs when DB is empty, so data survives restarts
+- `server/prisma/seed.js` loads `server/.env` itself (`import 'dotenv/config'`) — works both in Docker (dotenv does not overwrite existing env vars) and locally/portable
 - `bcrypt` requires salt rounds of 10 — slow but safe
 - **All `$` inside double‑quoted `node -e` blocks must be escaped as `\$`** (shell variable expansion)
 - Health check: TCP connect to port 3002 (not HTTP)
@@ -77,6 +97,8 @@ Three containers on bridge `2arbolitos-net`:
 ```bash
 npm run db:generate    # prisma generate
 npm run db:push        # prisma db push
+npm run db:migrate     # prisma migrate dev (crea migración)
+npm run db:deploy      # prisma migrate deploy (aplica migraciones)
 npm run db:studio      # prisma studio
 npm run db:seed        # node prisma/seed.js (DANGER: wipes all data)
 ```
@@ -84,7 +106,7 @@ npm run db:seed        # node prisma/seed.js (DANGER: wipes all data)
 ### Container‑specific server commands
 
 ```bash
-npm run docker:seed    # docker compose exec backend node prisma/seed.js
+npm run docker:seed    # docker compose exec -T backend node prisma/seed.js
 npm run docker:rebuild # docker compose up -d --build
 ```
 
@@ -103,29 +125,52 @@ npm run docker:rebuild # docker compose up -d --build
 - Online/offline detected via browser events + periodic polls
 - `apiGet()` falls back to IndexedDB cache when offline
 
+## Auth
+
+- JWT en **cookie httpOnly** `token` (no se expone a JS → mitiga XSS).
+- `server/src/config/cookies.js`: `httpOnly`, `sameSite: 'lax'`, `path: '/'`, `maxAge` 7 días, `secure` = `process.env.COOKIE_SECURE === 'true'` (por defecto `false` porque la LAN es HTTP; poner `COOKIE_SECURE=true` solo detrás de HTTPS).
+- Login: `POST /api/auth/login` setea la cookie; logout: `POST /api/auth/logout` la borra.
+- `getToken()` en `server/src/middleware/auth.js` acepta además `Authorization: Bearer <jwt>` como respaldo para scripts/clientes no‑navegador.
+- `authorize(...roles)` restringe por rol (`ADMIN, MANAGER, CASHIER, WAITER, COOK`).
+- Endpoints de menú con `optionalAuth` (p. ej. `GET /api/products`, `GET /api/categories`): sin cookie devuelven solo campos públicos; con cookie, el detalle completo. Es intencional para el menú por QR.
+
 ## Database
 
-19 models (Prisma), MySQL 8 with `utf8mb4`. Key tables:
+24 models (Prisma), MySQL 8 with `utf8mb4`. Key tables:
 
 | Model | Table name | Notes |
 |-------|-----------|-------|
 | `User` | `users` | Roles: ADMIN, MANAGER, CASHIER, WAITER, COOK |
+| `Permission` / `RolePermission` | `permissions` / `role_permissions` | Permisos por rol |
 | `Order` | `orders` | `orderType`: MESA, PARA_LLEVAR, DOMICILIO. `deliveryPhone` for domicilios |
 | `Payment` | `payments` | Split payments per order, `@@index([orderId])` |
 | `Product` | `products` | `isUsd` flag for USD pricing |
+| `ModifierGroup` / `Modifier` / `ProductModifierGroup` | — | Modificadores de producto |
 | `InventoryItem` | `inventory_items` | Raw materials only (not final products) |
 | `InventoryMovement` | `inventory_movements` | Audit trail for stock changes |
+| `Table` / `TableState` | `tables` / `table_states` | Mesas y su estado |
+| `Customer` / `Reservation` | `customers` / `reservations` | Clientes y reservas |
 | `Settings` | `settings` | Key‑value store (`business`, `exchangeRate`, `exchangeRateBs`) |
+| `AuditLog` | `audit_logs` | Trazabilidad de acciones |
+| `Closure` / `Expense` | `closures` / `expenses` | Cierres de caja y gastos |
+| `Supplier` / `PurchaseOrder` | `suppliers` / `purchase_orders` | Compras y proveedores |
+| `Attendance` | `attendance` | Asistencia de personal |
 
 Setting `tokenExpiration` controls JWT expiry on the client side.
 
-## Multi‑currency
+## Portable Windows package
 
-Operating currency: **COP**. USD and Bs. are converted to COP at sale time.
+```bash
+npm run pack:portable                       # build + empaqueta
+npm run build && npm run pack:portable -- --skip-build   # reutiliza dist/ existente
+```
 
-- Exchange rates stored in Settings: `exchangeRate` (COP/USD, default 4000), `exchangeRateBs` (COP/Bs., default 40)
-- `createOrder` and `addPayment` convert non‑COP amounts server‑side
-- `genId()` in frontend uses `crypto.randomUUID()` with `Date.now()` fallback for insecure contexts (HTTP)
+- Empaquetador: `scripts/pack-portable.js`. Salida: `release/2Arbolitos-Portable-Windows-x64-<versión>.zip`.
+- Contenido: `node/node.exe` (Node embebido), `dist/`, `server/` (src + prisma + `node_modules` de producción) y `start.bat`.
+- Primera ejecución (`start.bat`): interactivo, crea `server\.env` con `JWT_SECRET` aleatorio, ejecuta `prisma db push` (crea la DB si no existe) y el seed si está vacía. Arranca en `0.0.0.0:3002` y abre el navegador.
+- Arranques siguientes: detecta datos existentes y no vuelve a tocar la base.
+- Requiere **MySQL 8 o MariaDB 10.4+** en la misma máquina (no lo empaqueta).
+- `--skip-build` reutiliza `dist/` si ya existe; si no existe, lanza `vite build`.
 
 ## `.gitattributes` expectations
 
@@ -140,11 +185,13 @@ Shell scripts **must remain LF** or the Docker container will fail to execute th
 
 ## Deployment
 
-**Windows only** (Linux/Mac need manual `docker compose`): `instalar.bat` auto‑elevates to admin, validates Docker, detects local IP, creates `.env`, opens firewall port 80, runs `docker compose up -d --build`, waits for HTTP and opens browser. Docker is the only supported path.
+**Windows only** para los instaladores. Docker: `instalar.bat` auto‑elevates to admin, validates Docker, detects local IP, creates `.env`, opens firewall port 80, runs `docker compose up -d --build`, waits for HTTP and opens browser. Linux/Mac: `docker compose up -d --build` manual.
+
+Sin Docker: distribuir el ZIP portable y ejecutar `start.bat` (requiere MySQL/MariaDB local).
 
 Default users after seed: `admin/admin123`, `gerente/waiter123`, `cajero/waiter123`, `mesero/waiter123`, `cocina/cook123`.
 
-`.env` is gitignored. `HOST_IP` controls QR‑code generation (detected by `instalar.bat`; falls back to request `Host` header if `0.0.0.0`).
+`.env` is gitignored. `HOST_IP` controls QR‑code generation (detected by `instalar.bat`; falls back to request `Host` header if `0.0.0.0`). `COOKIE_SECURE=true` solo si se sirve detrás de HTTPS.
 
 ## No tests
 
