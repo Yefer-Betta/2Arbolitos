@@ -59,11 +59,11 @@ function fail(msg) {
 /* ------------------------------------------------------------------ */
 function ensureDist() {
   const distIndex = path.join(ROOT, 'dist', 'index.html');
-  if (fs.existsSync(distIndex) && !SKIP_BUILD) {
-    log('dist/ ya existe — se usara el build actual (usa --skip-build para saltar).');
+  if (fs.existsSync(distIndex)) {
+    log('dist/ ya existe — se reutiliza el build actual (borra dist/ para forzar uno nuevo).');
     return;
   }
-  if (SKIP_BUILD && !fs.existsSync(distIndex)) {
+  if (SKIP_BUILD) {
     fail('dist/index.html no existe y se paso --skip-build. Ejecuta `npm run build` primero.');
   }
   log('Generando frontend con `npm run build` ...');
@@ -223,6 +223,9 @@ function parseDatabaseUrl(url) {
     if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL no esta definido en server/.env');
     const mysql = require('mysql2/promise');
     const cfg = parseDatabaseUrl(process.env.DATABASE_URL);
+    // La base puede no existir todavia: 'prisma db push' la crea.
+    // Validamos el servidor y las credenciales sin seleccionar esquema.
+    delete cfg.database;
     const conn = await mysql.createConnection(cfg);
     await conn.query('SELECT 1');
     await conn.end();
@@ -276,7 +279,7 @@ function startBat() {
     '  goto :fail',
     ')',
     'if not exist "%ROOT%dist\\index.html" (',
-    '  echo [ERROR] Falta dist\\index.html (frontend compilado).',
+    '  echo [ERROR] Falta dist\\index.html ^(frontend compilado^).',
     '  goto :fail',
     ')',
     'if not exist "%SERVER_DIR%\\node_modules" (',
@@ -368,7 +371,9 @@ function startBat() {
     'if "!PORT_IN!"=="" set "PORT_IN=3002"',
     '',
     'set "JWT="',
-    'for /f "delims=" %%S in (`"%NODE_EXE%" scripts\\ptool.cjs gen-secret`) do set "JWT=%%S"',
+    '"%NODE_EXE%" "%SERVER_DIR%\\scripts\\ptool.cjs" gen-secret > "%TEMP%\\2arbolitos_jwt.tmp"',
+    'set /p "JWT="<"%TEMP%\\2arbolitos_jwt.tmp"',
+    'del "%TEMP%\\2arbolitos_jwt.tmp" >nul 2>&1',
     'if "!JWT!"=="" set "JWT=2arbolitos_cambia_este_secreto"',
     '',
     '(',
