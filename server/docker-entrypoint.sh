@@ -41,7 +41,32 @@ else
 fi
 
 cd "$PRISMA_DIR"
-npx prisma db push --accept-data-loss 2>&1 || echo "⚠️  prisma db push omitido"
+
+# Detectar el estado: 'migrated' (ya usa migraciones), 'legacy' (BD de prisma db push)
+# o 'empty' (BD nueva). En legacy hay que baselinar la migración inicial antes de aplicar.
+MIGRATION_STATE=$(node --input-type=module -e "
+import { PrismaClient } from '@prisma/client';
+const p = new PrismaClient();
+try {
+  const mig = await p.\$queryRawUnsafe(\"SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = '_prisma_migrations'\");
+  const usr = await p.\$queryRawUnsafe(\"SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'users'\");
+  const hasMig = Number(mig[0].c) > 0;
+  const hasUsers = Number(usr[0].c) > 0;
+  console.log(hasMig ? 'migrated' : (hasUsers ? 'legacy' : 'empty'));
+} catch (e) {
+  console.log('error');
+} finally {
+  await p.\$disconnect();
+}
+" 2>/dev/null || true)
+
+if [ "$MIGRATION_STATE" = "legacy" ]; then
+  echo "  BD existente sin historial de migraciones → baselinando 20240101000000_init"
+  npx prisma migrate resolve --applied 20240101000000_init 2>&1 || echo "⚠️  no se pudo baselinar la migración inicial"
+fi
+
+echo "Aplicando migraciones (prisma migrate deploy)..."
+npx prisma migrate deploy 2>&1 || echo "⚠️  prisma migrate deploy falló"
 
 echo "Verificando si ya hay datos en la base de datos..."
 ALREADY_SEEDED=$(node --input-type=module -e "
