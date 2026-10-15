@@ -176,13 +176,13 @@ export const orderController = {
           console.log(`Mesa con ID ${dbTableId} no encontrada en la BD, asignando null para evitar error de FK`);
           dbTableId = null;
         }
-      } catch (e) {
+      } catch {
         dbTableId = null;
       }
     }
 
     // Wrap all DB writes in a single transaction
-    const { order, createdPayments } = await prisma.$transaction(async (tx) => {
+    const { order } = await prisma.$transaction(async (tx) => {
       let totalCop = 0;
       let totalUsd = 0;
 
@@ -215,12 +215,16 @@ export const orderController = {
       }
 
       const discount = discountPercent > 0 ? discountPercent : 0;
-      const finalTotalCop = discount > 0
+      const deliveryCop = Number(deliveryCost) || 0;
+      const subtotalCop = discount > 0
         ? totalCop - (totalCop * discount / 100)
         : totalCop;
-      const finalTotalUsd = discount > 0
+      const subtotalUsd = discount > 0
         ? totalUsd - (totalUsd * discount / 100)
         : totalUsd;
+      // El costo de envío (domicilio) se suma después del descuento, igual que en el POS.
+      const finalTotalCop = subtotalCop + deliveryCop;
+      const finalTotalUsd = subtotalUsd + (deliveryCop / rate);
 
       const order = await tx.order.create({
         data: {
@@ -329,7 +333,7 @@ export const orderController = {
     if (tableId) {
       try {
         await prisma.tableState.delete({ where: { tableId } });
-      } catch (e) {
+      } catch {
         // Ignorar si el estado no existe
       }
     }
