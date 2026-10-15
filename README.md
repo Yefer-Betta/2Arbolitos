@@ -4,10 +4,10 @@
 
 [![Versión](https://img.shields.io/badge/versión-1.0.0-1A4D2E?style=flat-square)]()
 [![Licencia](https://img.shields.io/badge/licencia-MIT-D4A373?style=flat-square)]()
-[![Docker](https://img.shields.io/badge/Docker-requerido-2496ED?style=flat-square&logo=docker&logoColor=white)]()
+[![Docker / Portable](https://img.shields.io/badge/Docker%20%2F%20Portable-compatible-2496ED?style=flat-square&logo=docker&logoColor=white)]()
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)]()
 
-Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra gestión de mesas, cocina en tiempo real, ventas multi-moneda (COP/USD/Bs.) y caja. Se despliega únicamente con **Docker** y se accede desde el navegador de cualquier dispositivo en la red.
+Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra gestión de mesas, cocina en tiempo real, ventas multi-moneda (COP/USD/Bs.) y caja. Se accede desde el navegador de cualquier dispositivo en la red. Se despliega con **Docker** (recomendado) o como **paquete portable para Windows** sin Docker.
 
 ---
 
@@ -21,9 +21,9 @@ Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra g
 | 💵 **Multi-moneda COP/USD/Bs.** | Cálculo de vueltos con tasas configurables |
 | 🔄 **Sincronización en tiempo real** | Server-Sent Events con versionado optimista |
 | 📡 **Funciona sin internet** | Operación offline en la red local del restaurante |
+| 🐳 **Docker o portable** | Un comando con Docker, o un ZIP autocontenido en Windows |
 | 📱 **Acceso desde móviles por QR** | Escaneas y se abre la app, sin instalar nada |
-| 🐳 **Docker only** | Un solo comando para iniciar todo el sistema |
-| 🔒 **Autenticación JWT** | Roles: Admin, Mesero, Cocina, Cajero |
+| 🔒 **Autenticación JWT** | Cookie httpOnly · Roles: Admin, Gerente, Cajero, Mesero, Cocina |
 | 📊 **Finanzas** | Cierre de caja Z, gastos operativos, historial |
 | 💾 **Backup/Restore** | `npm run backup` para respaldar/restaurar la base de datos |
 
@@ -90,8 +90,9 @@ El paquete se crea en `release/` e incluye `start.bat` (lanza todo con doble cli
 | Rol | Usuario | Contraseña |
 |:----|:--------|:-----------|
 | 👑 Administrador | `admin` | `admin123` |
-| 🛒 Mesero | `mesero` | `waiter123` |
+| 🧭 Gerente | `gerente` | `waiter123` |
 | 🛒 Cajero | `cajero` | `waiter123` |
+| 🛒 Mesero | `mesero` | `waiter123` |
 | 🧑‍🍳 Cocina | `cocina` | `cook123` |
 
 > ⚠️ **Cambiar las contraseñas inmediatamente en producción.**
@@ -126,7 +127,7 @@ docker compose exec db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arboli
 │   ├── components/              # POS, KDS, Mesas, Finanzas, etc.
 │   ├── context/                 # Estado global
 │   └── lib/                     # API, sync, utilidades
-├── scripts/                     # Utilidades (backup, cli, asistentes)
+├── scripts/                     # Utilidades (backup, cli, empaquetador portable)
 ├── docker-compose.yml           # Orquestación de servicios
 ├── Dockerfile                   # Build backend
 ├── Dockerfile.frontend          # Frontend con Nginx
@@ -149,8 +150,9 @@ La documentación de referencia del desarrollador está en [`AGENTS.md`](./AGENT
 
 | Desde | URL |
 |:------|:----|
-| Mismo equipo servidor | `http://localhost` |
+| Mismo equipo servidor (Docker) | `http://localhost` |
 | Celular/tablet en LAN | `http://<IP-del-servidor>` |
+| Paquete portable (Windows) | `http://localhost:3002` |
 | QR automático | Se muestra al ejecutar `instalar.bat` |
 
 ---
@@ -161,11 +163,11 @@ La documentación de referencia del desarrollador está en [`AGENTS.md`](./AGENT
 |:-----|:-----------|
 | Frontend | React 19 + Vite 7 + Tailwind CSS 4 |
 | Backend | Node.js + Express |
-| Base de datos | MySQL 8 (Docker) |
+| Base de datos | MySQL 8 / MariaDB 10.4+ |
 | ORM | Prisma 5 |
-| Proxy | Nginx |
+| Proxy | Nginx (solo en Docker) |
 | Tiempo real | Server-Sent Events (SSE) |
-| Despliegue | Docker + docker-compose |
+| Despliegue | Docker Compose · Paquete portable (Node embebido) |
 
 ---
 
@@ -182,11 +184,11 @@ La documentación de referencia del desarrollador está en [`AGENTS.md`](./AGENT
 
 | Métrica | Valor |
 |:--------|:------|
-| Componentes React | 17 |
-| Endpoints API | 40+ |
-| Modelos de datos | 11 |
-| Líneas de código | ~12,000 |
-| Documentación técnica | 1 guía (`AGENTS.md`) |
+| Componentes React | 28 |
+| Endpoints API | 91 |
+| Modelos de datos | 24 |
+| Líneas de código | ~11,000 |
+| Documentación técnica | `AGENTS.md` + `README.md` |
 | Latencia sync | < 500 ms |
 
 ---
