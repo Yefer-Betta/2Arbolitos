@@ -22,7 +22,8 @@
     "docker:logs": "docker compose logs -f",
     "docker:seed": "docker compose exec -T app node server/prisma/seed.js",
     "docker:rebuild": "docker compose up -d --build",
-    "backup": "node scripts/backup.js"
+    "backup": "node scripts/backup.js",
+    "pack:portable": "node scripts/pack-portable.js"
   },
   "dependencies": {
     "clsx": "^2.1.1",

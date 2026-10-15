@@ -69,6 +69,22 @@ docker compose down
 
 ---
 
+## 📦 Paquete Portable para Windows (sin Docker)
+
+Genera un ZIP autocontenido con **Node.js embebido**, el frontend compilado y el backend listo para correr. Ideal para equipos donde no se puede/ quiere instalar Docker.
+
+```bash
+npm run pack:portable          # genera release/2Arbolitos-Portable-Windows-x64-<versión>.zip
+npm run build && npm run pack:portable -- --skip-build   # reutiliza el build actual
+```
+
+El paquete se crea en `release/` e incluye `start.bat` (lanza todo con doble clic), `node/node.exe`, `dist/` y `server/` con sus dependencias.
+
+> **Requisito único:** MySQL 8 (o MariaDB 10.4+) corriendo en la máquina.
+> El backend Express sirve también el frontend, así que **no necesita Nginx**: todo corre en un solo proceso.
+
+---
+
 ## 🔐 Usuarios Iniciales
 
 | Rol | Usuario | Contraseña |
