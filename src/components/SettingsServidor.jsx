@@ -30,7 +30,7 @@ export function SettingsServidor() {
         try {
             const response = await fetch('/api/backup/download', {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                credentials: 'include',
             });
             if (!response.ok) { const err = await response.json(); throw new Error(err.error); }
             const blob = await response.blob();

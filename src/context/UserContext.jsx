@@ -7,8 +7,7 @@ const UserContext = createContext();
 export function UserProvider({ children }) {
     const [currentUser, setCurrentUser] = useState(() => {
         const storedUser = sessionStorage.getItem('currentUser');
-        const storedToken = localStorage.getItem('token');
-        if (storedUser && storedToken) {
+        if (storedUser) {
             try {
                 return JSON.parse(storedUser);
             } catch {
@@ -23,14 +22,21 @@ export function UserProvider({ children }) {
     const logout = async () => {
         try {
             await apiPost('/attendance/check-out', {});
-        } catch {}
+        } catch {
+            // ignore
+        }
+        try {
+            await syncManager.fetchFromAPI('/auth/logout', { method: 'POST' });
+        } catch {
+            // ignore
+        }
         setCurrentUser(null);
         sessionStorage.removeItem('currentUser');
     };
 
     const checkAuth = useCallback(async () => {
-        const token = localStorage.getItem('token');
-        if (token && syncManager.isOnline) {
+        const storedUser = sessionStorage.getItem('currentUser');
+        if (storedUser && syncManager.isOnline) {
             try {
                 const data = await apiGet('/auth/verify');
                 if (data.user) {
@@ -38,7 +44,7 @@ export function UserProvider({ children }) {
                     sessionStorage.setItem('currentUser', JSON.stringify(data.user));
                 }
             } catch {
-                console.warn('Token invalid or expired');
+                console.warn('Sesión inválida o expirada');
                 logout();
             }
         }
@@ -90,13 +96,14 @@ export function UserProvider({ children }) {
                     body: JSON.stringify({ username, password }),
                 });
 
-                if (response.token && response.user) {
-                    localStorage.setItem('token', response.token);
+                if (response.user) {
                     setCurrentUser(response.user);
                     sessionStorage.setItem('currentUser', JSON.stringify(response.user));
                     try {
                         await apiPost('/attendance/check-in', {});
-                    } catch {}
+                    } catch {
+                        // ignore
+                    }
                     return { success: true, user: response.user };
                 }
 
@@ -112,14 +119,11 @@ export function UserProvider({ children }) {
     const addUser = async (userData) => {
         try {
             if (syncManager.isOnline) {
-                const token = localStorage.getItem('token');
-                if (token) {
-                    const newUser = await apiPost('/auth/register', userData);
-                    setUsers(prev => [...prev, newUser]);
-                    return { success: true };
-                }
+                const newUser = await apiPost('/auth/register', userData);
+                setUsers(prev => [...prev, newUser]);
+                return { success: true };
             }
-            return { success: false, error: 'No hay conexión o token' };
+            return { success: false, error: 'No hay conexión' };
         } catch {
             return { success: false, error: 'Error de conexión' };
         }
@@ -128,14 +132,11 @@ export function UserProvider({ children }) {
     const updateUser = async (id, userData) => {
         try {
             if (syncManager.isOnline) {
-                const token = localStorage.getItem('token');
-                if (token) {
-                    const updatedUser = await apiPut(`/auth/users/${id}`, userData);
-                    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updatedUser } : u));
-                    return { success: true };
-                }
+                const updatedUser = await apiPut(`/auth/users/${id}`, userData);
+                setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updatedUser } : u));
+                return { success: true };
             }
-            return { success: false, error: 'No hay conexión o token' };
+            return { success: false, error: 'No hay conexión' };
         } catch {
             return { success: false, error: 'Error de conexión' };
         }
@@ -144,14 +145,11 @@ export function UserProvider({ children }) {
     const deleteUser = async (id) => {
         try {
             if (syncManager.isOnline) {
-                const token = localStorage.getItem('token');
-                if (token) {
-                    await apiDelete('/auth/users', id);
-                    setUsers(prev => prev.filter(u => u.id !== id));
-                    return { success: true };
-                }
+                await apiDelete('/auth/users', id);
+                setUsers(prev => prev.filter(u => u.id !== id));
+                return { success: true };
             }
-            return { success: false, error: 'No hay conexión o token' };
+            return { success: false, error: 'No hay conexión' };
         } catch {
             return { success: false, error: 'Error de conexión' };
         }

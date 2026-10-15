@@ -184,15 +184,10 @@ class SyncManager {
 
   async syncChange(change) {
     const { type, endpoint, data, id } = change;
-    const token = localStorage.getItem('token');
 
     const headers = {
       'Content-Type': 'application/json',
     };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
 
     const base = getApiBase();
     let url = `${base}${endpoint}`;
@@ -221,6 +216,7 @@ class SyncManager {
     const response = await fetchWithTimeout(url, {
       method,
       headers,
+      credentials: 'include',
       body: method !== 'GET' && method !== 'DELETE' ? JSON.stringify(data) : undefined,
     });
 
@@ -234,20 +230,15 @@ class SyncManager {
   }
 
   async fetchFromAPI(endpoint, options = {}) {
-    const token = localStorage.getItem('token');
-
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     const response = await fetchWithTimeout(`${getApiBase()}${endpoint}`, {
       ...options,
       headers,
+      credentials: 'include',
     });
 
     if (!response.ok) {

@@ -154,8 +154,7 @@ export function OrdersProvider({ children }) {
   useEffect(() => {
     if (!loaded) return;
 
-    const token = localStorage.getItem('token');
-    const eventSource = new EventSource(`${getApiBase()}/events${token ? `?token=${encodeURIComponent(token)}` : ''}`);
+    const eventSource = new EventSource(`${getApiBase()}/events`, { withCredentials: true });
 
     eventSource.addEventListener('order:created', (e) => {
       try {

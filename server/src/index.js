@@ -15,6 +15,7 @@ import QRCode from 'qrcode';
 import { addSSEClient, removeSSEClient, notifySSEClients } from './sse.js';
 import { initScheduler } from './scheduler.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { parseCookies, TOKEN_COOKIE } from './config/cookies.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -179,7 +180,9 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
   });
 
   app.get('/api/events', (req, res) => {
-    const token = req.query.token || req.headers.authorization?.split(' ')[1];
+    const token = req.query.token
+      || req.headers.authorization?.split(' ')[1]
+      || parseCookies(req.headers.cookie)[TOKEN_COOKIE];
     if (!token) {
       return res.status(401).json({ error: 'Token requerido para SSE' });
     }
@@ -189,12 +192,16 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
       return res.status(401).json({ error: 'Token inválido o expirado' });
     }
 
-    res.writeHead(200, {
+    const sseHeaders = {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-    });
+    };
+    if (req.headers.origin) {
+      sseHeaders['Access-Control-Allow-Origin'] = req.headers.origin;
+      sseHeaders['Access-Control-Allow-Credentials'] = 'true';
+    }
+    res.writeHead(200, sseHeaders);
 
     const heartbeat = setInterval(() => {
       res.write(':\n\n');

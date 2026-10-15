@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database.js';
+import { cookieOptions, TOKEN_COOKIE } from '../config/cookies.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 
 export const authController = {
@@ -33,8 +34,9 @@ export const authController = {
 
     const permissions = await getUserPermissions(user.role);
 
+    res.cookie(TOKEN_COOKIE, token, cookieOptions());
+
     res.json({
-      token,
       user: {
         id: user.id,
         username: user.username,
@@ -43,6 +45,11 @@ export const authController = {
         permissions,
       },
     });
+  }),
+
+  logout: asyncHandler(async (req, res) => {
+    res.clearCookie(TOKEN_COOKIE, cookieOptions());
+    res.json({ ok: true });
   }),
 
   register: asyncHandler(async (req, res) => {
