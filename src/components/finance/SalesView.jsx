@@ -53,7 +53,55 @@ export function SalesView({ salesDateFilter, setSalesDateFilter, salesTypeFilter
 
                     {/* Sales Table */}
                     <div className="card overflow-hidden">
-                        <div className="overflow-x-auto">
+                        {/* Móvil: tarjetas */}
+                        <div className="md:hidden divide-y divide-gray-100">
+                            {filteredSales.length === 0 ? (
+                                <p className="px-4 py-10 text-center text-gray-400 text-sm">No hay ventas para los filtros seleccionados.</p>
+                            ) : (
+                                filteredSales.map((order) => (
+                                    <div key={order.id} className="p-4 space-y-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="font-mono text-xs text-gray-500">{order.id?.slice(0, 8).toUpperCase()}</p>
+                                                <p className="text-xs text-gray-400">{new Date(order.date || order.createdAt).toLocaleTimeString()}</p>
+                                            </div>
+                                            <span className={cn(
+                                                "px-2 py-1 rounded text-xs font-bold shrink-0",
+                                                order.orderType?.startsWith('mesa-') ? "bg-orange-100 text-orange-700" :
+                                                order.orderType === 'para-llevar' ? "bg-blue-100 text-blue-700" :
+                                                order.orderType === 'domicilio' ? "bg-purple-100 text-purple-700" :
+                                                "bg-gray-100 text-gray-700"
+                                            )}>
+                                                {getTypeLabel(order.orderType)}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {order.items?.slice(0, 3).map((item, i) => (
+                                                <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                                                    {item.quantity}x {item.product?.name?.slice(0, 10)}
+                                                </span>
+                                            ))}
+                                            {order.items?.length > 3 && (
+                                                <span className="text-xs text-gray-400">+{order.items.length - 3}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                                            <span className="font-bold text-green-700">{formatCurrency(order.totalCop)}</span>
+                                            <button
+                                                onClick={() => handlePrint(order)}
+                                                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-primary hover:bg-primary/10 rounded-lg transition-colors -mr-2 -my-1"
+                                                aria-label="Reimprimir factura"
+                                            >
+                                                <Printer className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Desktop: tabla */}
+                        <div className="overflow-x-auto hidden md:block">
                             <table className="w-full text-left">
                                 <thead className="bg-gray-50 border-b border-gray-200">
                                     <tr>
@@ -110,8 +158,9 @@ export function SalesView({ salesDateFilter, setSalesDateFilter, salesTypeFilter
                                                 <td className="px-6 py-4 text-center">
                                                     <button
                                                         onClick={() => handlePrint(order)}
-                                                        className="text-primary hover:bg-primary/10 p-2 rounded-lg transition-colors"
+                                                        className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-primary hover:bg-primary/10 rounded-lg transition-colors"
                                                         title="Reimprimir"
+                                                        aria-label="Reimprimir factura"
                                                     >
                                                         <Printer className="w-4 h-4" />
                                                     </button>

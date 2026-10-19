@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { Smartphone, QrCode, RefreshCw, Download } from 'lucide-react';
+import { useToast } from './ui/feedback-context';
 
 export function SettingsMovil() {
     const { serverUrl } = useSettings();
+    const toast = useToast();
     const [qrSvg, setQrSvg] = useState('');
     const [qrLoading, setQrLoading] = useState(false);
 
@@ -46,7 +48,7 @@ export function SettingsMovil() {
     const copyUrl = async () => {
         try {
             await navigator.clipboard.writeText(serverUrl);
-            alert('URL copiada al portapapeles');
+            toast.success('URL copiada al portapapeles');
         } catch {
             const input = document.createElement('input');
             input.value = serverUrl;
@@ -54,7 +56,7 @@ export function SettingsMovil() {
             input.select();
             document.execCommand('copy');
             document.body.removeChild(input);
-            alert('URL copiada al portapapeles');
+            toast.success('URL copiada al portapapeles');
         }
     };
 

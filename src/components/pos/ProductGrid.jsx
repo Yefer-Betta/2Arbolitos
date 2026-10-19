@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 
 export function ProductGrid({ tableId, onBack, mobileView, searchTerm, setSearchTerm, categories, selectedCategory, setSelectedCategory, filteredProducts, addToCart, gridRef, handleGridKeys }) {
     return (
-            <div className={cn("flex flex-col gap-6 min-h-0 md:flex-1 md:h-auto", mobileView !== 'products' && "hidden md:flex")}>
+            <div className={cn("flex flex-col gap-4 md:gap-6 min-h-0 md:flex-1 md:h-auto", mobileView !== 'products' && "hidden md:flex")}>
                 {/* Header Section */}
                 <div className="flex flex-col gap-4">
                     <div>
@@ -71,31 +71,31 @@ export function ProductGrid({ tableId, onBack, mobileView, searchTerm, setSearch
                     <div
                         ref={gridRef}
                         onKeyDown={handleGridKeys}
-                        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
+                        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4"
                     >
                         {filteredProducts.map((product, idx) => (
                             <button
                                 key={product.id}
                                 data-grid-index={idx}
                                 onClick={() => addToCart(product)}
-                                className="flex flex-col p-5 bg-white hover:bg-surface border border-transparent hover:border-primary/20 rounded-2xl shadow-sm hover:shadow-md transition-all text-left group relative overflow-hidden"
+                                className="flex flex-col p-3 sm:p-5 bg-white hover:bg-surface border border-transparent hover:border-primary/20 rounded-2xl shadow-sm hover:shadow-md transition-all text-left group relative overflow-hidden min-h-[92px] active:scale-[0.98]"
                             >
-                                <div className="absolute top-0 right-0 p-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                <div className="hidden md:block absolute top-0 right-0 p-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     <div className="bg-primary text-white p-2 rounded-lg shadow-lg">
                                         <Plus className="w-4 h-4" />
                                     </div>
                                 </div>
-                                <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-3 text-secondary shrink-0">
-                                    <Utensils className="w-5 h-5" />
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-2 sm:mb-3 text-secondary shrink-0">
+                                    <Utensils className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
 
-                                <span className="text-xs font-bold text-secondary uppercase tracking-wider mb-1">{product.category}</span>
-                                <span className="font-bold text-gray-800 mb-2 line-clamp-2 text-base lg:text-lg leading-snug">{product.name}</span>
+                                <span className="text-[10px] sm:text-xs font-bold text-secondary uppercase tracking-wider mb-0.5 sm:mb-1">{product.category}</span>
+                                <span className="font-bold text-gray-800 mb-2 line-clamp-2 text-sm sm:text-base lg:text-lg leading-snug">{product.name}</span>
 
-                                <div className="mt-auto pt-3 border-t border-gray-50 w-full">
-                                    <span className="font-bold text-base lg:text-xl text-primary block break-words leading-snug">
+                                <div className="mt-auto pt-2 sm:pt-3 border-t border-gray-50 w-full">
+                                    <span className="font-bold text-sm sm:text-base lg:text-xl text-primary block break-words leading-snug">
                                         {product.isUsd ? `$${product.price.toFixed(2)}` : `$${product.price.toLocaleString()}`}
-                                        <span className="text-[11px] lg:text-xs font-medium text-gray-500 ml-1 align-top">{product.isUsd ? 'USD' : 'COP'}</span>
+                                        <span className="text-[10px] lg:text-xs font-medium text-gray-500 ml-1 align-top">{product.isUsd ? 'USD' : 'COP'}</span>
                                     </span>
                                 </div>
                             </button>

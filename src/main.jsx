@@ -8,6 +8,7 @@ import { MenuProvider } from './context/MenuContext.jsx'
 import { OrdersProvider } from './context/OrdersContext.jsx'
 import { FinanceProvider } from './context/FinanceContext.jsx'
 import { UserProvider } from './context/UserContext.jsx'
+import { FeedbackProvider } from './components/ui/Feedback.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -17,7 +18,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <MenuProvider>
             <OrdersProvider>
               <FinanceProvider>
-                <App />
+                <FeedbackProvider>
+                  <App />
+                </FeedbackProvider>
               </FinanceProvider>
             </OrdersProvider>
           </MenuProvider>

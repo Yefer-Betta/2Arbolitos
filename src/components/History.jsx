@@ -90,7 +90,7 @@ export function History() {
                 </div>
             </div>
 
-            <div className="card overflow-hidden border border-black/5">
+            <div className="card overflow-hidden border border-black/5 hidden md:block">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-surface border-b border-gray-200">
@@ -155,6 +155,46 @@ export function History() {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {/* Tarjetas de ventas (solo móvil) */}
+            <div className="md:hidden space-y-3">
+                {currentShiftOrders.length === 0 ? (
+                    <div className="card p-8 text-center text-gray-400">
+                        <Calendar className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                        No hay ventas en este turno.
+                    </div>
+                ) : (
+                    currentShiftOrders.map((order) => (
+                        <div key={order.id} className="card p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <p className="font-bold text-gray-900">{new Date(order.date || order.createdAt).toLocaleDateString()}</p>
+                                    <p className="text-xs text-gray-400">{new Date(order.date || order.createdAt).toLocaleTimeString()}</p>
+                                </div>
+                                <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium shrink-0">
+                                    {orderOriginLabel(order)}
+                                </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                                {(order.items || []).map((item, itemIdx) => (
+                                    <span key={`${order.id}-m-${itemIdx}`} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs border border-gray-200">
+                                        <b>{item.quantity}</b>x {item.product?.name || 'Producto'}
+                                    </span>
+                                ))}
+                            </div>
+                            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                                <span className="text-[11px] text-gray-500 uppercase font-bold">
+                                    {order.payments?.map(p => p.method?.replace('_', ' ')).join(' + ') || order.payment?.method?.replace('_', ' ') || 'N/A'}
+                                </span>
+                                <div className="text-right">
+                                    <p className="font-bold text-green-700">${order.totalCop.toLocaleString()}</p>
+                                    <p className="text-xs text-gray-500">${order.totalUsd.toFixed(2)} USD</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
 
             {/* Past Closures Section */}

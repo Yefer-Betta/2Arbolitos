@@ -14,9 +14,11 @@ import { ProductGrid } from './pos/ProductGrid';
 import { CartPanel } from './pos/CartPanel';
 import { TransferModal } from './pos/TransferModal';
 import { SplitBillModal } from './pos/SplitBillModal';
+import { useToast } from './ui/feedback-context';
 
 export function POS({ tableId, onBack }) {
     const { products } = useMenu();
+    const toast = useToast();
     const { exchangeRate, exchangeRateBs, business } = useSettings();
     const {
         addOrder,
@@ -409,9 +411,10 @@ export function POS({ tableId, onBack }) {
 
     // Transfer
     const handleTransfer = async () => {
-        if (!targetTable) return alert('Seleccione una mesa destino');
+        if (!targetTable) return toast.error('Seleccione una mesa destino');
         transferTable(tableId, targetTable);
         setShowTransferModal(false);
+        toast.success('Pedido transferido');
         if (onBack) onBack();
     };
 
@@ -435,7 +438,37 @@ export function POS({ tableId, onBack }) {
 
 
     return (
-        <div className="flex flex-col md:flex-row h-full md:h-[calc(100dvh-theme(spacing.32))] gap-6 relative pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
+        <div className="flex flex-col md:flex-row h-full md:h-[calc(100dvh-theme(spacing.32))] gap-4 md:gap-6 relative">
+            {/* Selector Menú / Carrito (solo móvil, sticky arriba) */}
+            <div className="md:hidden sticky top-0 z-30 -mx-4 px-4 pt-1 pb-2 bg-background/95 backdrop-blur-sm">
+                <div className="flex gap-2 bg-white rounded-xl p-1 border border-gray-200 shadow-sm">
+                    <button
+                        onClick={() => setMobileView('products')}
+                        aria-pressed={mobileView === 'products'}
+                        className={cn(
+                            "flex-1 min-h-[44px] rounded-lg font-bold flex items-center justify-center gap-2 text-sm transition-all",
+                            mobileView === 'products' ? "bg-primary text-white shadow" : "text-gray-500 active:bg-gray-100"
+                        )}
+                    >
+                        <Utensils className="w-4 h-4" /> Menú
+                    </button>
+                    <button
+                        onClick={() => setMobileView('cart')}
+                        aria-pressed={mobileView === 'cart'}
+                        className={cn(
+                            "flex-1 min-h-[44px] rounded-lg font-bold flex items-center justify-center gap-2 text-sm relative transition-all",
+                            mobileView === 'cart' ? "bg-primary text-white shadow" : "text-gray-500 active:bg-gray-100"
+                        )}
+                    >
+                        <ShoppingCart className="w-4 h-4" /> Carrito
+                        {cart.length > 0 ? (
+                            <span aria-hidden="true" className="absolute top-1 right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                                {cart.length}
+                            </span>
+                        ) : null}
+                    </button>
+                </div>
+            </div>
             <CheckoutModal
                 isCheckoutOpen={isCheckoutOpen}
                 closeCheckout={closeCheckout}
@@ -549,27 +582,6 @@ export function POS({ tableId, onBack }) {
                 totals={totals}
             />
 
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex gap-3 z-40 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)] rounded-t-3xl">
-                <button
-                    onClick={() => setMobileView('products')}
-                    className={cn("flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all", mobileView === 'products' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-gray-100 text-gray-500 hover:bg-gray-200")}
-                >
-                    <Utensils className="w-5 h-5" />
-                    Menú
-                </button>
-                <button
-                    onClick={() => setMobileView('cart')}
-                    className={cn("flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all relative", mobileView === 'cart' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-gray-100 text-gray-500 hover:bg-gray-200")}
-                >
-                    <ShoppingCart className="w-5 h-5" />
-                    Carrito
-                    {cart.length > 0 ? (
-                        <span aria-hidden="true" className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
-                            {cart.length}
-                        </span>
-                    ) : null}
-                </button>
-            </div>
             <div aria-live="polite" className="sr-only">
                 {cart.length} {cart.length === 1 ? 'ítem' : 'ítems'} en el pedido
             </div>

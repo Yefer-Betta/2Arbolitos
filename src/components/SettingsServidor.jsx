@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { syncManager } from '../lib/api.js';
 import { Wifi, WifiOff, RefreshCw, Power, Clock, Download, Loader } from 'lucide-react';
+import { useToast } from './ui/feedback-context';
 
 export function SettingsServidor() {
     const { autoStart, toggleAutoStart, backupHour, updateBackupHour } = useSettings();
+    const toast = useToast();
     const [isSyncing, setIsSyncing] = useState(false);
     const [isBackingUp, setIsBackingUp] = useState(false);
 
@@ -42,8 +44,9 @@ export function SettingsServidor() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            toast.success('Backup descargado');
         } catch (err) {
-            alert('Error al generar backup: ' + err.message);
+            toast.error('Error al generar backup: ' + err.message);
         } finally {
             setIsBackingUp(false);
         }

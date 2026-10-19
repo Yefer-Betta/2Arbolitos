@@ -3,10 +3,13 @@ import { useMenu } from '../context/MenuContext';
 import { useSettings } from '../context/SettingsContext';
 import { Plus, Trash2, Edit2, X, Check, Search, Utensils, Package } from 'lucide-react';
 import { apiGet } from '../lib/api.js';
+import { useConfirm, useToast } from './ui/feedback-context';
 
 export function MenuManager() {
     const { products, categories, addProduct, updateProduct, deleteProduct } = useMenu();
     const { exchangeRate } = useSettings();
+    const toast = useToast();
+    const confirm = useConfirm();
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [inventoryItems, setInventoryItems] = useState([]);
@@ -52,7 +55,7 @@ export function MenuManager() {
         e.preventDefault();
         
         if (!formData.categoryId) {
-            alert('Por favor selecciona una categoría');
+            toast.error('Por favor selecciona una categoría');
             return;
         }
         
@@ -227,17 +230,19 @@ export function MenuManager() {
                             <div className="absolute top-0 right-0 p-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 flex gap-2">
                                 <button
                                     onClick={() => handleEditClick(product)}
-                                    className="p-2 bg-white text-blue-600 hover:bg-blue-50 rounded-lg shadow-sm"
+                                    className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-white text-blue-600 hover:bg-blue-50 rounded-lg shadow-sm"
                                     title="Editar"
+                                    aria-label={`Editar ${product.name}`}
                                 >
                                     <Edit2 className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={() => {
-                                        if (confirm('¿Seguro de eliminar este producto?')) deleteProduct(product.id)
+                                        confirm({ title: `¿Eliminar ${product.name}?`, message: 'El producto dejará de estar disponible.', confirmLabel: 'Eliminar', danger: true }).then(ok => { if (ok) deleteProduct(product.id); });
                                     }}
-                                    className="p-2 bg-white text-red-600 hover:bg-red-50 rounded-lg shadow-sm"
+                                    className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-white text-red-600 hover:bg-red-50 rounded-lg shadow-sm"
                                     title="Eliminar"
+                                    aria-label={`Eliminar ${product.name}`}
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>

@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { Plus, Edit2, Trash2, X, Check, Users } from 'lucide-react';
+import { useConfirm, useToast } from '../components/ui/feedback-context';
 
 export function UserManager() {
     const { users, addUser, updateUser, deleteUser } = useUser();
+    const toast = useToast();
+    const confirm = useConfirm();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [formData, setFormData] = useState({
@@ -47,12 +50,25 @@ export function UserManager() {
             updateUser(editingUser.id, userData);
         } else {
             if (!userData.password) {
-                alert('La contraseña es obligatoria para nuevos usuarios.');
+                toast.error('La contraseña es obligatoria para nuevos usuarios.');
                 return;
             }
             addUser(userData);
+            toast.success('Usuario creado');
         }
         handleCloseForm();
+    };
+
+    const handleDelete = async (user) => {
+        const ok = await confirm({
+            title: `¿Eliminar a ${user.name}?`,
+            message: 'El usuario perderá el acceso al sistema.',
+            confirmLabel: 'Eliminar',
+            danger: true,
+        });
+        if (!ok) return;
+        deleteUser(user.id);
+        toast.success('Usuario eliminado');
     };
 
     return (
@@ -126,7 +142,7 @@ export function UserManager() {
                                 <td className="px-6 py-4 text-right space-x-2">
                                     <button onClick={() => handleOpenForm(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
                                     {user.role.toUpperCase() !== 'ADMIN' && (
-                                        <button onClick={() => { if (confirm(`¿Seguro que quieres eliminar a ${user.name}?`)) deleteUser(user.id) }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                        <button onClick={() => handleDelete(user)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" aria-label={`Eliminar a ${user.name}`}><Trash2 className="w-4 h-4" /></button>
                                     )}
                                 </td>
                             </tr>

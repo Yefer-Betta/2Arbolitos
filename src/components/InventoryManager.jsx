@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api.js';
 import { Plus, Edit2, Trash2, X, Check, Package, AlertTriangle, Search, Filter, ArrowUp, ArrowDown, History } from 'lucide-react';
+import { useConfirm, useToast } from './ui/feedback-context';
+import { Modal } from './Modal';
 
 const UNITS = [
   { value: 'pcs', label: 'Unidades' },
@@ -13,6 +15,8 @@ const UNITS = [
 ];
 
 export function InventoryManager() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -76,12 +80,14 @@ export function InventoryManager() {
         setItems(prev => [...prev, created]);
       }
       resetForm();
-    } catch (err) { alert('Error al guardar: ' + (err.message || 'desconocido')); }
+      toast.success(editingId ? 'Insumo actualizado' : 'Insumo creado');
+    } catch (err) { toast.error('Error al guardar: ' + (err.message || 'desconocido')); }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Seguro de eliminar este insumo?')) return;
-    try { await apiDelete('/inventory', id); setItems(prev => prev.filter(i => i.id !== id)); } catch {}
+    const ok = await confirm({ title: '¿Eliminar insumo?', message: 'Esta acción no se puede deshacer.', confirmLabel: 'Eliminar', danger: true });
+    if (!ok) return;
+    try { await apiDelete('/inventory', id); setItems(prev => prev.filter(i => i.id !== id)); toast.success('Insumo eliminado'); } catch { toast.error('No se pudo eliminar el insumo'); }
   };
 
   const handleAdjust = async () => {
@@ -92,7 +98,8 @@ export function InventoryManager() {
       await apiPost('/inventory-movements', { itemId: adjustTarget.id, quantity: qty, reason: adjustReason });
       await loadInventory();
       setAdjustTarget(null); setAdjustQty(''); setAdjustReason('ajuste');
-    } catch (err) { alert('Error al ajustar stock: ' + (err.message || '')); }
+      toast.success('Stock ajustado');
+    } catch (err) { toast.error('Error al ajustar stock: ' + (err.message || '')); }
   };
 
   const openMovements = async (item) => {
@@ -205,22 +212,21 @@ export function InventoryManager() {
         )}
       </div>
 
-      {adjustTarget && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setAdjustTarget(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+      <Modal isOpen={!!adjustTarget} onClose={() => setAdjustTarget(null)} label="Ajustar stock">
+          <div className="p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-800">Ajustar stock</h3>
-              <button onClick={() => setAdjustTarget(null)} className="text-gray-400 hover:text-red-500"><X className="w-5 h-5" /></button>
+              <button onClick={() => setAdjustTarget(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
             </div>
-            <p className="text-sm text-gray-500 mb-1">{adjustTarget.name}</p>
-            <p className="text-sm text-gray-500 mb-4">Stock actual: <span className="font-bold text-primary">{adjustTarget.quantity} {adjustTarget.unit}</span></p>
+            <p className="text-sm text-gray-500 mb-1">{adjustTarget?.name}</p>
+            <p className="text-sm text-gray-500 mb-4">Stock actual: <span className="font-bold text-primary">{adjustTarget?.quantity} {adjustTarget?.unit}</span></p>
             <div className="flex gap-3">
               <input type="number" step="0.01" value={adjustQty} onChange={e => setAdjustQty(e.target.value)} className="input-field flex-1" placeholder="+ para agregar, - para quitar" autoFocus />
               <button onClick={handleAdjust} className="btn-primary px-6 flex items-center gap-2"><Check className="w-4 h-4" /> Aplicar</button>
             </div>
             <div className="flex gap-3 mt-3">
-              <button onClick={() => setAdjustQty(String((Math.abs(parseFloat(adjustQty) || 0)) * -1))} className="flex-1 text-sm text-red-600 hover:bg-red-50 py-2 rounded-lg border border-red-200">Restar</button>
-              <button onClick={() => setAdjustQty(String(Math.abs(parseFloat(adjustQty) || 0)))} className="flex-1 text-sm text-green-600 hover:bg-green-50 py-2 rounded-lg border border-green-200">Sumar</button>
+              <button onClick={() => setAdjustQty(String((Math.abs(parseFloat(adjustQty) || 0)) * -1))} className="flex-1 min-h-[44px] text-sm text-red-600 hover:bg-red-50 py-2 rounded-lg border border-red-200">Restar</button>
+              <button onClick={() => setAdjustQty(String(Math.abs(parseFloat(adjustQty) || 0)))} className="flex-1 min-h-[44px] text-sm text-green-600 hover:bg-green-50 py-2 rounded-lg border border-green-200">Sumar</button>
             </div>
             <div className="mt-4">
               <label className="block text-sm font-bold text-gray-700 mb-2">Motivo</label>
@@ -229,41 +235,56 @@ export function InventoryManager() {
               </select>
             </div>
           </div>
-        </div>
-      )}
+      </Modal>
 
-      {movementsTarget && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setMovementsTarget(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white rounded-t-2xl">
-              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><History className="w-5 h-5 text-purple-600" /> {movementsTarget.name} — movimientos</h3>
-              <button onClick={() => setMovementsTarget(null)} className="text-gray-400 hover:text-red-500"><X className="w-5 h-5" /></button>
+      <Modal isOpen={!!movementsTarget} onClose={() => setMovementsTarget(null)} label={movementsTarget ? `${movementsTarget.name} — movimientos` : 'Movimientos'} maxWidth="max-w-2xl">
+          <div className="flex flex-col">
+            <div className="flex justify-between items-center p-4 sm:p-6 border-b sticky top-0 bg-white z-10">
+              <h3 className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2"><History className="w-5 h-5 text-purple-600" /> {movementsTarget?.name} — movimientos</h3>
+              <button onClick={() => setMovementsTarget(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
             </div>
-            <div className="overflow-auto flex-1 p-6">
+            <div className="overflow-auto flex-1 p-4 sm:p-6">
               {loadingMovements ? (
                 <div className="flex justify-center py-10"><div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div></div>
               ) : movements.length === 0 ? (
                 <p className="text-center text-gray-400 py-10">No hay movimientos registrados</p>
               ) : (
-                <table className="w-full text-left">
-                  <thead><tr className="text-xs font-bold text-gray-500 uppercase border-b"><th className="pb-3">Fecha</th><th className="pb-3">Cantidad</th><th className="pb-3">Anterior</th><th className="pb-3">Nuevo</th><th className="pb-3">Motivo</th></tr></thead>
-                  <tbody className="divide-y">
+                <>
+                  {/* Tarjetas en móvil */}
+                  <div className="md:hidden space-y-3">
                     {movements.map(m => (
-                      <tr key={m.id} className="text-sm hover:bg-gray-50">
-                        <td className="py-3 text-gray-500">{new Date(m.createdAt).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                        <td className={`py-3 font-bold ${m.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>{m.quantity > 0 ? '+' : ''}{m.quantity}</td>
-                        <td className="py-3 text-gray-500">{m.previous}</td>
-                        <td className="py-3 font-bold">{m.newQuantity}</td>
-                        <td className="py-3"><span className="bg-gray-100 px-2 py-0.5 rounded text-xs">{REASON_LABELS[m.reason] || m.reason}</span></td>
-                      </tr>
+                      <div key={m.id} className="card p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">{new Date(m.createdAt).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                          <span className={`font-bold ${m.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>{m.quantity > 0 ? '+' : ''}{m.quantity}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">{REASON_LABELS[m.reason] || m.reason}</span>
+                          <span className="text-gray-500">{m.previous} → <b className="text-gray-800">{m.newQuantity}</b></span>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                  {/* Tabla en desktop */}
+                  <table className="w-full text-left hidden md:table">
+                    <thead><tr className="text-xs font-bold text-gray-500 uppercase border-b"><th className="pb-3">Fecha</th><th className="pb-3">Cantidad</th><th className="pb-3">Anterior</th><th className="pb-3">Nuevo</th><th className="pb-3">Motivo</th></tr></thead>
+                    <tbody className="divide-y">
+                      {movements.map(m => (
+                        <tr key={m.id} className="text-sm hover:bg-gray-50">
+                          <td className="py-3 text-gray-500">{new Date(m.createdAt).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                          <td className={`py-3 font-bold ${m.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>{m.quantity > 0 ? '+' : ''}{m.quantity}</td>
+                          <td className="py-3 text-gray-500">{m.previous}</td>
+                          <td className="py-3 font-bold">{m.newQuantity}</td>
+                          <td className="py-3"><span className="bg-gray-100 px-2 py-0.5 rounded text-xs">{REASON_LABELS[m.reason] || m.reason}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
               )}
             </div>
           </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Trash2, TrendingUp, TrendingDown, DollarSign, Wallet, Calculator, Smartphone, CreditCard } from 'lucide-react';
 import { formatCurrency, formatDate, cn } from '../../lib/utils';
+import { useConfirm } from '../ui/feedback-context';
 
 export function SummaryView({ isAdding, setIsAdding, formData, setFormData, handleSubmit, currentOrders, totalSalesCOP, totalExpenses, netBalance, lastClosureDate, salesByMethod, currentExpenses, deleteExpense, setShowCloseModal }) {
+    const confirm = useConfirm();
     return (
                 <>
                     <div className="flex gap-3">
@@ -168,10 +170,40 @@ export function SummaryView({ isAdding, setIsAdding, formData, setFormData, hand
 
                     {/* Expenses Table */}
                     <div className="card overflow-hidden">
-                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                        <div className="bg-gray-50 px-4 sm:px-6 py-4 border-b border-gray-200">
                             <h3 className="font-bold text-gray-700">Gastos del Turno Actual</h3>
                         </div>
-                        <div className="overflow-x-auto">
+
+                        {/* Móvil: tarjetas */}
+                        <div className="md:hidden divide-y divide-gray-100">
+                            {currentExpenses.length === 0 ? (
+                                <p className="px-4 py-8 text-center text-gray-400 text-sm">No hay gastos registrados en este turno.</p>
+                            ) : (
+                                currentExpenses.map((expense) => (
+                                    <div key={expense.id} className="p-4 flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="font-medium text-gray-900 text-sm break-words">{expense.description}</p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {new Date(expense.date).toLocaleDateString()} · {expense.category}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <span className="font-bold text-red-600 text-sm whitespace-nowrap">- {formatCurrency(expense.amount)}</span>
+                                            <button
+                                                onClick={() => { confirm({ title: '¿Eliminar este gasto?', confirmLabel: 'Eliminar', danger: true }).then(ok => { if (ok) deleteExpense(expense.id); }); }}
+                                                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors -mr-2"
+                                                aria-label={`Eliminar gasto ${expense.description}`}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Desktop: tabla */}
+                        <div className="overflow-x-auto hidden md:block">
                             <table className="w-full text-left">
                                 <thead className="bg-white border-b border-gray-100">
                                     <tr>
@@ -209,9 +241,10 @@ export function SummaryView({ isAdding, setIsAdding, formData, setFormData, hand
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                                     <button
                                                         onClick={() => {
-                                                            if (confirm('¿Eliminar este registro de gasto?')) deleteExpense(expense.id)
+                                                            confirm({ title: '¿Eliminar este gasto?', confirmLabel: 'Eliminar', danger: true }).then(ok => { if (ok) deleteExpense(expense.id); });
                                                         }}
-                                                        className="text-gray-400 hover:text-red-500 transition-colors"
+                                                        className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
+                                                        aria-label={`Eliminar gasto ${expense.description}`}
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>

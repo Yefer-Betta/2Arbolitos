@@ -47,27 +47,27 @@ export function CartPanel({ cart, tableId, mobileView, updateQuantity, editingNo
                                         </p>
                                     </div>
 
-                                    <div className="flex items-center gap-1 lg:gap-2 bg-surface rounded-lg lg:rounded-xl px-1 lg:px-2 py-1">
+                                    <div className="flex items-center gap-1 bg-surface rounded-xl px-0.5 py-0.5">
                                         <button
                                             onClick={() => updateQuantity(pid, -1)}
-                                            className="min-w-[44px] min-h-[44px] w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-red-500 hover:scale-110 transition-all"
+                                            className="w-11 h-11 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-red-500 active:scale-95 transition-all"
                                             aria-label={`Disminuir cantidad de ${item.product?.name || 'producto'}`}
                                         >
-                                            <Minus className="w-2 lg:w-3 h-2 lg:h-3" />
+                                            <Minus className="w-4 h-4" />
                                         </button>
-                                        <span className="text-xs lg:text-sm font-bold w-4 text-center">{item.quantity}</span>
+                                        <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
                                         <button
                                             onClick={() => updateQuantity(pid, 1)}
-                                            className="min-w-[44px] min-h-[44px] w-5 lg:w-6 h-5 lg:h-6 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-green-600 hover:scale-110 transition-all"
+                                            className="w-11 h-11 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 hover:text-green-600 active:scale-95 transition-all"
                                             aria-label={`Aumentar cantidad de ${item.product?.name || 'producto'}`}
                                         >
-                                            <Plus className="w-2 lg:w-3 h-2 lg:h-3" />
+                                            <Plus className="w-4 h-4" />
                                         </button>
                                     </div>
 
                                     <button
                                         onClick={() => setEditingNote(editingNote === pid ? null : pid)}
-                                        className={`p-2 rounded-xl transition-all ${itemNotes[pid] ? 'text-yellow-600 bg-yellow-50' : 'text-gray-300 hover:text-yellow-500 hover:bg-yellow-50'} opacity-100 md:opacity-0 md:group-hover:opacity-100`}
+                                        className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-all ${itemNotes[pid] ? 'text-yellow-600 bg-yellow-50' : 'text-gray-300 hover:text-yellow-500 hover:bg-yellow-50'} opacity-100 md:opacity-0 md:group-hover:opacity-100`}
                                         title="Agregar nota"
                                         aria-label={itemNotes[pid] ? `Editar nota de ${item.product?.name || 'producto'}` : `Agregar nota a ${item.product?.name || 'producto'}`}
                                     >
@@ -76,7 +76,7 @@ export function CartPanel({ cart, tableId, mobileView, updateQuantity, editingNo
 
                                     <button
                                         onClick={() => removeFromCart(pid)}
-                                        className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                                        className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
                                         aria-label={`Eliminar ${item.product?.name || 'producto'} del pedido`}
                                     >
                                         <Trash2 className="w-4 h-4" />

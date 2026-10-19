@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api.js';
 import { CalendarDays, Plus, X, Edit2, Trash2, Phone, Users, Clock, Check, AlertTriangle } from 'lucide-react';
+import { Modal } from './Modal';
+import { useConfirm, useToast } from './ui/feedback-context';
 
 const STATUS_COLORS = {
   PENDING: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -18,6 +20,8 @@ function toLocalDateString(d = new Date()) {
 }
 
 export function ReservationManager() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [reservations, setReservations] = useState([]);
   const [selectedDate, setSelectedDate] = useState(toLocalDateString());
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -57,7 +61,7 @@ export function ReservationManager() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.customerName.trim() || !formData.dateTime) return alert('Nombre y fecha/hora requeridos');
+    if (!formData.customerName.trim() || !formData.dateTime) return toast.error('Nombre y fecha/hora requeridos');
     try {
       if (editingId) {
         const updated = await apiPut(`/reservations/${editingId}`, formData);
@@ -67,19 +71,37 @@ export function ReservationManager() {
         setReservations(prev => [...prev, created]);
       }
       resetForm();
-    } catch (err) { alert('Error: ' + (err.message || 'desconocido')); }
+      toast.success(editingId ? 'Reserva actualizada' : 'Reserva creada');
+    } catch (err) { toast.error('Error: ' + (err.message || 'desconocido')); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Eliminar esta reserva?')) return;
-    try { await apiDelete(`/reservations/${id}`); setReservations(prev => prev.filter(r => r.id !== id)); } catch {}
+    const ok = await confirm({ title: '¿Eliminar esta reserva?', confirmLabel: 'Eliminar', danger: true });
+    if (!ok) return;
+    try { await apiDelete(`/reservations/${id}`); setReservations(prev => prev.filter(r => r.id !== id)); toast.success('Reserva eliminada'); } catch { toast.error('No se pudo eliminar'); }
   };
 
   const handleStatusChange = async (id, status) => {
     try {
       const updated = await apiPut(`/reservations/${id}`, { status });
       setReservations(prev => prev.map(r => r.id === id ? { ...r, ...updated } : r));
-    } catch {}
+      toast.success('Estado actualizado');
+    } catch { toast.error('No se pudo actualizar el estado'); }
+  };
+
+  const requestClose = () => {
+    const hasData = formData.customerName.trim() !== '' || formData.phone.trim() !== '' || formData.notes.trim() !== '';
+    if (editingId || hasData) {
+      confirm({
+        title: '¿Descartar cambios?',
+        message: 'Se perderán los datos ingresados.',
+        confirmLabel: 'Descartar',
+        cancelLabel: 'Seguir editando',
+        danger: true,
+      }).then(ok => { if (ok) resetForm(); });
+    } else {
+      resetForm();
+    }
   };
 
   const today = toLocalDateString();
@@ -117,12 +139,11 @@ export function ReservationManager() {
         </button>
       </div>
 
-      {isFormOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { if (!window.confirm('¿Cancelar?')) return; resetForm(); }}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <Modal isOpen={isFormOpen} onClose={requestClose} label={editingId ? 'Editar Reserva' : 'Nueva Reserva'}>
+        <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">{editingId ? 'Editar Reserva' : 'Nueva Reserva'}</h2>
-              <button onClick={resetForm} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+              <button onClick={resetForm} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -167,9 +188,8 @@ export function ReservationManager() {
                 <button type="button" onClick={resetForm} className="btn-secondary">Cancelar</button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </Modal>
 
       <div className="space-y-3">
         {reservations.length === 0 ? (

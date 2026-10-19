@@ -65,10 +65,10 @@ export function Layout({ children, activeTab, setActiveTab }) {
                 Saltar al contenido principal
             </a>
             {/* Mobile top bar */}
-            <header className="md:hidden flex items-center justify-between bg-primary text-white px-4 py-3 shadow">
+            <header className="md:hidden flex items-center justify-between bg-primary text-white px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))] shadow">
                 <button
                     onClick={() => setIsMobileNavOpen(true)}
-                    className="p-2 rounded-lg hover:bg-primary-light/20 transition"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-primary-light/20 active:bg-primary-light/30 transition"
                     aria-label="Abrir menú"
                     aria-expanded={isMobileNavOpen}
                     aria-controls="mobile-nav"
@@ -102,10 +102,10 @@ export function Layout({ children, activeTab, setActiveTab }) {
                     isMobileNavOpen ? "translate-x-0" : "-translate-x-full",
                 )}
             >
-                <div className="p-6 border-b border-primary-light/30 flex flex-col items-center gap-3 relative">
+                <div className="px-6 pb-6 pt-[calc(1.5rem+env(safe-area-inset-top))] border-b border-primary-light/30 flex flex-col items-center gap-3 relative">
                     <button
                         onClick={() => setIsMobileNavOpen(false)}
-                        className="md:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-primary-light/20 transition"
+                        className="md:hidden absolute top-[calc(0.5rem+env(safe-area-inset-top))] right-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-primary-light/20 active:bg-primary-light/30 transition"
                         aria-label="Cerrar menú"
                     >
                         <X className="w-5 h-5" />
@@ -189,7 +189,7 @@ export function Layout({ children, activeTab, setActiveTab }) {
                                     setIsMobileNavOpen(false);
                                 }}
                                 className={cn(
-                                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-left",
+                                    "w-full flex items-center gap-3 px-4 py-3 min-h-[48px] rounded-xl transition-all duration-200 text-left",
                                     isActive
                                         ? "bg-secondary text-primary-dark font-bold shadow-lg"
                                         : "text-primary-surface hover:bg-primary-light/30 hover:text-white"
@@ -202,7 +202,7 @@ export function Layout({ children, activeTab, setActiveTab }) {
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-primary-light/30">
+                <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-primary-light/30">
                     <div className="flex items-center gap-3 bg-primary-dark/30 p-3 rounded-xl">
                         <div className="w-9 h-9 rounded-full bg-secondary/20 flex items-center justify-center text-secondary font-bold text-sm">
                             {currentUser.name.charAt(0)}
@@ -228,10 +228,48 @@ export function Layout({ children, activeTab, setActiveTab }) {
                 {/* Background Pattern */}
                 <div className="absolute inset-0 bg-[radial-gradient(#1A4D2E_1px,transparent_1px)] [background-size:20px_20px] opacity-[0.03] pointer-events-none"></div>
 
-                <div className="relative p-6 md:p-8 max-w-7xl mx-auto min-h-full">
+                <div className="relative p-4 sm:p-6 md:p-8 max-w-7xl mx-auto min-h-full pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-8">
                     {children}
                 </div>
             </main>
+
+            {/* Barra de navegación inferior (solo móvil) */}
+            <nav
+                aria-label="Navegación principal"
+                className="md:hidden fixed bottom-0 left-0 right-0 z-10 bg-white border-t border-gray-200 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_12px_-4px_rgba(0,0,0,0.08)]"
+            >
+                <div className="flex items-stretch">
+                    {navItems.slice(0, 4).map((item) => {
+                        const Icon = item.icon;
+                        const isActive = activeTab === item.id;
+                        return (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                aria-current={isActive ? 'page' : undefined}
+                                className={cn(
+                                    "flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-[11px] font-semibold transition-colors",
+                                    isActive ? "text-primary" : "text-gray-500 active:bg-gray-100"
+                                )}
+                            >
+                                <Icon className="w-5 h-5" aria-hidden="true" />
+                                <span className="truncate max-w-full px-1">{item.label}</span>
+                            </button>
+                        );
+                    })}
+                    {navItems.length > 4 && (
+                        <button
+                            onClick={() => setIsMobileNavOpen(true)}
+                            aria-label="Más opciones"
+                            aria-expanded={isMobileNavOpen}
+                            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] text-[11px] font-semibold text-gray-500 active:bg-gray-100"
+                        >
+                            <Menu className="w-5 h-5" aria-hidden="true" />
+                            <span>Más</span>
+                        </button>
+                    )}
+                </div>
+            </nav>
         </div>
     );
 }

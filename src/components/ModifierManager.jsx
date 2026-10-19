@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api.js';
 import { Plus, X, Edit2, Trash2, ListChecks, ToggleLeft, ToggleRight, Layers } from 'lucide-react';
+import { useConfirm, useToast } from './ui/feedback-context';
+import { Modal } from './Modal';
 
 export function ModifierManager() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [groups, setGroups] = useState([]);
   const [products, setProducts] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -32,7 +36,8 @@ export function ModifierManager() {
       setGroupForm({ name: '', type: 'SINGLE' });
       setEditingGroupId(null); setIsFormOpen(false);
       loadData();
-    } catch (err) { alert('Error: ' + (err.message || '')); }
+      toast.success(editingGroupId ? 'Grupo actualizado' : 'Grupo creado');
+    } catch (err) { toast.error('Error: ' + (err.message || '')); }
   };
 
   const handleEditGroup = (g) => {
@@ -41,8 +46,9 @@ export function ModifierManager() {
   };
 
   const handleDeleteGroup = async (id) => {
-    if (!window.confirm('¿Eliminar grupo y todos sus modificadores?')) return;
-    try { await apiDelete(`/modifier-groups/${id}`); loadData(); } catch {}
+    const ok = await confirm({ title: '¿Eliminar grupo?', message: 'Se eliminarán también todos sus modificadores.', confirmLabel: 'Eliminar', danger: true });
+    if (!ok) return;
+    try { await apiDelete(`/modifier-groups/${id}`); loadData(); toast.success('Grupo eliminado'); } catch { toast.error('No se pudo eliminar'); }
   };
 
   const handleAddModifier = async (groupId) => {
@@ -51,7 +57,7 @@ export function ModifierManager() {
       await apiPost('/modifiers', { groupId, name: newModifier.name, price: parseFloat(newModifier.price) || 0 });
       setNewModifier({ groupId: '', name: '', price: '' });
       loadData();
-    } catch (err) { alert('Error: ' + (err.message || '')); }
+    } catch (err) { toast.error('Error: ' + (err.message || '')); }
   };
 
   const handleDeleteModifier = async (id) => {
@@ -67,7 +73,8 @@ export function ModifierManager() {
       });
       setAssignTarget(null);
       loadData();
-    } catch (err) { alert('Error: ' + (err.message || '')); }
+      toast.success('Grupos asignados');
+    } catch (err) { toast.error('Error: ' + (err.message || '')); }
   };
 
   return (
@@ -124,10 +131,12 @@ export function ModifierManager() {
         )}
       </div>
 
-      {isFormOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setIsFormOpen(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold mb-4">{editingGroupId ? 'Editar Grupo' : 'Nuevo Grupo'}</h2>
+      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} label={editingGroupId ? 'Editar Grupo' : 'Nuevo Grupo'}>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">{editingGroupId ? 'Editar Grupo' : 'Nuevo Grupo'}</h2>
+              <button onClick={() => setIsFormOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+            </div>
             <form onSubmit={handleCreateGroup} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
@@ -154,8 +163,7 @@ export function ModifierManager() {
               </div>
             </form>
           </div>
-        </div>
-      )}
+      </Modal>
 
       <div className="space-y-4">
         {groups.length === 0 ? (

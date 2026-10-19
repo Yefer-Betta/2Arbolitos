@@ -46,7 +46,7 @@ export function Modal({ isOpen, onClose, label, children, className, maxWidth = 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-sm" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 backdrop-blur-sm" onClick={onClose}>
             <div className="absolute inset-0 bg-black/50"></div>
             <div
                 ref={dialogRef}
@@ -55,8 +55,14 @@ export function Modal({ isOpen, onClose, label, children, className, maxWidth = 
                 aria-label={label}
                 tabIndex={-1}
                 onClick={(e) => e.stopPropagation()}
-                className={cn('relative w-full rounded-2xl sm:rounded-3xl shadow-2xl overflow-y-auto max-h-[90vh] bg-white', maxWidth, className)}
+                className={cn(
+                    'relative w-full shadow-2xl overflow-y-auto bg-white pb-[env(safe-area-inset-bottom)]',
+                    'rounded-t-3xl max-h-[92dvh] md:rounded-3xl md:max-h-[90vh] md:pb-0',
+                    maxWidth,
+                    className
+                )}
             >
+                <div className="md:hidden mx-auto mt-2 mb-1 h-1.5 w-10 rounded-full bg-gray-300/70" aria-hidden="true" />
                 {children}
             </div>
         </div>

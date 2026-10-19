@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Clock, ChefHat, CheckCircle, XCircle, Bell } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useOrders } from '../context/OrdersContext';
+import { useConfirm, useToast } from './ui/feedback-context';
 
 const STATUS_LABELS = { PENDING: 'Pendiente', PREPARING: 'Preparando', READY: 'Listo' };
 const STATUS_COLORS = { PENDING: 'bg-yellow-100 text-yellow-800 border-yellow-300', PREPARING: 'bg-blue-100 text-blue-800 border-blue-300', READY: 'bg-green-100 text-green-800 border-green-300' };
@@ -12,6 +13,8 @@ const KITCHEN_STATUSES = ['PENDING', 'PREPARING', 'READY'];
 
 export function KitchenView() {
   const { orders, updateOrderStatus, isOnline, loaded } = useOrders();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const seenIdsRef = useRef(new Set());
   const notifiedIdsRef = useRef(new Set());
@@ -46,11 +49,20 @@ export function KitchenView() {
     const next = NEXT_STATUS[currentStatus];
     if (!next) return;
     await updateOrderStatus(id, next);
+    toast.success(next === 'READY' ? 'Pedido marcado como listo' : 'Pedido en preparación');
   };
 
   const cancelOrder = async (id) => {
-    if (!window.confirm('¿Cancelar este pedido?')) return;
+    const ok = await confirm({
+      title: '¿Cancelar este pedido?',
+      message: 'El pedido se marcará como cancelado y saldrá de la cocina.',
+      confirmLabel: 'Cancelar pedido',
+      cancelLabel: 'Volver',
+      danger: true,
+    });
+    if (!ok) return;
     await updateOrderStatus(id, 'CANCELLED');
+    toast.info('Pedido cancelado');
   };
 
   const grouped = kitchenOrders.reduce((acc, order) => {

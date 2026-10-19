@@ -117,6 +117,13 @@ body {
   background-color: var(--color-bg-paper);
   color: var(--color-text);
   outline: none;
+  /* iOS: 16px evita el zoom automático de Safari al enfocar */
+  @media (max-width: 640px) {
+    font-size: 16px !important;
+  }
+  /* área táctil mínima de 44px */
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .input-field:focus {

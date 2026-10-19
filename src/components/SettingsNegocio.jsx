@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { DollarSign, RefreshCw, Building, Save } from 'lucide-react';
+import { useToast } from './ui/feedback-context';
 
 export function SettingsNegocio() {
     const { exchangeRate, setExchangeRate, exchangeRateBs, setExchangeRateBs, business, setBusiness } = useSettings();
+    const toast = useToast();
     const [localBusiness, setLocalBusiness] = useState(business);
     const [isSaved, setIsSaved] = useState(false);
 
@@ -37,7 +39,7 @@ export function SettingsNegocio() {
     const handleImageUpload = (e, field) => {
         const file = e.target.files[0];
         if (file && file.size > 1024 * 1024) {
-            alert('La imagen es muy grande. Por favor, elige una imagen de menos de 1MB.');
+            toast.error('La imagen es muy grande. Por favor, elige una imagen de menos de 1MB.');
             e.target.value = null;
             return;
         }

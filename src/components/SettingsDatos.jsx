@@ -4,12 +4,15 @@ import { useOrders } from '../context/OrdersContext';
 import { useFinance } from '../context/FinanceContext';
 import { useMenu } from '../context/MenuContext';
 import { Database, AlertTriangle, Download, Upload } from 'lucide-react';
+import { useConfirm, useToast } from './ui/feedback-context';
 
 export function SettingsDatos() {
     const { exchangeRate, business } = useSettings();
     const { orders } = useOrders();
     const { expenses, closures } = useFinance();
     const { products } = useMenu();
+    const toast = useToast();
+    const confirm = useConfirm();
 
     const handleBackup = () => {
         const backupData = {
@@ -34,6 +37,7 @@ export function SettingsDatos() {
         link.download = `2Arbolitos_Backup_${new Date().toISOString().slice(0, 10)}.json`;
         link.click();
         URL.revokeObjectURL(url);
+        toast.success('Respaldo descargado');
     };
 
     const handleRestore = (e) => {
@@ -41,18 +45,22 @@ export function SettingsDatos() {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
                 const backup = JSON.parse(event.target.result);
 
                 if (!backup.data) {
-                    alert('Archivo de respaldo inválido');
+                    toast.error('Archivo de respaldo inválido');
                     return;
                 }
 
-                if (!confirm('⚠️ ADVERTENCIA: Esto reemplazará TODOS los datos actuales. ¿Estás seguro?')) {
-                    return;
-                }
+                const ok = await confirm({
+                    title: 'Restaurar respaldo',
+                    message: 'Esto reemplazará TODOS los datos actuales. Esta acción no se puede deshacer.',
+                    confirmLabel: 'Restaurar',
+                    danger: true,
+                });
+                if (!ok) return;
 
                 localStorage.setItem('exchangeRate', backup.data.exchangeRate);
                 localStorage.setItem('business', JSON.stringify(backup.data.business));
@@ -62,10 +70,10 @@ export function SettingsDatos() {
                 localStorage.setItem('closures', JSON.stringify(backup.data.closures));
                 localStorage.setItem('lastClosureDate', backup.data.lastClosureDate);
 
-                alert('✅ Respaldo restaurado exitosamente. La página se recargará.');
-                window.location.reload();
+                toast.success('Respaldo restaurado. Recargando…');
+                setTimeout(() => window.location.reload(), 900);
             } catch (err) {
-                alert('Error al restaurar el respaldo: ' + err.message);
+                toast.error('Error al restaurar el respaldo: ' + err.message);
             }
         };
         reader.readAsText(file);

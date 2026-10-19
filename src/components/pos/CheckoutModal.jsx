@@ -7,13 +7,13 @@ import { Modal } from '../Modal';
 export function CheckoutModal({ isCheckoutOpen, closeCheckout, showRecipe, totals, discountData, setShowDiscountModal, paymentSplits, getSplitChange, cleanAmount, formatAmount, updatePaymentSplit, addPaymentSplit, removePaymentSplit, isFullyPaid, totalPaidCop, remaining, handleFinalizeSale, lastOrder, business, tableId }) {
     return (
             <Modal isOpen={isCheckoutOpen} onClose={closeCheckout} label={showRecipe ? 'Venta exitosa' : 'Finalizar compra'} maxWidth="max-w-md sm:max-w-lg">
-                    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md sm:max-w-lg overflow-hidden">
+                    <div className="overflow-hidden">
                         <div className="p-4 sm:p-6 bg-primary text-white flex justify-between items-center sticky top-0">
                             <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                                 {showRecipe ? <Check className="w-5 h-5 sm:w-6 sm:h-6" /> : <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />}
                                 {showRecipe ? '¡Venta Exitosa!' : 'Finalizar Compra'}
                             </h2>
-                            <button onClick={closeCheckout} className="hover:bg-white/20 p-1 sm:p-2 rounded-full transition-colors" aria-label="Cerrar">
+                            <button onClick={closeCheckout} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/20 rounded-full transition-colors" aria-label="Cerrar">
                                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         </div>

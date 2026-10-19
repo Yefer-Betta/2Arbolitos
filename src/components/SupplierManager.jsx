@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiPut } from '../lib/api.js';
 import { Plus, X, Edit2, Building2, Phone, Mail, MapPin, Package, Truck, Check, Ban, Eye, ClipboardList } from 'lucide-react';
+import { useToast } from './ui/feedback-context';
+import { Modal } from './Modal';
 
 const PO_STATUS = {
   PENDING: 'bg-yellow-100 text-yellow-800',
@@ -10,6 +12,7 @@ const PO_STATUS = {
 };
 
 export function SupplierManager() {
+  const toast = useToast();
   const [tab, setTab] = useState('suppliers');
   const [suppliers, setSuppliers] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -36,7 +39,7 @@ export function SupplierManager() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) return alert('Nombre requerido');
+    if (!formData.name.trim()) return toast.error('Nombre requerido');
     try {
       if (editingId) {
         const updated = await apiPut(`/suppliers/${editingId}`, formData);
@@ -47,7 +50,8 @@ export function SupplierManager() {
       }
       setFormData({ name: '', phone: '', email: '', address: '', notes: '' });
       setEditingId(null); setIsFormOpen(false);
-    } catch (err) { alert('Error: ' + (err.message || '')); }
+      toast.success(editingId ? 'Proveedor actualizado' : 'Proveedor creado');
+    } catch (err) { toast.error('Error: ' + (err.message || '')); }
   };
 
   const addPOItem = () => {
@@ -70,20 +74,22 @@ export function SupplierManager() {
 
   const handleCreatePO = async (e) => {
     e.preventDefault();
-    if (poForm.items.length === 0) return alert('Agregue al menos un item');
+    if (poForm.items.length === 0) return toast.error('Agregue al menos un item');
     try {
       await apiPost('/purchase-orders', poForm);
       setPoForm({ supplierId: '', notes: '', items: [] });
       setIsPOFormOpen(false);
       loadOrders();
-    } catch (err) { alert('Error: ' + (err.message || '')); }
+      toast.success('Orden de compra creada');
+    } catch (err) { toast.error('Error: ' + (err.message || '')); }
   };
 
   const handlePOStatus = async (id, status) => {
     try {
       await apiPut(`/purchase-orders/${id}/status`, { status });
       loadOrders();
-    } catch (err) { alert('Error: ' + (err.message || '')); }
+      toast.success('Estado actualizado');
+    } catch (err) { toast.error('Error: ' + (err.message || '')); }
   };
 
   return (
@@ -116,10 +122,12 @@ export function SupplierManager() {
             </button>
           </div>
 
-          {isFormOpen && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setIsFormOpen(false)}>
-              <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-                <h2 className="text-lg font-bold mb-4">{editingId ? 'Editar Proveedor' : 'Nuevo Proveedor'}</h2>
+          <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} label={editingId ? 'Editar Proveedor' : 'Nuevo Proveedor'}>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold">{editingId ? 'Editar Proveedor' : 'Nuevo Proveedor'}</h2>
+                  <button onClick={() => setIsFormOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+                </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
@@ -149,8 +157,7 @@ export function SupplierManager() {
                   </div>
                 </form>
               </div>
-            </div>
-          )}
+          </Modal>
 
           <div className="grid gap-3 md:grid-cols-2">
             {suppliers.length === 0 ? (
@@ -187,10 +194,12 @@ export function SupplierManager() {
             </button>
           </div>
 
-          {isPOFormOpen && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setIsPOFormOpen(false)}>
-              <div className="bg-white rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <h2 className="text-lg font-bold mb-4">Nueva Orden de Compra</h2>
+          <Modal isOpen={isPOFormOpen} onClose={() => setIsPOFormOpen(false)} label="Nueva Orden de Compra" maxWidth="max-w-lg">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold">Nueva Orden de Compra</h2>
+                  <button onClick={() => setIsPOFormOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+                </div>
                 <form onSubmit={handleCreatePO} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
@@ -231,8 +240,7 @@ export function SupplierManager() {
                   </div>
                 </form>
               </div>
-            </div>
-          )}
+          </Modal>
 
           <div className="space-y-3">
             {orders.length === 0 ? (

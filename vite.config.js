@@ -63,24 +63,37 @@ export default defineConfig(({ mode }) => {
       registerType: 'autoUpdate',
       includeAssets: ['logo.png', 'icon.png'],
       manifest: {
+        id: '/',
+        scope: '/',
         name: '2Arbolitos POS',
         short_name: '2Arbolitos',
         description: 'Aplicación de Punto de Venta para 2Arbolitos',
+        lang: 'es',
+        dir: 'ltr',
         display: 'standalone',
+        orientation: 'any',
         start_url: '/',
         theme_color: '#1A4D2E',
         background_color: '#ffffff',
+        categories: ['business', 'productivity', 'food'],
         icons: [
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           }
+        ],
+        shortcuts: [
+          { name: 'Pedidos', short_name: 'Pedidos', url: '/?tab=pos', description: 'Tomar pedidos' },
+          { name: 'Cocina', short_name: 'Cocina', url: '/?tab=kitchen', description: 'Pedidos en preparación' },
+          { name: 'Historial', short_name: 'Historial', url: '/?tab=history', description: 'Ventas del turno' }
         ]
       }
     })

@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiDelete } from '../lib/api.js';
 import { Shield, Check, X as XIcon, ShieldCheck } from 'lucide-react';
+import { cn } from '../lib/utils';
+import { useToast } from './ui/feedback-context';
 
 const ROLES = ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER', 'COOK'];
 const ROLE_LABELS = { ADMIN: 'Administrador', MANAGER: 'Gerente', CASHIER: 'Cajero', WAITER: 'Mesero', COOK: 'Cocinero' };
 
 export function PermissionManager() {
+  const toast = useToast();
   const [permissions, setPermissions] = useState([]);
   const [rolePerms, setRolePerms] = useState({});
   const [loading, setLoading] = useState(true);
@@ -43,7 +46,7 @@ export function PermissionManager() {
         setRolePerms(prev => ({ ...prev, [role]: [...prev[role], permissionId] }));
       }
     } catch (err) {
-      alert('Error al cambiar permiso: ' + (err.message || 'desconocido'));
+      toast.error('Error al cambiar permiso: ' + (err.message || 'desconocido'));
     }
   };
 
@@ -57,18 +60,49 @@ export function PermissionManager() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Permisos por Rol</h2>
           <p className="text-gray-500 text-sm">Asigna qué permisos tiene cada rol del sistema</p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-medium">
-          <ShieldCheck className="w-5 h-5" />
+        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-medium self-start">
+          <ShieldCheck className="w-5 h-5 shrink-0" />
           ADMIN tiene todos los permisos
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Móvil: tarjeta por permiso con toggles por rol */}
+      <div className="md:hidden space-y-3">
+        {permissions.map(perm => (
+          <div key={perm.id} className="card p-4 space-y-3">
+            <p className="font-bold text-sm text-gray-800">{perm.name.replace(/_/g, ' ')}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {ROLES.map(role => {
+                const has = role === 'ADMIN' || rolePerms[role]?.includes(perm.id);
+                return (
+                  <button
+                    key={role}
+                    disabled={role === 'ADMIN'}
+                    onClick={() => togglePermission(role, perm.id, has)}
+                    aria-pressed={has}
+                    aria-label={`${has ? 'Quitar' : 'Dar'} permiso de ${perm.name.replace(/_/g, ' ')} a ${ROLE_LABELS[role]}`}
+                    className={cn(
+                      'min-h-[44px] px-3 rounded-xl flex items-center justify-between gap-2 text-xs font-bold border transition-all disabled:opacity-60',
+                      has ? 'bg-green-100 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500'
+                    )}
+                  >
+                    <span className="truncate">{ROLE_LABELS[role]}</span>
+                    {has ? <Check className="w-4 h-4 shrink-0" /> : <XIcon className="w-4 h-4 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: matriz */}
+      <div className="overflow-x-auto hidden md:block">
         <table className="w-full text-left">
           <thead>
             <tr className="bg-surface">
@@ -94,7 +128,7 @@ export function PermissionManager() {
                       <button
                         disabled={role === 'ADMIN'}
                         onClick={() => togglePermission(role, perm.id, has)}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center mx-auto transition-all ${
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center mx-auto transition-all ${
                           has
                             ? 'bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-60'
                             : 'bg-gray-100 text-gray-400 hover:bg-gray-200 disabled:opacity-60'

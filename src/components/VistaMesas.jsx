@@ -3,12 +3,14 @@ import { Utensils, ShoppingBag, Truck, Plus, X, MapPin, Phone, DollarSign } from
 import { useOrders } from '../context/OrdersContext';
 import { useSettings } from '../context/SettingsContext';
 import { Modal } from './Modal';
+import { useToast } from './ui/feedback-context';
 
 export const PARA_LLEVAR_ID = 'para-llevar';
 
 export function VistaMesas({ onSelectTable }) {
     const { activeTables, crearDomicilio } = useOrders();
     const { exchangeRate } = useSettings();
+    const toast = useToast();
     const TOTAL_TABLES = 10;
 
     const [showNuevoDomicilio, setShowNuevoDomicilio] = useState(false);
@@ -43,7 +45,7 @@ export function VistaMesas({ onSelectTable }) {
 
     const handleCrearDomicilio = () => {
         if (!domForm.direccion.trim() || !domForm.telefono.trim()) {
-            alert('La dirección y el teléfono son obligatorios');
+            toast.error('La dirección y el teléfono son obligatorios');
             return;
         }
         const costo = parseFloat(domForm.costoEnvio.replace(/[^0-9]/g, '')) || 0;

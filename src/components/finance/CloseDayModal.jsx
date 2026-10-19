@@ -1,20 +1,21 @@
 import React from 'react';
 import { Calculator, AlertTriangle, Check, X, Eye } from 'lucide-react';
 import { formatCurrency, formatDate, cn } from '../../lib/utils';
+import { Modal } from '../Modal';
 
 export function CloseDayModal({ setShowCloseModal, resetCloseForm, lastClosureDate, currentOrders, currentExpenses, salesByMethod, countedCash, setCountedCash, countedUsd, setCountedUsd, countedBs, setCountedBs, countedNequi, setCountedNequi, countedDebit, setCountedDebit, differences, hasDifference, totalDifference, observations, setObservations, handleConfirmClose }) {
     return (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 bg-red-600 text-white flex justify-between items-center sticky top-0">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
-                                <Calculator className="w-6 h-6" />
-                                Arqueo de Caja - Cierre de Turno
-                            </h2>
-                            <button onClick={() => setShowCloseModal(false)} className="hover:bg-white/20 p-2 rounded-full transition-colors">
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
+        <Modal isOpen onClose={() => setShowCloseModal(false)} label="Arqueo de Caja - Cierre de Turno" maxWidth="max-w-2xl">
+            <div className="overflow-hidden">
+                <div className="p-4 sm:p-6 bg-red-600 text-white flex justify-between items-center sticky top-0 z-10">
+                    <h2 className="text-base sm:text-xl font-bold flex items-center gap-2">
+                        <Calculator className="w-5 h-5 sm:w-6 sm:h-6" />
+                        Arqueo de Caja - Cierre de Turno
+                    </h2>
+                    <button onClick={() => setShowCloseModal(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/20 rounded-full transition-colors" aria-label="Cerrar">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
 
                         <div className="p-6 space-y-6">
                             <div className="bg-gray-50 p-4 rounded-xl">
@@ -166,7 +167,7 @@ export function CloseDayModal({ setShowCloseModal, resetCloseForm, lastClosureDa
                                 </button>
                             </div>
                         </div>
-                    </div>
-                </div>
+            </div>
+        </Modal>
     );
 }

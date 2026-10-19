@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost } from '../lib/api.js';
 import { Clock, LogIn, LogOut, CalendarDays, Users, Search, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { useUser } from '../context/UserContext';
+import { useToast } from './ui/feedback-context';
 
 const STATUS_STYLES = {
   PRESENT: 'bg-green-100 text-green-800',
@@ -19,6 +20,7 @@ function toLocalDateString(d = new Date()) {
 
 export function AttendanceManager() {
   const { currentUser } = useUser();
+  const toast = useToast();
   const [records, setRecords] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedDate, setSelectedDate] = useState(toLocalDateString());
@@ -50,7 +52,8 @@ export function AttendanceManager() {
       await apiPost('/attendance/check-in', {});
       loadTodayStatus();
       loadRecords();
-    } catch (err) { alert('Error: ' + (err.message || '')); }
+      toast.success('Entrada registrada');
+    } catch (err) { toast.error('Error: ' + (err.message || '')); }
   };
 
   const handleCheckOut = async () => {
@@ -58,7 +61,8 @@ export function AttendanceManager() {
       await apiPost('/attendance/check-out', {});
       loadTodayStatus();
       loadRecords();
-    } catch (err) { alert('Error: ' + (err.message || '')); }
+      toast.success('Salida registrada');
+    } catch (err) { toast.error('Error: ' + (err.message || '')); }
   };
 
   const today = toLocalDateString();

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet } from '../lib/api.js';
 import { Plus, Trash2, Save, Calculator, DollarSign, RefreshCw, PieChart, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { useToast } from './ui/feedback-context';
 
 export default function Escandallo() {
+  const toast = useToast();
   const [tab, setTab] = useState('calculator');
   const [costAnalysis, setCostAnalysis] = useState([]);
 
@@ -43,11 +45,11 @@ export default function Escandallo() {
   const gananciaBruta = precioVentaSugerido - costoTotalMateriaPrima;
 
   const guardarEscandallo = () => {
-    if (!nombrePlato) return alert('Por favor ponle un nombre al plato');
+    if (!nombrePlato) return toast.error('Por favor ponle un nombre al plato');
     const escandallo = { id: Date.now(), nombre: nombrePlato, ingredientes, margenDeseado, fecha: new Date().toLocaleDateString() };
     const guardados = JSON.parse(localStorage.getItem('escandallos') || '[]');
     localStorage.setItem('escandallos', JSON.stringify([...guardados, escandallo]));
-    alert('¡Escandallo guardado correctamente!');
+    toast.success('Escandallo guardado correctamente');
   };
 
   const marginIcon = (margin) => {
@@ -195,7 +197,39 @@ export default function Escandallo() {
               <p className="text-sm">Vincule insumos a productos en Inventario para ver el análisis</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              {/* Móvil: tarjetas */}
+              <div className="md:hidden space-y-3">
+                {costAnalysis.map(p => (
+                  <div key={p.id} className="card p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-800 text-sm break-words">{p.name}</p>
+                        <p className="text-xs text-gray-500">{p.category}</p>
+                      </div>
+                      <div className={`flex items-center gap-1 font-bold text-sm shrink-0 ${marginColor(p.margin)}`}>
+                        {marginIcon(p.margin)}
+                        {p.margin.toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-100">
+                      <span className="text-gray-500">Precio venta</span>
+                      <span className="font-medium">{p.isUsd ? `$${p.price.toFixed(2)} USD` : `$${p.price.toLocaleString()}`}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Costo insumos</span>
+                      <span className="font-medium">${p.totalInventoryCost.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-400">
+                      <span>Insumos vinculados</span>
+                      <span>{p.linkedItems}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: tabla */}
+              <div className="overflow-x-auto hidden md:block">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-gray-600 font-medium border-b">
                   <tr>
@@ -224,6 +258,7 @@ export default function Escandallo() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       )}

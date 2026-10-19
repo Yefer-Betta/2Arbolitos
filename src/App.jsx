@@ -45,6 +45,13 @@ function MainApp() {
   const { currentUser } = useUser();
   const [activeTab, setActiveTab] = useState(() => {
     const allowed = allowedTabIds(currentUser);
+
+    // Deep link desde atajos de la PWA: /?tab=pos
+    const requested = new URLSearchParams(window.location.search).get('tab');
+    if (requested && allowed.includes(requested)) {
+      return requested;
+    }
+
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && allowed.includes(stored)) {
       return stored;
@@ -56,6 +63,15 @@ function MainApp() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, activeTab);
   }, [activeTab]);
+
+  // Limpia ?tab= de la URL para que el estado no quede "pegado" al recargar
+  useEffect(() => {
+    if (!window.location.search.includes('tab=')) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('tab');
+    const qs = url.searchParams.toString();
+    window.history.replaceState({}, '', url.pathname + (qs ? `?${qs}` : '') + url.hash);
+  }, []);
 
   const renderContent = () => {
     switch (activeTab) {

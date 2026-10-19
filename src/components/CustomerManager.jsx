@@ -3,6 +3,8 @@ import { apiGet, apiPost, apiPut } from '../lib/api.js';
 import { Plus, Edit2, X, Search, Users, Phone, Mail, MapPin, ChevronRight, CalendarDays } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ReservationManager } from './ReservationManager';
+import { Modal } from './Modal';
+import { useConfirm, useToast } from './ui/feedback-context';
 
 const TABS = [
   { id: 'customers', label: 'Clientes', icon: Users },
@@ -10,6 +12,8 @@ const TABS = [
 ];
 
 function CustomerList() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -40,17 +44,34 @@ function CustomerList() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) return alert('Nombre requerido');
+    if (!formData.name.trim()) return toast.error('Nombre requerido');
     try {
       if (editingId) {
         const updated = await apiPut(`/customers/${editingId}`, formData);
         setCustomers(prev => prev.map(c => c.id === editingId ? { ...c, ...updated } : c));
+        toast.success('Cliente actualizado');
       } else {
         const created = await apiPost('/customers', formData);
         setCustomers(prev => [created, ...prev]);
+        toast.success('Cliente creado');
       }
       resetForm();
-    } catch (err) { alert('Error: ' + (err.message || 'desconocido')); }
+    } catch (err) { toast.error('Error: ' + (err.message || 'desconocido')); }
+  };
+
+  const requestClose = () => {
+    const hasData = Object.values(formData).some(v => String(v).trim() !== '');
+    if (editingId || hasData) {
+      confirm({
+        title: '¿Descartar cambios?',
+        message: 'Se perderán los datos ingresados.',
+        confirmLabel: 'Descartar',
+        cancelLabel: 'Seguir editando',
+        danger: true,
+      }).then(ok => { if (ok) resetForm(); });
+    } else {
+      resetForm();
+    }
   };
 
   const viewOrders = async (c) => {
@@ -77,12 +98,11 @@ function CustomerList() {
         </button>
       </div>
 
-      {isFormOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { if (!window.confirm('¿Cancelar?')) return; resetForm(); }}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <Modal isOpen={isFormOpen} onClose={requestClose} label={editingId ? 'Editar Cliente' : 'Nuevo Cliente'}>
+        <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
-              <button onClick={resetForm} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+              <button onClick={resetForm} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -108,16 +128,14 @@ function CustomerList() {
                 <button type="button" onClick={resetForm} className="btn-secondary">Cancelar</button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </Modal>
 
-      {selectedCustomer && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setSelectedCustomer(null)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl mx-4 shadow-2xl max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+      <Modal isOpen={!!selectedCustomer} onClose={() => setSelectedCustomer(null)} label={selectedCustomer ? `Historial de ${selectedCustomer.name}` : 'Historial'} maxWidth="max-w-2xl">
+        <div className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold">Historial de {selectedCustomer.name}</h2>
-              <button onClick={() => setSelectedCustomer(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+              <h2 className="text-lg font-bold">Historial de {selectedCustomer?.name}</h2>
+              <button onClick={() => setSelectedCustomer(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
             </div>
             {orders.length === 0 ? (
               <p className="text-gray-500 text-center py-8">Este cliente no tiene órdenes registradas</p>
@@ -144,9 +162,8 @@ function CustomerList() {
                 ))}
               </div>
             )}
-          </div>
         </div>
-      )}
+      </Modal>
 
       <div className="card overflow-hidden">
         {customers.length === 0 ? (

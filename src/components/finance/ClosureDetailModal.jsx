@@ -2,17 +2,18 @@ import React from 'react';
 import { X, Printer } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 import { printClosure } from '../../lib/print';
+import { Modal } from '../Modal';
 
 export function ClosureDetailModal({ selectedClosure, setSelectedClosure, business }) {
     return (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                        <div className="p-4 bg-primary text-white flex justify-between items-center sticky top-0">
-                            <h2 className="text-lg font-bold">Detalle del Cierre</h2>
-                            <button onClick={() => setSelectedClosure(null)} className="hover:bg-white/20 p-1 rounded-full">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
+        <Modal isOpen onClose={() => setSelectedClosure(null)} label="Detalle del Cierre" maxWidth="max-w-lg">
+            <div className="overflow-hidden">
+                <div className="p-4 bg-primary text-white flex justify-between items-center sticky top-0 z-10">
+                    <h2 className="text-lg font-bold">Detalle del Cierre</h2>
+                    <button onClick={() => setSelectedClosure(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/20 rounded-full" aria-label="Cerrar">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
 
                         <div className="p-6 space-y-4">
                             <div className="bg-gray-50 p-4 rounded-xl">
@@ -107,7 +108,7 @@ export function ClosureDetailModal({ selectedClosure, setSelectedClosure, busine
                               </button>
                             </div>
                         </div>
-                    </div>
-                </div>
+            </div>
+        </Modal>
     );
 }

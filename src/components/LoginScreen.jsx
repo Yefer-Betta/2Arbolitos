@@ -40,8 +40,8 @@ export function LoginScreen() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-dvh bg-gray-100 px-4 py-6 overflow-y-auto">
-            <div className="p-8 bg-white rounded-xl shadow-2xl w-full max-w-sm border-t-4 border-primary">
+        <div className="flex items-center justify-center min-h-dvh bg-gray-100 px-4 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] overflow-y-auto">
+            <div className="p-6 sm:p-8 bg-white rounded-xl shadow-2xl w-full max-w-sm border-t-4 border-primary">
                 <div className="flex justify-center mb-6">
                     <img src="./logo.png" alt="2Arbolitos" className="w-40 h-auto" />
                 </div>
