@@ -7,6 +7,7 @@
  * Contenido del paquete:
  *   start.bat                  Lanzador (valida entorno, crea server\.env,
  *                              hace prisma db push, seed inicial y arranca)
+ *   Panel.bat                  Panel de control (PowerShell + WPF)
  *   README-PORTABLE.txt        Instrucciones de uso
  *   node\node.exe              Node.js LTS x64 portable (sin prerrequisitos)
  *   dist\                      Frontend compilado (servido por Express)
@@ -189,6 +190,27 @@ async function copyDist(staging) {
   if (!fs.existsSync(from)) fail('dist/ no existe.');
   log('Copiando dist/ ...');
   await fsp.cp(from, path.join(staging, 'dist'), { recursive: true });
+}
+
+/* ------------------------------------------------------------------ */
+/* 3b. Panel de control (PowerShell + WPF, sin dependencias)          */
+/* ------------------------------------------------------------------ */
+async function copyPanel(staging) {
+  const from = path.join(ROOT, 'scripts', 'panel');
+  const to = path.join(staging, 'scripts', 'panel');
+  if (!fs.existsSync(from)) {
+    warn('No se encontro scripts/panel; el ZIP saldra sin panel de control.');
+    return;
+  }
+
+  await fsp.mkdir(to, { recursive: true });
+  for (const name of ['Ops.ps1', 'Panel.ps1']) {
+    await fsp.copyFile(path.join(from, name), path.join(to, name));
+  }
+
+  const bat = await fsp.readFile(path.join(ROOT, 'Panel.bat'), 'utf8');
+  await fsp.writeFile(path.join(staging, 'Panel.bat'), bat.replace(/\r?\n/g, '\r\n'), 'utf8');
+  log('Panel de control incluido (Panel.bat).');
 }
 
 /* ------------------------------------------------------------------ */
@@ -421,6 +443,7 @@ asegurate de que el servicio este en ejecucion antes de arrancar.
 CONTENIDO
 ---------
   start.bat            Lanzador (doble clic para iniciar todo)
+  Panel.bat            Panel de control (estado, iniciar, respaldar)
   README-PORTABLE.txt  Este archivo
   node\\node.exe        Node.js LTS x64 portable (no requiere instalar)
   dist\\               Frontend compilado
@@ -442,6 +465,16 @@ COMO ARRANCAR
 6. Se abrira el navegador en http://localhost:3002 (o el puerto elegido).
 
 Para DETENER el sistema: cierra la ventana negra del servidor.
+
+PANEL DE CONTROL
+----------------
+Doble clic en  Panel.bat  para abrir el panel: muestra el estado del
+sistema, permite iniciar/detener, generar un respaldo de la base de
+datos y ver un diagnostico completo. Solo usa PowerShell de Windows,
+no hay que instalar nada adicional.
+
+En modo portable el respaldo automatico queda deshabilitado: usa la
+herramienta de MySQL (mysqldump) si necesitas una copia.
 
 Si necesitas cambiar los datos de MySQL despues: edita server\\.env con
 el Bloc de notas y vuelve a ejecutar start.bat. Para reconfigurar desde
@@ -585,6 +618,7 @@ async function main() {
   await preparePortableNode(staging);
   await copyDist(staging);
   await copyServer(staging);
+  await copyPanel(staging);
   await writeExtras(staging);
 
   const outZip = path.join(RELEASE_DIR, `${PACKAGE_NAME}.zip`);

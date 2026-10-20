@@ -196,3 +196,21 @@ Default users after seed: `admin/admin123`, `gerente/waiter123`, `cajero/waiter1
 ## No tests
 
 The project has no test framework. There is a single CI workflow (`.github/workflows/docker-build.yml`) that builds and pushes Docker images to GHCR — it does not run tests.
+
+## Panel de control (Windows)
+
+`Panel.bat` → `scripts/panel/Panel.ps1` (WPF) + `scripts/panel/Ops.ps1` (operaciones).
+
+- Sin dependencias: PowerShell 5.1 + .NET Framework 4.8 (vienen con Windows). No requiere Node ni npm.
+- Detecta el modo: **Docker** si existe `docker-compose.yml`, **Portable** si existen `node\node.exe` y `server\src\index.js`.
+- Estado, iniciar/detener/reiniciar, abrir POS, copiar URL, QR, respaldo (`mysqldump` vía `docker compose exec`), diagnóstico y logs.
+- El sondeo corre en un runspace aparte cada 4 s para no congelar la UI.
+- Se empaqueta también en el ZIP portable (`pack-portable.js` → `copyPanel`).
+
+**Importante:** los `.ps1` deben guardarse en **UTF-8 con BOM**. PowerShell 5.1 lee sin BOM como ANSI y rompe los acentos. `Panel.bat` debe ir en **CRLF**.
+
+Autotest sin abrir ventana:
+
+```powershell
+powershell -NoProfile -STA -ExecutionPolicy Bypass -File scripts\panel\Panel.ps1 -SelfTest
+```

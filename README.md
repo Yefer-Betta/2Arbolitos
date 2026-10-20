@@ -69,6 +69,25 @@ docker compose down
 
 ---
 
+## 🖥️ Panel de control (Windows)
+
+`Panel.bat` abre una ventana con el estado del sistema y las acciones del día a día. No requiere Node.js ni instalar nada: usa PowerShell 5.1 y WPF, incluidos en Windows 10/11. Funciona tanto con Docker como con el paquete portable.
+
+| Sección | Qué muestra / hace |
+|---------|--------------------|
+| **Estado** | Motor Docker, contenedores `db` / `backend` / `frontend`, `/api/health` y base de datos |
+| **Acceso** | URL local, URL de red para celulares, abrir el POS, copiar la URL y ver el QR |
+| **Acciones** | Iniciar · Detener (con confirmación) · Reiniciar · Abrir Docker Desktop si está cerrado |
+| **Respaldo** | Fecha del último respaldo y botón para generar uno en `backups/backup-*.sql` |
+| **Diagnóstico** | Revisión completa del entorno, con botón para copiar el resultado |
+| **Registro** | Últimas 200 líneas de los contenedores, filtrables por servicio |
+
+Doble clic en `Panel.bat`. En el paquete portable queda junto a `start.bat`.
+
+> El respaldo desde el panel solo está disponible en modo Docker (`mysqldump` dentro del contenedor). En modo portable el botón aparece deshabilitado.
+
+---
+
 ## 📦 Paquete Portable para Windows (sin Docker)
 
 Genera un ZIP autocontenido con **Node.js embebido**, el frontend compilado y el backend listo para correr. Ideal para equipos donde no se puede/ quiere instalar Docker.

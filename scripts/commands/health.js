@@ -117,11 +117,25 @@ async function main() {
     const ver = dockerAvail.stdout.trim();
     info(`Docker disponible: ${ver}`);
 
-    const composeCheck = spawnSync('docker', ['compose', 'ps', '--services'], { cwd: ROOT, stdio: 'pipe', encoding: 'utf8' });
-    if (composeCheck.status === 0 && composeCheck.stdout.includes('app')) {
-      info('Contenedores Docker activos (docker compose ps)');
-    } else {
-      info('Contenedores Docker no están activos (usa docker compose up -d)');
+    const composeCheck = spawnSync('docker', ['compose', 'ps', '--status', 'running', '--services'], {
+      cwd: ROOT,
+      stdio: 'pipe',
+      encoding: 'utf8',
+    });
+    if (composeCheck.status === 0) {
+      const running = composeCheck.stdout
+        .split(/\r?\n/)
+        .map(name => name.trim())
+        .filter(Boolean);
+      const expected = ['db', 'backend', 'frontend'];
+      const missing = expected.filter(name => !running.includes(name));
+      if (running.length === 0) {
+        info('Contenedores Docker no están activos (usa docker compose up -d)');
+      } else if (missing.length === 0) {
+        info('Contenedores Docker activos (db, backend, frontend)');
+      } else {
+        warn('Contenedores Docker incompletos', `faltan: ${missing.join(', ')}`);
+      }
     }
   }
 

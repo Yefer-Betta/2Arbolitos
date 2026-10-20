@@ -10,6 +10,9 @@ lerna-debug.log*
 # Dependency directories
 node_modules/
 
+# Respaldos de la base de datos (generados por el panel o npm run backup)
+backups/
+
 # Build output
 dist
 build

@@ -7,6 +7,11 @@ Dockerfile* text eol=lf
 
 # Keep batch files with CRLF (Windows native)
 *.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PowerShell scripts run on Windows: CRLF (UTF-8 with BOM is committed as-is)
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
 
 # Auto-detect for source code
 *.js text
