@@ -4,18 +4,27 @@ import { cn } from '../lib/utils';
 export function Modal({ isOpen, onClose, label, children, className, maxWidth = 'max-w-sm sm:max-w-md' }) {
     const dialogRef = useRef(null);
     const previouslyFocusedRef = useRef(null);
+    // onClose suele ser una funcion nueva en cada render del padre. Guardarla en
+    // un ref evita re-ejecutar los efectos (y robar el foco) al escribir.
+    const onCloseRef = useRef(onClose);
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    });
 
     useEffect(() => {
         if (!isOpen) return;
         previouslyFocusedRef.current = document.activeElement;
         dialogRef.current?.focus();
+        return () => {
+            previouslyFocusedRef.current?.focus?.();
+        };
     }, [isOpen]);
 
     useEffect(() => {
         if (!isOpen) return;
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') {
-                onClose();
+                onCloseRef.current?.();
                 return;
             }
             if (e.key !== 'Tab') return;
@@ -39,9 +48,8 @@ export function Modal({ isOpen, onClose, label, children, className, maxWidth = 
         document.addEventListener('keydown', handleKeyDown);
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
-            previouslyFocusedRef.current?.focus?.();
         };
-    }, [isOpen, onClose]);
+    }, [isOpen]);
 
     if (!isOpen) return null;
 

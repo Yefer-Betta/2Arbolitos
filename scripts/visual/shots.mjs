@@ -80,6 +80,37 @@ const SCENARIOS = [
   { name: 'administracion-permisos', tab: 'admin', click: 'Permisos' },
   { name: 'administracion-asistencia', tab: 'admin', click: 'Asistencia' },
   { name: 'auditoria', tab: 'audit' },
+  { name: 'login-oscuro', anonymous: true, dark: true },
+  { name: 'historial-oscuro', tab: 'history', dark: true },
+  { name: 'menu-oscuro', tab: 'menu', dark: true },
+  { name: 'proveedores-oscuro', tab: 'suppliers', dark: true },
+  { name: 'escandallo-oscuro', tab: 'escandallo', dark: true },
+  { name: 'auditoria-oscuro', tab: 'audit', dark: true },
+  { name: 'inventario-oscuro', tab: 'inventory', dark: true },
+  { name: 'contabilidad-oscuro', tab: 'finance', dark: true },
+  { name: 'clientes-oscuro', tab: 'customers', dark: true },
+  { name: 'administracion-oscuro', tab: 'admin', dark: true },
+  {
+    name: 'cobro',
+    tab: 'pos',
+    clickSelector: '[aria-label^="Mesa 1:"]',
+    settle: 700,
+    addItems: 2,
+    clickAfter: ['Cobrar', 'Agregar método de pago'],
+    typeAmount: '1234',
+    clearTable: 'mesa-1',
+  },
+  {
+    name: 'cobro-oscuro',
+    tab: 'pos',
+    clickSelector: '[aria-label^="Mesa 1:"]',
+    settle: 700,
+    addItems: 2,
+    clickAfter: ['Cobrar', 'Agregar método de pago'],
+    dark: true,
+    typeAmount: '1234',
+    clearTable: 'mesa-1',
+  },
 ];
 
 function arg(name, fallback = null) {
@@ -399,6 +430,50 @@ async function main() {
               await sleep(450);
             }
             await sleep(500);
+          }
+
+          if (scenario.clickAfter) {
+            for (const label of scenario.clickAfter) {
+              const text = JSON.stringify(label);
+              await cdp.send(
+                'Runtime.evaluate',
+                {
+                  expression: `(() => {
+                    const target = [...document.querySelectorAll('button, a')].find(el => el.textContent.trim().includes(${text}));
+                    if (!target) return 'no-encontrado';
+                    target.click();
+                    return 'ok';
+                  })()`,
+                  returnByValue: true,
+                },
+                sessionId,
+              );
+              await sleep(scenario.settle || 700);
+            }
+          }
+
+          // Teclea digito a digito y comprueba que el campo conserve el foco
+          // (regresion: el modal robaba el foco al re-renderizar el padre).
+          if (scenario.typeAmount) {
+            const selector = 'input[inputmode="numeric"]';
+            const focusReport = [];
+            await evaluate(cdp, sessionId, `document.querySelector(${JSON.stringify(selector)})?.focus()`);
+            await sleep(150);
+            for (const ch of String(scenario.typeAmount)) {
+              await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', text: ch, key: ch, windowsVirtualKeyCode: ch.charCodeAt(0) }, sessionId);
+              await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: ch, windowsVirtualKeyCode: ch.charCodeAt(0) }, sessionId);
+              await sleep(140);
+              const state = await evaluate(
+                cdp,
+                sessionId,
+                `(() => {
+                  const el = document.querySelector(${JSON.stringify(selector)});
+                  return { focused: document.activeElement === el, value: el?.value ?? null };
+                })()`,
+              );
+              focusReport.push(state);
+            }
+            console.log(`tecleo ${viewport.name}/${scenario.name}: ${JSON.stringify(focusReport)}`);
           }
 
           const { data } = await cdp.send(

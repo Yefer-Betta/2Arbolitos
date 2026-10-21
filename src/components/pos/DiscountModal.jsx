@@ -6,24 +6,24 @@ export function DiscountModal({ showDiscountModal, setShowDiscountModal, discoun
     return (
             <Modal isOpen={showDiscountModal} onClose={() => setShowDiscountModal(false)} label="Aplicar descuento">
                     <div className="overflow-hidden">
-                        <div className="p-4 sm:p-6 bg-orange-500 text-white flex justify-between items-center">
+                        <div className="p-4 sm:p-6 bg-secondary text-primary-dark flex justify-between items-center">
                             <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
                                 <Percent className="w-5 h-5 sm:w-6 sm:h-6" />
                                 Aplicar Descuento
                             </h2>
-                            <button onClick={() => setShowDiscountModal(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/20 rounded-full transition-colors" aria-label="Cerrar">
+                            <button onClick={() => setShowDiscountModal(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-black/10 rounded-full transition-colors" aria-label="Cerrar">
                                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         </div>
 
                         <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                            <div className="bg-gray-50 p-3 sm:p-4 rounded-xl">
+                            <div className="bg-surface p-3 sm:p-4 rounded-xl">
                                 <div className="flex justify-between items-center mb-2">
-                                    <span className="text-gray-600 text-sm">Precio Original:</span>
-                                    <span className="text-lg sm:text-xl font-bold text-gray-800">${discountData.originalCop.toLocaleString()}</span>
+                                    <span className="text-ink-muted text-sm">Precio Original:</span>
+                                    <span className="text-lg sm:text-xl font-bold text-ink">${discountData.originalCop.toLocaleString()}</span>
                                 </div>
                                 {discountData.discountValue > 0 && (
-                                    <div className="flex justify-between items-center text-red-500 text-sm">
+                                    <div className="flex justify-between items-center text-danger text-sm">
                                         <span>Descuento actual:</span>
                                         <span className="font-bold">-{discountData.discountPercent.toFixed(1)}% (${discountData.discountValue.toLocaleString()})</span>
                                     </div>
@@ -31,12 +31,12 @@ export function DiscountModal({ showDiscountModal, setShowDiscountModal, discoun
                             </div>
 
                             <div>
-                                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
+                                <label className="block text-xs sm:text-sm font-bold text-ink mb-2">
                                     Nuevo Precio Final (COP)
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span className="text-gray-500 font-bold text-lg">$</span>
+                                        <span className="text-ink-muted font-bold text-lg">$</span>
                                     </div>
                                     <input
                                         type="number"
@@ -49,10 +49,10 @@ export function DiscountModal({ showDiscountModal, setShowDiscountModal, discoun
                                 </div>
                             </div>
 
-                            <div className="text-center text-gray-400 text-sm font-bold">— o —</div>
+                            <div className="text-center text-ink-soft text-sm font-bold">— o —</div>
 
                             <div>
-                                <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">
+                                <label className="block text-xs sm:text-sm font-bold text-ink mb-2">
                                     Porcentaje de Descuento
                                 </label>
                                 <div className="relative">
@@ -66,16 +66,16 @@ export function DiscountModal({ showDiscountModal, setShowDiscountModal, discoun
                                         placeholder="Ej. 10"
                                     />
                                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                        <span className="text-gray-500 font-bold text-lg">%</span>
+                                        <span className="text-ink-muted font-bold text-lg">%</span>
                                     </div>
                                 </div>
                             </div>
 
                             {(discountFinalPrice && parseFloat(discountFinalPrice) > 0) || (discountPercent && parseFloat(discountPercent) > 0) ? (
-                                <div className="bg-green-50 p-3 sm:p-4 rounded-xl border border-green-200">
+                                <div className="bg-ok-soft p-3 sm:p-4 rounded-xl border border-ok/30">
                                     <div className="text-center">
-                                        <p className="text-xs sm:text-sm text-green-600 font-bold uppercase mb-1">Nuevo Descuento</p>
-                                        <p className="text-xl sm:text-2xl font-bold text-red-600">
+                                        <p className="text-xs sm:text-sm text-ok font-bold uppercase mb-1">Nuevo Descuento</p>
+                                        <p className="text-xl sm:text-2xl font-bold text-danger">
                                             -${discountData.discountValue.toLocaleString()}
                                             <span className="text-xs sm:text-sm ml-2">
                                                 ({discountData.discountPercent.toFixed(1)}%)

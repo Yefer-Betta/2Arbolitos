@@ -22,32 +22,32 @@ export function CheckoutModal({ isCheckoutOpen, closeCheckout, showRecipe, total
                             <div className="p-4 sm:p-8 space-y-4 sm:space-y-6">
                                 {/* Totals Display */}
                                 <div className="flex gap-2 sm:gap-4 p-3 sm:p-4 bg-surface rounded-xl sm:rounded-2xl border border-primary/10">
-                                    <div className="flex-1 text-center border-r border-gray-200 py-2">
-                                        <p className="text-gray-500 text-xs font-bold uppercase">Total a Pagar</p>
+                                    <div className="flex-1 text-center border-r border-line py-2">
+                                        <p className="text-ink-muted text-xs font-bold uppercase">Total a Pagar</p>
                                         <p className="text-xl sm:text-3xl font-bold text-ink-brand">${totals.cop.toLocaleString()}</p>
-                                        <p className="text-xs sm:text-sm text-gray-400">COP</p>
+                                        <p className="text-xs sm:text-sm text-ink-soft">COP</p>
                                         {discountData.discountValue > 0 && (
-                                            <p className="text-xs text-red-500 font-bold mt-1">
+                                            <p className="text-xs text-danger font-bold mt-1">
                                                 -{discountData.discountPercent.toFixed(1)}% (${discountData.discountValue.toLocaleString()})
                                             </p>
                                         )}
                                     </div>
-                                    <div className="flex-1 text-center border-r border-gray-200 py-2">
-                                        <p className="text-gray-500 text-xs font-bold uppercase">Equivalente</p>
+                                    <div className="flex-1 text-center border-r border-line py-2">
+                                        <p className="text-ink-muted text-xs font-bold uppercase">Equivalente</p>
                                         <p className="text-xl sm:text-3xl font-bold text-secondary">${totals.usd.toFixed(2)}</p>
-                                        <p className="text-xs sm:text-sm text-gray-400">USD</p>
+                                        <p className="text-xs sm:text-sm text-ink-soft">USD</p>
                                     </div>
                                     <div className="flex-1 text-center py-2">
-                                        <p className="text-gray-500 text-xs font-bold uppercase">Equivalente</p>
-                                        <p className="text-xl sm:text-3xl font-bold text-yellow-600">{totals.bs.toFixed(2)} Bs.</p>
-                                        <p className="text-xs sm:text-sm text-gray-400">Bs.</p>
+                                        <p className="text-ink-muted text-xs font-bold uppercase">Equivalente</p>
+                                        <p className="text-xl sm:text-3xl font-bold text-warn">{totals.bs.toFixed(2)} Bs.</p>
+                                        <p className="text-xs sm:text-sm text-ink-soft">Bs.</p>
                                     </div>
                                 </div>
 
                                 {/* Discount Button */}
                                 <button
                                     onClick={() => setShowDiscountModal(true)}
-                                    className="w-full flex items-center justify-center gap-2 py-2 px-3 sm:px-4 rounded-lg sm:rounded-xl border-2 border-dashed border-orange-300 text-orange-600 hover:bg-orange-50 transition-colors text-sm"
+                                    className="w-full flex items-center justify-center gap-2 py-2 px-3 sm:px-4 rounded-lg sm:rounded-xl border-2 border-dashed border-warn/40 text-warn hover:bg-warn-soft transition-colors text-sm"
                                 >
                                     <Percent className="w-4 h-4 sm:w-5 sm:h-5" />
                                     <span className="font-bold">{discountData.discountValue > 0 ? 'Modificar Descuento' : 'Aplicar Descuento'}</span>
@@ -55,22 +55,22 @@ export function CheckoutModal({ isCheckoutOpen, closeCheckout, showRecipe, total
 
                                 {/* Mixed Payments Section */}
                                 <div>
-                                    <label className="block text-xs sm:text-sm font-bold text-gray-700 mb-2">Métodos de Pago</label>
+                                    <label className="block text-xs sm:text-sm font-bold text-ink mb-2">Métodos de Pago</label>
 
                                     {paymentSplits.length === 0 && (
-                                        <p className="text-sm text-gray-400 mb-3 text-center">Agrega uno o más métodos de pago</p>
+                                        <p className="text-sm text-ink-soft mb-3 text-center">Agrega uno o más métodos de pago</p>
                                     )}
 
                                     <div className="space-y-3">
                                         {paymentSplits.map((split, idx) => {
                                             const sc = getSplitChange(split);
                                             return (
-                                                <div key={split.id} className="border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
+                                                <div key={split.id} className="border border-line rounded-xl p-3 space-y-2 bg-surface">
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <span className="text-xs font-bold text-gray-500 uppercase">Pago #{idx + 1}</span>
+                                                        <span className="text-xs font-bold text-ink-muted uppercase">Pago #{idx + 1}</span>
                                                         <button
                                                             onClick={() => removePaymentSplit(split.id)}
-                                                            className="text-red-400 hover:text-red-600 p-1"
+                                                            className="text-danger/60 hover:text-danger p-1"
                                                             disabled={paymentSplits.length === 1}
                                                         >
                                                             <Trash2 className="w-4 h-4" />
@@ -91,7 +91,7 @@ export function CheckoutModal({ isCheckoutOpen, closeCheckout, showRecipe, total
                                                         </select>
 
                                                         <div className="relative">
-                                                            <span className="absolute inset-y-0 left-2 flex items-center text-gray-500 text-xs font-bold">{split.currency === 'USD' ? '$' : split.currency === 'Bs.' ? 'Bs.' : '$'}</span>
+                                                            <span className="absolute inset-y-0 left-2 flex items-center text-ink-muted text-xs font-bold">{split.currency === 'USD' ? '$' : split.currency === 'Bs.' ? 'Bs.' : '$'}</span>
                                                             <input
                                                                 type="text"
                                                                 inputMode="numeric"
@@ -106,9 +106,7 @@ export function CheckoutModal({ isCheckoutOpen, closeCheckout, showRecipe, total
                                                                         e.target.value = formatted;
                                                                     }
                                                                 }}
-                                                                onFocus={e => {
-                                                                    e.target.value = split.amount;
-                                                                }}
+                                                                onFocus={e => e.target.select()}
                                                                 className="input-field pl-6 text-sm font-bold text-right"
                                                                 placeholder="0"
                                                             />
@@ -118,7 +116,7 @@ export function CheckoutModal({ isCheckoutOpen, closeCheckout, showRecipe, total
                                                     {split.method !== 'nequi' && split.method !== 'card' && (
                                                         <div className={cn(
                                                             "text-xs font-bold px-2 py-1 rounded flex justify-between",
-                                                            sc.changeCop >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                            sc.changeCop >= 0 ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"
                                                         )}>
                                                             {split.method === 'cash_usd' ? (
                                                                 <span>Cambio USD: ${Math.abs(sc.changeUsd).toFixed(2)}</span>
@@ -146,8 +144,8 @@ export function CheckoutModal({ isCheckoutOpen, closeCheckout, showRecipe, total
                                 <div aria-live="polite" className={cn(
                                     "p-3 sm:p-4 rounded-xl border",
                                     isFullyPaid
-                                        ? "bg-green-50 border-green-300 text-green-700"
-                                        : "bg-yellow-50 border-yellow-300 text-yellow-700"
+                                        ? "bg-ok-soft border-ok/30 text-ok"
+                                        : "bg-warn-soft border-warn/30 text-warn"
                                 )}>
                                     <div className="flex justify-between items-center text-sm font-bold">
                                         <span>Total</span>
@@ -157,7 +155,7 @@ export function CheckoutModal({ isCheckoutOpen, closeCheckout, showRecipe, total
                                         <span>Pagado</span>
                                         <span>${totalPaidCop.toLocaleString()} COP</span>
                                     </div>
-                                    <div className="flex justify-between items-center text-base font-bold mt-1 pt-1 border-t border-white/50">
+                                    <div className="flex justify-between items-center text-base font-bold mt-1 pt-1 border-t border-line">
                                         <span>{isFullyPaid ? 'Completado' : 'Faltante'}</span>
                                         <span>${isFullyPaid ? '0' : remaining.toLocaleString()} COP</span>
                                     </div>
