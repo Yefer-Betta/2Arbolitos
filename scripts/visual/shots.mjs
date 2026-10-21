@@ -64,6 +64,11 @@ const SCENARIOS = [
   { name: 'cocina', tab: 'kitchen' },
   { name: 'historial', tab: 'history' },
   { name: 'inventario', tab: 'inventory' },
+  { name: 'menu', tab: 'menu' },
+  { name: 'contabilidad', tab: 'finance' },
+  { name: 'contabilidad-ventas', tab: 'finance', click: 'Consultar ventas' },
+  { name: 'ajustes', tab: 'settings' },
+  { name: 'ajustes-servidor', tab: 'settings', click: 'Servidor' },
 ];
 
 function arg(name, fallback = null) {
@@ -200,7 +205,21 @@ async function waitReady(cdp, sessionId, timeout = 20000) {
  */
 async function resetLocalData(cdp, sessionId) {
   await cdp.send('Page.navigate', { url: `${BASE}/logo.png` }, sessionId).catch(() => {});
-  await sleep(350);
+
+  // Esperar a que la app anterior se descargue del todo: si sigue abierta,
+  // mantiene la conexion a IndexedDB y el borrado queda bloqueado.
+  const start = Date.now();
+  while (Date.now() - start < 5000) {
+    const ready = await evaluate(
+      cdp,
+      sessionId,
+      "location.pathname === '/logo.png' && document.readyState === 'complete'",
+    ).catch(() => false);
+    if (ready) break;
+    await sleep(100);
+  }
+  await sleep(150);
+
   await evaluate(
     cdp,
     sessionId,
@@ -318,7 +337,13 @@ async function main() {
 
           const url = scenario.tab ? `${BASE}/?tab=${scenario.tab}` : `${BASE}/`;
           await cdp.send('Page.navigate', { url }, sessionId).catch(() => {});
-          await waitReady(cdp, sessionId);
+          try {
+            await waitReady(cdp, sessionId, 12000);
+          } catch {
+            // Reintento unico: algunas cargas se quedan esperando el SSE inicial.
+            await cdp.send('Page.reload', {}, sessionId).catch(() => {});
+            await waitReady(cdp, sessionId, 15000);
+          }
           await sleep(scenario.settle ? 1400 : 1600);
 
           if (scenario.clickSelector) {

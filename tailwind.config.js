@@ -37,20 +37,20 @@ export default {
         },
         // Estados con par texto/fondo
         ok: {
-          DEFAULT: '#067647',
-          soft: '#E7F6EC',
+          DEFAULT: 'var(--app-ok)',
+          soft: 'var(--app-ok-soft)',
         },
         warn: {
-          DEFAULT: '#B54708',
-          soft: '#FEF3E7',
+          DEFAULT: 'var(--app-warn)',
+          soft: 'var(--app-warn-soft)',
         },
         danger: {
-          DEFAULT: '#B42318',
-          soft: '#FEECEB',
+          DEFAULT: 'var(--app-danger)',
+          soft: 'var(--app-danger-soft)',
         },
         info: {
-          DEFAULT: '#175CD3',
-          soft: '#EFF4FF',
+          DEFAULT: 'var(--app-info)',
+          soft: 'var(--app-info-soft)',
         },
       },
       fontSize: {

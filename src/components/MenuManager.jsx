@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useMenu } from '../context/MenuContext';
 import { useSettings } from '../context/SettingsContext';
-import { Plus, Trash2, Edit2, X, Check, Search, Utensils, Package } from 'lucide-react';
+import { Plus, Trash2, Pencil, X, Check, Search, Utensils, Package, DollarSign, Layers } from 'lucide-react';
 import { apiGet } from '../lib/api.js';
 import { useConfirm, useToast } from './ui/feedback-context';
+import { PageHeader } from './ui/PageHeader';
+import { Panel, PanelHeader } from './ui/Panel';
+import { StatCard } from './ui/StatCard';
+import { Badge } from './ui/Badge';
+import { EmptyState } from './ui/EmptyState';
 
 export function MenuManager() {
     const { products, categories, addProduct, updateProduct, deleteProduct } = useMenu();
@@ -13,15 +18,19 @@ export function MenuManager() {
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [inventoryItems, setInventoryItems] = useState([]);
+    const [search, setSearch] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('all');
 
     // Load inventory items for linking
     const loadInventory = useCallback(async () => {
         try {
             const data = await apiGet('/inventory');
             if (Array.isArray(data)) setInventoryItems(data);
-        } catch {}
+        } catch { /* sin datos */ }
     }, []);
 
+    // Carga inicial asincrona: el setState ocurre tras el await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { loadInventory(); }, [loadInventory]);
 
     // Form state
@@ -53,12 +62,12 @@ export function MenuManager() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
+
         if (!formData.categoryId) {
             toast.error('Por favor selecciona una categoría');
             return;
         }
-        
+
         const productData = {
             name: formData.name,
             categoryId: formData.categoryId,
@@ -75,69 +84,81 @@ export function MenuManager() {
         resetForm();
     };
 
-    // Helper to display price
     const formatPrice = (price, isUsd) => {
-        if (isUsd) {
-            return `$${price.toFixed(2)} USD`;
-        }
-        return `$${price.toLocaleString()} COP`;
+        if (isUsd) return `$${Number(price).toFixed(2)} USD`;
+        return `$${Number(price).toLocaleString('es-CO')} COP`;
     };
 
     const calculateConverted = (price, isUsd) => {
-        if (isUsd) {
-            return `$${(price * exchangeRate).toLocaleString()} COP`;
-        }
+        if (!exchangeRate) return '';
+        if (isUsd) return `$${Math.round(price * exchangeRate).toLocaleString('es-CO')} COP`;
         return `$${(price / exchangeRate).toFixed(2)} USD`;
-    }
+    };
+
+    const filtered = products.filter(product => {
+        if (categoryFilter !== 'all' && product.categoryId !== categoryFilter) return false;
+        if (search) {
+            const term = search.toLowerCase();
+            const inName = product.name?.toLowerCase().includes(term);
+            const inCategory = product.category?.toLowerCase().includes(term);
+            if (!inName && !inCategory) return false;
+        }
+        return true;
+    });
+
+    const usdCount = products.filter(p => p.isUsd).length;
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Menú del Restaurante</h2>
-                    <p className="text-gray-500 text-sm">Gestiona tus productos y precios</p>
-                </div>
-                {!isAdding && (
-                    <button
-                        onClick={() => setIsAdding(true)}
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Nuevo Producto
-                    </button>
-                )}
+        <div className="space-y-4">
+            <PageHeader
+                title="Menú"
+                subtitle="Productos, categorías y precios de venta."
+                actions={
+                    !isAdding ? (
+                        <button onClick={() => setIsAdding(true)} className="btn-primary h-9 px-3.5 text-[13px]">
+                            <Plus className="h-4 w-4" aria-hidden="true" />
+                            Nuevo producto
+                        </button>
+                    ) : null
+                }
+            />
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                <StatCard label="Productos" value={products.length} hint="Disponibles en el POS" icon={Utensils} tone="brand" />
+                <StatCard label="Categorías" value={categories.length} hint="Agrupación del menú" icon={Layers} tone="neutral" />
+                <StatCard label="Precios en USD" value={usdCount} hint="El resto se cobra en COP" icon={DollarSign} tone="info" className="col-span-2 sm:col-span-1" />
             </div>
 
             {isAdding && (
-                <div className="card p-8 bg-white border border-primary/10 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary"></div>
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-primary flex items-center gap-2">
-                            {editingId ? <Edit2 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                            {editingId ? 'Editar Producto' : 'Nuevo Producto'}
-                        </h3>
-                        <button onClick={resetForm} className="text-gray-400 hover:text-red-500 transition-colors"><X className="w-6 h-6" /></button>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="col-span-2 md:col-span-1">
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Nombre del Producto</label>
+                <Panel>
+                    <PanelHeader
+                        title={editingId ? 'Editar producto' : 'Nuevo producto'}
+                        subtitle="El precio se puede fijar en COP o USD."
+                        actions={
+                            <button onClick={resetForm} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" aria-label="Cerrar formulario">
+                                <X className="h-4 w-4" />
+                            </button>
+                        }
+                    />
+                    <form onSubmit={handleSubmit} className="grid gap-3 p-4 sm:grid-cols-2">
+                        <div>
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Nombre del producto</label>
                             <input
                                 required
                                 type="text"
-                                placeholder="Ej. Hamburguesa de la Casa"
+                                placeholder="Ej. Hamburguesa de la casa"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                className="input-field"
+                                className="input-field h-9"
                             />
                         </div>
-                        <div className="col-span-2 md:col-span-1">
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Categoría</label>
+                        <div>
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Categoría</label>
                             <select
                                 required
                                 value={formData.categoryId}
                                 onChange={e => setFormData({ ...formData, categoryId: e.target.value })}
-                                className="input-field"
+                                className="input-field h-9"
                             >
                                 <option value="">Selecciona categoría</option>
                                 {categories.map(cat => (
@@ -146,9 +167,9 @@ export function MenuManager() {
                             </select>
                         </div>
 
-                        <div className="col-span-2 md:col-span-1">
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Precio Base</label>
-                            <div className="flex rounded-xl shadow-sm">
+                        <div>
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Precio base</label>
+                            <div className="flex gap-2">
                                 <input
                                     required
                                     type="number"
@@ -156,12 +177,13 @@ export function MenuManager() {
                                     placeholder="0.00"
                                     value={formData.price}
                                     onChange={e => setFormData({ ...formData, price: e.target.value })}
-                                    className="input-field rounded-r-none border-r-0"
+                                    className="input-field h-9"
                                 />
                                 <select
                                     value={formData.isUsd ? 'USD' : 'COP'}
                                     onChange={e => setFormData({ ...formData, isUsd: e.target.value === 'USD' })}
-                                    className="bg-gray-50 border border-gray-200 rounded-r-xl px-4 font-bold text-gray-700 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer hover:bg-gray-100"
+                                    className="input-field h-9 w-24 shrink-0"
+                                    aria-label="Moneda del precio"
                                 >
                                     <option value="COP">COP</option>
                                     <option value="USD">USD</option>
@@ -169,8 +191,8 @@ export function MenuManager() {
                             </div>
                         </div>
 
-                        <div className="col-span-2 md:col-span-1">
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Insumo vinculado</label>
+                        <div>
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Insumo vinculado</label>
                             <select
                                 value={formData.inventoryItemId}
                                 onChange={e => {
@@ -183,7 +205,7 @@ export function MenuManager() {
                                         price: selected && selected.unitCost && !prev.price ? String(selected.unitCost) : prev.price,
                                     }));
                                 }}
-                                className="input-field"
+                                className="input-field h-9"
                             >
                                 <option value="">Ninguno</option>
                                 {inventoryItems.map(inv => (
@@ -192,92 +214,183 @@ export function MenuManager() {
                                     </option>
                                 ))}
                             </select>
-                            <p className="text-xs text-gray-400 mt-1">Al vender este producto se descontar&aacute; del inventario</p>
+                            <p className="mt-1 text-2xs text-ink-soft">Al vender este producto se descuenta del inventario.</p>
                         </div>
 
-                        <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                className="btn-secondary"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                className="btn-primary flex items-center gap-2"
-                            >
-                                <Check className="w-5 h-5" />
-                                Guardar Producto
+                        <div className="flex items-end justify-end gap-2 sm:col-span-2">
+                            <button type="button" onClick={resetForm} className="btn-secondary h-9 px-3 text-[13px]">Cancelar</button>
+                            <button type="submit" className="btn-primary h-9 px-3.5 text-[13px]">
+                                <Check className="h-4 w-4" aria-hidden="true" />
+                                {editingId ? 'Guardar cambios' : 'Crear producto'}
                             </button>
                         </div>
                     </form>
-                </div>
+                </Panel>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {products.length === 0 ? (
-                    <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
-                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                            <Utensils className="w-8 h-8 opacity-20" />
+            <Panel>
+                <PanelHeader
+                    title="Catálogo"
+                    subtitle={`${filtered.length} de ${products.length} productos`}
+                    actions={
+                        <div className="flex w-full items-center gap-2 sm:w-auto">
+                            <div className="relative flex-1 sm:w-56">
+                                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft" />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar producto..."
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    className="input-field h-8 pl-8 text-[13px]"
+                                />
+                            </div>
+                            <select
+                                value={categoryFilter}
+                                onChange={e => setCategoryFilter(e.target.value)}
+                                className="input-field h-8 w-auto min-w-[8rem] text-[13px]"
+                                aria-label="Filtrar por categoría"
+                            >
+                                <option value="all">Todas</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                            </select>
                         </div>
-                        <p className="font-medium">Tu menú está vacío</p>
-                        <button onClick={() => setIsAdding(true)} className="mt-4 text-primary font-bold hover:underline">Agregar el primer plato</button>
-                    </div>
+                    }
+                />
+
+                {filtered.length === 0 ? (
+                    <EmptyState
+                        icon={Utensils}
+                        title="No hay productos en la vista"
+                        description="Ajusta la búsqueda o la categoría, o crea el primer producto del menú."
+                        action={
+                            !isAdding ? (
+                                <button onClick={() => setIsAdding(true)} className="btn-primary h-9 px-3.5 text-[13px]">
+                                    <Plus className="h-4 w-4" aria-hidden="true" />
+                                    Nuevo producto
+                                </button>
+                            ) : null
+                        }
+                    />
                 ) : (
-                    products.map((product) => (
-                        <div key={product.id} className="card p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden bg-white">
-                            <div className="absolute top-0 right-0 p-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 flex gap-2">
-                                <button
-                                    onClick={() => handleEditClick(product)}
-                                    className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-white text-blue-600 hover:bg-blue-50 rounded-lg shadow-sm"
-                                    title="Editar"
-                                    aria-label={`Editar ${product.name}`}
-                                >
-                                    <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        confirm({ title: `¿Eliminar ${product.name}?`, message: 'El producto dejará de estar disponible.', confirmLabel: 'Eliminar', danger: true }).then(ok => { if (ok) deleteProduct(product.id); });
-                                    }}
-                                    className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-white text-red-600 hover:bg-red-50 rounded-lg shadow-sm"
-                                    title="Eliminar"
-                                    aria-label={`Eliminar ${product.name}`}
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-
-                            <div>
-                                <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center mb-4 text-primary">
-                                    <Utensils className="w-5 h-5" />
-                                </div>
-                                <span className="inline-block px-2.5 py-1 text-xs font-bold bg-primary/5 text-primary rounded-md mb-2 uppercase tracking-wide">
-                                    {product.category}
-                                </span>
-                                {product.inventoryItems?.length > 0 && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold bg-amber-50 text-amber-700 rounded-md mb-2 ml-1">
-                                        <Package className="w-3 h-3" />
-                                        {product.inventoryItems[0].quantity} {product.inventoryItems[0].unit}
+                    <>
+                        <div className="divide-y divide-line-soft md:hidden">
+                            {filtered.map(product => (
+                                <div key={product.id} className="flex items-start gap-3 px-4 py-3">
+                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface text-ink-muted">
+                                        <Utensils className="h-4 w-4" aria-hidden="true" />
                                     </span>
-                                )}
-                                <h3 className="font-bold text-lg text-gray-800 leading-tight mb-1">{product.name}</h3>
-                            </div>
-
-                            <div className="mt-4 pt-4 border-t border-gray-50">
-                                <div className="flex justify-between items-baseline">
-                                    <div className="text-2xl font-bold text-primary">
-                                        {formatPrice(product.price, product.isUsd)}
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-[13px] font-semibold text-ink">{product.name}</p>
+                                        <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                                            <Badge tone="neutral" className="rounded-md">{product.category}</Badge>
+                                            {product.inventoryItems?.length > 0 && (
+                                                <Badge tone="warn" className="rounded-md">
+                                                    <Package className="h-3 w-3" />
+                                                    {product.inventoryItems[0].quantity} {product.inventoryItems[0].unit}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <p className="num mt-1 text-[13px] font-semibold text-ink">
+                                            {formatPrice(product.price, product.isUsd)}
+                                            <span className="ml-1.5 text-2xs font-normal text-ink-soft">
+                                                ≈ {calculateConverted(product.price, product.isUsd)}
+                                            </span>
+                                        </p>
                                     </div>
-                                    <div className="text-xs font-medium text-gray-400">
-                                        ≈ {calculateConverted(product.price, product.isUsd)}
+                                    <div className="flex shrink-0 items-center">
+                                        <button
+                                            onClick={() => handleEditClick(product)}
+                                            className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink"
+                                            aria-label={`Editar ${product.name}`}
+                                        >
+                                            <Pencil className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                confirm({ title: `¿Eliminar ${product.name}?`, message: 'El producto dejará de estar disponible.', confirmLabel: 'Eliminar', danger: true }).then(ok => { if (ok) deleteProduct(product.id); });
+                                            }}
+                                            className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-danger-soft hover:text-danger"
+                                            aria-label={`Eliminar ${product.name}`}
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
+                            ))}
                         </div>
-                    ))
+
+                        <div className="hidden overflow-x-auto md:block">
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Categoría</th>
+                                        <th className="text-right">Precio</th>
+                                        <th className="text-right">Equivalente</th>
+                                        <th className="w-20 text-right">
+                                            <span className="sr-only">Acciones</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map(product => (
+                                        <tr key={product.id}>
+                                            <td>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-surface text-ink-muted">
+                                                        <Utensils className="h-3.5 w-3.5" aria-hidden="true" />
+                                                    </span>
+                                                    <div className="min-w-0">
+                                                        <p className="truncate font-medium text-ink">{product.name}</p>
+                                                        {product.inventoryItems?.length > 0 && (
+                                                            <p className="num text-2xs text-ink-soft">
+                                                                Inventario: {product.inventoryItems[0].quantity} {product.inventoryItems[0].unit}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <Badge tone="neutral" className="rounded-md">{product.category}</Badge>
+                                            </td>
+                                            <td className="cell-num font-semibold text-ink">
+                                                {formatPrice(product.price, product.isUsd)}
+                                            </td>
+                                            <td className="cell-num text-2xs text-ink-soft">
+                                                ≈ {calculateConverted(product.price, product.isUsd)}
+                                            </td>
+                                            <td>
+                                                <div className="flex items-center justify-end">
+                                                    <button
+                                                        onClick={() => handleEditClick(product)}
+                                                        className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink"
+                                                        title="Editar"
+                                                        aria-label={`Editar ${product.name}`}
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            confirm({ title: `¿Eliminar ${product.name}?`, message: 'El producto dejará de estar disponible.', confirmLabel: 'Eliminar', danger: true }).then(ok => { if (ok) deleteProduct(product.id); });
+                                                        }}
+                                                        className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-danger-soft hover:text-danger"
+                                                        title="Eliminar"
+                                                        aria-label={`Eliminar ${product.name}`}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
-            </div>
+            </Panel>
         </div>
     );
 }

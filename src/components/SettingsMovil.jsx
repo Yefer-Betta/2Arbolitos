@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { Smartphone, QrCode, RefreshCw, Download } from 'lucide-react';
 import { useToast } from './ui/feedback-context';
+import { Panel, PanelHeader } from './ui/Panel';
 
 export function SettingsMovil() {
     const { serverUrl } = useSettings();
@@ -16,7 +17,7 @@ export function SettingsMovil() {
             const res = await fetch('/api/settings/qr');
             const data = await res.json();
             setQrSvg(data.qrSvg);
-        } catch {}
+        } catch { /* sin conexion */ }
         setQrLoading(false);
     };
 
@@ -60,74 +61,72 @@ export function SettingsMovil() {
         }
     };
 
-    useEffect(() => {
-        loadQr();
-    }, []);
+    // Carga asincrona del QR: el setState ocurre tras el fetch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => { loadQr(); }, []);
 
     return (
-        <div className="card p-6 sm:p-8 bg-gradient-to-br from-purple-50 to-violet-50 border-2 border-purple-200">
-            <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-purple-100 rounded-xl text-purple-600">
-                    <Smartphone className="w-6 h-6" />
-                </div>
-                <div>
-                    <h2 className="text-xl font-bold text-gray-800">Acceso Móvil</h2>
-                    <p className="text-sm text-purple-600 font-medium">Conecta celulares y tablets</p>
-                </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 border border-purple-100 text-center">
-                <p className="text-sm text-gray-600 mb-6">
-                    Escanea este código QR con tu <strong>celular</strong> o <strong>tablet</strong> para abrir la app.
-                    Todos los dispositivos deben estar en la <strong>misma red WiFi</strong>.
-                </p>
-
-                <div className="bg-gray-50 rounded-xl p-4 inline-block mb-4 max-w-full">
+        <Panel>
+            <PanelHeader
+                title="Acceso móvil"
+                subtitle="Celulares y tablets en la misma red WiFi."
+                actions={
+                    <span className="inline-flex items-center gap-1 text-2xs text-ink-muted">
+                        <Smartphone className="h-3.5 w-3.5" aria-hidden="true" />
+                        PWA
+                    </span>
+                }
+            />
+            <div className="grid gap-5 p-4 sm:grid-cols-[minmax(0,220px)_1fr] sm:items-start">
+                <div className="mx-auto rounded-2xl border border-line bg-white p-3">
                     {qrLoading ? (
-                        <div className="w-full max-w-[300px] h-[300px] flex items-center justify-center text-gray-400">
-                            <RefreshCw className="w-10 h-10 animate-spin" />
+                        <div className="flex h-[196px] w-[196px] items-center justify-center text-ink-soft">
+                            <RefreshCw className="h-8 w-8 animate-spin" />
                         </div>
                     ) : qrSvg ? (
-                        <div className="w-full max-w-[300px] mx-auto" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+                        <div
+                            className="h-[196px] w-[196px] [&>svg]:h-full [&>svg]:w-full"
+                            dangerouslySetInnerHTML={{ __html: qrSvg }}
+                        />
                     ) : (
-                        <div className="w-full max-w-[300px] h-[300px] flex items-center justify-center text-gray-400">
+                        <div className="flex h-[196px] w-[196px] items-center justify-center text-center text-2xs text-ink-soft">
                             Sin conexión al servidor
                         </div>
                     )}
                 </div>
 
-                <p className="text-sm text-gray-500 font-mono break-all bg-gray-100 rounded-lg p-3 mb-4 select-all">
-                    {serverUrl}
-                </p>
-
-                <div className="flex flex-wrap gap-3 justify-center">
-                    <button
-                        onClick={downloadQr}
-                        disabled={!qrSvg}
-                        className="btn-primary bg-purple-600 hover:bg-purple-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <Download className="w-4 h-4" />
-                        Descargar QR
-                    </button>
-                    <button
-                        onClick={copyUrl}
-                        disabled={!serverUrl}
-                        className="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <QrCode className="w-4 h-4" />
-                        Copiar URL
-                    </button>
-                    <a
-                        href="/qr"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-secondary inline-flex items-center gap-2"
-                    >
-                        <Smartphone className="w-4 h-4" />
-                        Abrir página QR
-                    </a>
+                <div>
+                    <p className="text-xs leading-relaxed text-ink-muted">
+                        Escanea el código con un celular o tablet para abrir la app. Todos los dispositivos
+                        deben estar en la misma red WiFi que este equipo.
+                    </p>
+                    <p className="mt-3 break-all rounded-lg bg-surface px-3 py-2 font-mono text-2xs text-ink select-all">
+                        {serverUrl || 'URL no disponible'}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                            onClick={downloadQr}
+                            disabled={!qrSvg}
+                            className="btn-primary h-9 px-3 text-[13px]"
+                        >
+                            <Download className="h-4 w-4" aria-hidden="true" />
+                            Descargar QR
+                        </button>
+                        <button
+                            onClick={copyUrl}
+                            disabled={!serverUrl}
+                            className="btn-secondary h-9 px-3 text-[13px]"
+                        >
+                            <QrCode className="h-4 w-4" aria-hidden="true" />
+                            Copiar URL
+                        </button>
+                        <a href="/qr" target="_blank" rel="noopener noreferrer" className="btn-secondary h-9 px-3 text-[13px]">
+                            <Smartphone className="h-4 w-4" aria-hidden="true" />
+                            Abrir página QR
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Panel>
     );
 }

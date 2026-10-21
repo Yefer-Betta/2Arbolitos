@@ -1,8 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api.js';
-import { Plus, Edit2, Trash2, X, Check, Package, AlertTriangle, Search, Filter, ArrowUp, ArrowDown, History } from 'lucide-react';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Check,
+  Package,
+  AlertTriangle,
+  Search,
+  ArrowUpDown,
+  History,
+  Boxes,
+  Wallet,
+} from 'lucide-react';
 import { useConfirm, useToast } from './ui/feedback-context';
 import { Modal } from './Modal';
+import { PageHeader } from './ui/PageHeader';
+import { Panel, PanelHeader } from './ui/Panel';
+import { StatCard } from './ui/StatCard';
+import { Badge } from './ui/Badge';
+import { EmptyState } from './ui/EmptyState';
+import { formatCurrency } from '../lib/utils';
 
 const UNITS = [
   { value: 'pcs', label: 'Unidades' },
@@ -13,6 +32,22 @@ const UNITS = [
   { value: 'lb', label: 'Libras' },
   { value: 'oz', label: 'Onzas' },
 ];
+
+const REASON_LABELS = { ajuste: 'Ajuste', compra: 'Compra', venta: 'Venta', merma: 'Merma', devolucion: 'Devolución' };
+
+function shortDate(value) {
+  return new Date(value).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function movementDate(value) {
+  return new Date(value).toLocaleString('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
 
 export function InventoryManager() {
   const toast = useToast();
@@ -37,13 +72,15 @@ export function InventoryManager() {
   const [loadingMovements, setLoadingMovements] = useState(false);
 
   const loadInventory = useCallback(async () => {
-    try { const data = await apiGet('/inventory'); if (Array.isArray(data)) setItems(data); } catch {}
+    try { const data = await apiGet('/inventory'); if (Array.isArray(data)) setItems(data); } catch { /* sin datos */ }
   }, []);
 
   const loadProducts = useCallback(async () => {
-    try { const data = await apiGet('/products'); if (Array.isArray(data)) setProducts(data); } catch {}
+    try { const data = await apiGet('/products'); if (Array.isArray(data)) setProducts(data); } catch { /* sin datos */ }
   }, []);
 
+  // Carga inicial asincrona: el setState ocurre tras el await, no en el render.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadInventory(); loadProducts(); }, [loadInventory, loadProducts]);
 
   const resetForm = () => {
@@ -120,170 +157,387 @@ export function InventoryManager() {
     return true;
   });
 
-  const REASON_LABELS = { ajuste: 'Ajuste', compra: 'Compra', venta: 'Venta', merma: 'Merma', devolucion: 'Devolución' };
+  const lowCount = items.filter(isLowStock).length;
+  const stockValue = items.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitCost) || 0), 0);
+
+  const rowActions = (item) => (
+    <div className="flex items-center justify-end gap-0.5">
+      <button
+        onClick={() => { setAdjustTarget(item); setAdjustQty(''); setAdjustReason('ajuste'); }}
+        className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink"
+        title="Ajustar stock"
+        aria-label={`Ajustar stock de ${item.name}`}
+      >
+        <ArrowUpDown className="h-3.5 w-3.5" />
+      </button>
+      <button
+        onClick={() => openMovements(item)}
+        className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink"
+        title="Historial de movimientos"
+        aria-label={`Ver movimientos de ${item.name}`}
+      >
+        <History className="h-3.5 w-3.5" />
+      </button>
+      <button
+        onClick={() => handleEdit(item)}
+        className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink"
+        title="Editar"
+        aria-label={`Editar ${item.name}`}
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+      <button
+        onClick={() => handleDelete(item.id)}
+        className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-danger-soft hover:text-danger"
+        title="Eliminar"
+        aria-label={`Eliminar ${item.name}`}
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Inventario de Insumos</h2>
-          <p className="text-gray-500 text-sm">Control de bebidas, materias primas y stock</p>
-        </div>
-        {!isFormOpen && (
-          <button onClick={() => setIsFormOpen(true)} className="btn-primary flex items-center gap-2">
-            <Plus className="w-5 h-5" /> Nuevo Insumo
-          </button>
-        )}
+    <div className="space-y-4">
+      <PageHeader
+        title="Inventario"
+        subtitle="Materias primas, stock mínimo y movimientos."
+        actions={
+          !isFormOpen ? (
+            <button onClick={() => setIsFormOpen(true)} className="btn-primary h-9 px-3.5 text-[13px]">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Nuevo insumo
+            </button>
+          ) : null
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+        <StatCard label="Insumos registrados" value={items.length} hint={lowFilter ? `${filtered.length} en la vista` : 'Materias primas y bebidas'} icon={Boxes} tone="brand" />
+        <StatCard label="Stock bajo" value={lowCount} hint={lowCount === 0 ? 'Todo por encima del mínimo' : 'Compras pendientes'} icon={AlertTriangle} tone={lowCount === 0 ? 'ok' : 'warn'} />
+        <StatCard label="Valor de inventario" value={formatCurrency(stockValue)} hint="Stock × costo unitario" icon={Wallet} tone="neutral" className="col-span-2 sm:col-span-1" />
       </div>
 
       {isFormOpen && (
-        <div className="card p-8 bg-white border border-primary/10 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary"></div>
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-bold text-primary flex items-center gap-2"><Package className="w-5 h-5" />{editingId ? 'Editar Insumo' : 'Nuevo Insumo'}</h3>
-            <button onClick={resetForm} className="text-gray-400 hover:text-red-500"><X className="w-6 h-6" /></button>
-          </div>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div><label className="block text-sm font-bold text-gray-700 mb-2">Nombre *</label><input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input-field" placeholder="Ej. Coca-Cola 2L" /></div>
-            <div><label className="block text-sm font-bold text-gray-700 mb-2">SKU / Código</label><input value={formData.sku} onChange={e => setFormData({ ...formData, sku: e.target.value })} className="input-field" placeholder="Ej. CC-2L-001" /></div>
-            <div><label className="block text-sm font-bold text-gray-700 mb-2">Proveedor</label><input value={formData.provider} onChange={e => setFormData({ ...formData, provider: e.target.value })} className="input-field" placeholder="Ej. Distribuidora XYZ" /></div>
-            <div className="flex gap-3">
-              <div className="flex-1"><label className="block text-sm font-bold text-gray-700 mb-2">Cantidad</label><input type="number" step="0.01" min="0" required value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} className="input-field" placeholder="0" /></div>
-              <div className="w-28"><label className="block text-sm font-bold text-gray-700 mb-2">Unidad</label><select value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} className="input-field">{UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}</select></div>
+        <Panel>
+          <PanelHeader
+            title={editingId ? 'Editar insumo' : 'Nuevo insumo'}
+            subtitle="El stock se ajusta después desde la tabla."
+            actions={
+              <button onClick={resetForm} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" aria-label="Cerrar formulario">
+                <X className="h-4 w-4" />
+              </button>
+            }
+          />
+          <form onSubmit={handleSubmit} className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Nombre *</label>
+              <input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input-field h-9" placeholder="Ej. Coca-Cola 2L" />
             </div>
-            <div><label className="block text-sm font-bold text-gray-700 mb-2">Stock Mínimo</label><input type="number" step="0.01" min="0" value={formData.minStock} onChange={e => setFormData({ ...formData, minStock: e.target.value })} className="input-field" placeholder="0" /></div>
-            <div><label className="block text-sm font-bold text-gray-700 mb-2">Vencimiento</label><input type="date" value={formData.expirationDate} onChange={e => setFormData({ ...formData, expirationDate: e.target.value })} className="input-field" /></div>
-            <div><label className="block text-sm font-bold text-gray-700 mb-2">Costo Unitario</label><input type="number" step="0.01" min="0" value={formData.unitCost} onChange={e => setFormData({ ...formData, unitCost: e.target.value })} className="input-field" placeholder="0.00" /></div>
-            <div><label className="block text-sm font-bold text-gray-700 mb-2">Producto asociado</label><select value={formData.productId} onChange={e => setFormData({ ...formData, productId: e.target.value })} className="input-field"><option value="">Ninguno</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-            <div className="col-span-3 flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
-              <button type="button" onClick={resetForm} className="btn-secondary">Cancelar</button>
-              <button type="submit" className="btn-primary flex items-center gap-2"><Check className="w-5 h-5" /> Guardar</button>
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">SKU / Código</label>
+              <input value={formData.sku} onChange={e => setFormData({ ...formData, sku: e.target.value })} className="input-field h-9" placeholder="Ej. CC-2L-001" />
             </div>
-          </form>
-        </div>
-      )}
-
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input type="text" placeholder="Buscar insumo..." value={search} onChange={e => setSearch(e.target.value)} className="input-field pl-10" />
-        </div>
-        <button onClick={() => setLowFilter(!lowFilter)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${lowFilter ? 'bg-red-50 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-          <Filter className="w-4 h-4" /> Stock bajo
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filtered.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4"><Package className="w-8 h-8 opacity-20" /></div>
-            <p className="font-medium">{lowFilter ? 'No hay insumos con stock bajo' : 'No hay insumos registrados'}</p>
-            {!isFormOpen && <button onClick={() => setIsFormOpen(true)} className="mt-4 text-primary font-bold hover:underline">Agregar el primer insumo</button>}
-          </div>
-        ) : (
-          filtered.map(item => (
-            <div key={item.id} className={`card p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden bg-white ${isLowStock(item) ? 'border-l-4 border-l-red-500' : ''}`}>
-              <div className="absolute top-0 right-0 p-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 flex gap-1">
-                <button onClick={() => { setAdjustTarget(item); setAdjustQty(''); setAdjustReason('ajuste'); }} className="p-2 bg-white text-green-600 hover:bg-green-50 rounded-lg shadow-sm" title="Ajustar stock"><ArrowUp className="w-4 h-4" /></button>
-                <button onClick={() => openMovements(item)} className="p-2 bg-white text-purple-600 hover:bg-purple-50 rounded-lg shadow-sm" title="Historial de movimientos"><History className="w-4 h-4" /></button>
-                <button onClick={() => handleEdit(item)} className="p-2 bg-white text-blue-600 hover:bg-blue-50 rounded-lg shadow-sm" title="Editar"><Edit2 className="w-4 h-4" /></button>
-                <button onClick={() => handleDelete(item.id)} className="p-2 bg-white text-red-600 hover:bg-red-50 rounded-lg shadow-sm" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
-              </div>
-              <div>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-primary"><Package className="w-5 h-5" /></div>
-                  {isLowStock(item) && <span className="flex items-center gap-1 px-2 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-full"><AlertTriangle className="w-3 h-3" /> Stock bajo</span>}
-                </div>
-                <h3 className="font-bold text-lg text-gray-800 leading-tight mb-1">{item.name}</h3>
-                {item.sku && <p className="text-xs font-mono text-gray-400 mb-2">SKU: {item.sku}</p>}
-                {item.provider && <p className="text-xs text-gray-400 mb-1">{item.provider}</p>}
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-50 space-y-2">
-                <div className="flex justify-between items-baseline">
-                  <span className="text-sm text-gray-500">Stock</span>
-                  <span className={`text-xl font-bold ${isLowStock(item) ? 'text-red-600' : 'text-primary'}`}>{item.quantity} <span className="text-sm font-normal text-gray-400">{item.unit}</span></span>
-                </div>
-                {item.minStock > 0 && <div className="flex justify-between text-xs text-gray-400"><span>Stock mín.</span><span>{item.minStock} {item.unit}</span></div>}
-                {item.unitCost && <div className="flex justify-between text-xs text-gray-400"><span>Costo unit.</span><span>${Number(item.unitCost).toLocaleString()}</span></div>}
-                {item.expirationDate && <div className="flex justify-between text-xs text-gray-400"><span>Vence</span><span>{new Date(item.expirationDate).toLocaleDateString('es-CO')}</span></div>}
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Proveedor</label>
+              <input value={formData.provider} onChange={e => setFormData({ ...formData, provider: e.target.value })} className="input-field h-9" placeholder="Ej. Distribuidora XYZ" />
+            </div>
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Cantidad</label>
+              <div className="flex gap-2">
+                <input type="number" step="0.01" min="0" required value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} className="input-field h-9" placeholder="0" />
+                <select value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })} className="input-field h-9 w-32 shrink-0">
+                  {UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                </select>
               </div>
             </div>
-          ))
-        )}
-      </div>
-
-      <Modal isOpen={!!adjustTarget} onClose={() => setAdjustTarget(null)} label="Ajustar stock">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-800">Ajustar stock</h3>
-              <button onClick={() => setAdjustTarget(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Stock mínimo</label>
+              <input type="number" step="0.01" min="0" value={formData.minStock} onChange={e => setFormData({ ...formData, minStock: e.target.value })} className="input-field h-9" placeholder="0" />
             </div>
-            <p className="text-sm text-gray-500 mb-1">{adjustTarget?.name}</p>
-            <p className="text-sm text-gray-500 mb-4">Stock actual: <span className="font-bold text-primary">{adjustTarget?.quantity} {adjustTarget?.unit}</span></p>
-            <div className="flex gap-3">
-              <input type="number" step="0.01" value={adjustQty} onChange={e => setAdjustQty(e.target.value)} className="input-field flex-1" placeholder="+ para agregar, - para quitar" autoFocus />
-              <button onClick={handleAdjust} className="btn-primary px-6 flex items-center gap-2"><Check className="w-4 h-4" /> Aplicar</button>
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Vencimiento</label>
+              <input type="date" value={formData.expirationDate} onChange={e => setFormData({ ...formData, expirationDate: e.target.value })} className="input-field h-9" />
             </div>
-            <div className="flex gap-3 mt-3">
-              <button onClick={() => setAdjustQty(String((Math.abs(parseFloat(adjustQty) || 0)) * -1))} className="flex-1 min-h-[44px] text-sm text-red-600 hover:bg-red-50 py-2 rounded-lg border border-red-200">Restar</button>
-              <button onClick={() => setAdjustQty(String(Math.abs(parseFloat(adjustQty) || 0)))} className="flex-1 min-h-[44px] text-sm text-green-600 hover:bg-green-50 py-2 rounded-lg border border-green-200">Sumar</button>
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Costo unitario</label>
+              <input type="number" step="0.01" min="0" value={formData.unitCost} onChange={e => setFormData({ ...formData, unitCost: e.target.value })} className="input-field h-9" placeholder="0.00" />
             </div>
-            <div className="mt-4">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Motivo</label>
-              <select value={adjustReason} onChange={e => setAdjustReason(e.target.value)} className="input-field">
-                {Object.entries(REASON_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Producto asociado</label>
+              <select value={formData.productId} onChange={e => setFormData({ ...formData, productId: e.target.value })} className="input-field h-9">
+                <option value="">Ninguno</option>
+                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
+            <div className="flex items-end justify-end gap-2 sm:col-span-2 lg:col-span-1">
+              <button type="button" onClick={resetForm} className="btn-secondary h-9 px-3 text-[13px]">Cancelar</button>
+              <button type="submit" className="btn-primary h-9 px-3.5 text-[13px]">
+                <Check className="h-4 w-4" aria-hidden="true" />
+                Guardar
+              </button>
+            </div>
+          </form>
+        </Panel>
+      )}
+
+      <Panel>
+        <PanelHeader
+          title="Insumos"
+          subtitle={`${filtered.length} de ${items.length} insumos`}
+          actions={
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft" />
+                <input
+                  type="text"
+                  placeholder="Buscar insumo o SKU..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="input-field h-8 pl-8 text-[13px]"
+                />
+              </div>
+              <button
+                onClick={() => setLowFilter(!lowFilter)}
+                className={
+                  lowFilter
+                    ? 'inline-flex h-8 items-center gap-1.5 rounded-lg border border-danger/30 bg-danger-soft px-2.5 text-2xs font-semibold text-danger'
+                    : 'inline-flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-2xs font-medium text-ink-muted transition-colors hover:bg-surface hover:text-ink'
+                }
+                aria-pressed={lowFilter}
+              >
+                <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                Stock bajo
+              </button>
+            </div>
+          }
+        />
+
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon={Package}
+            title={lowFilter ? 'No hay insumos con stock bajo' : 'No hay insumos registrados'}
+            description={lowFilter ? 'Desactiva el filtro para ver todo el inventario.' : 'Registra la primera materia prima para controlar el stock.'}
+            action={
+              !isFormOpen && !lowFilter ? (
+                <button onClick={() => setIsFormOpen(true)} className="btn-primary h-9 px-3.5 text-[13px]">
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Nuevo insumo
+                </button>
+              ) : null
+            }
+          />
+        ) : (
+          <>
+            <div className="divide-y divide-line-soft md:hidden">
+              {filtered.map(item => (
+                <div key={item.id} className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-[13px] font-semibold text-ink">{item.name}</p>
+                        {isLowStock(item) && <Badge tone="danger">Stock bajo</Badge>}
+                      </div>
+                      <p className="mt-0.5 truncate text-2xs text-ink-muted">
+                        {[item.sku, item.provider].filter(Boolean).join(' · ') || 'Sin SKU ni proveedor'}
+                      </p>
+                    </div>
+                    <p className={`num shrink-0 text-right text-lg font-semibold ${isLowStock(item) ? 'text-danger' : 'text-ink'}`}>
+                      {item.quantity}
+                      <span className="ml-1 text-2xs font-normal text-ink-muted">{item.unit}</span>
+                    </p>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <p className="text-2xs text-ink-muted">
+                      Mín. {item.minStock} {item.unit}
+                      {item.unitCost ? ` · ${formatCurrency(Number(item.unitCost))}` : ''}
+                      {item.expirationDate ? ` · vence ${shortDate(item.expirationDate)}` : ''}
+                    </p>
+                  </div>
+                  <div className="mt-1 -mr-2">{rowActions(item)}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Insumo</th>
+                    <th>Proveedor</th>
+                    <th className="text-right">Stock</th>
+                    <th className="text-right">Mínimo</th>
+                    <th className="text-right">Costo</th>
+                    <th>Vence</th>
+                    <th className="w-32 text-right">
+                      <span className="sr-only">Acciones</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(item => (
+                    <tr key={item.id}>
+                      <td>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-ink">{item.name}</span>
+                          {isLowStock(item) && <Badge tone="danger">Bajo</Badge>}
+                        </div>
+                        {item.sku && <p className="font-mono text-2xs text-ink-soft">{item.sku}</p>}
+                      </td>
+                      <td className="text-ink-muted">{item.provider || '—'}</td>
+                      <td className={`cell-num font-semibold ${isLowStock(item) ? 'text-danger' : 'text-ink'}`}>
+                        {item.quantity} <span className="text-2xs font-normal text-ink-muted">{item.unit}</span>
+                      </td>
+                      <td className="cell-num text-ink-muted">
+                        {item.minStock} <span className="text-2xs">{item.unit}</span>
+                      </td>
+                      <td className="cell-num text-ink-muted">
+                        {item.unitCost ? formatCurrency(Number(item.unitCost)) : '—'}
+                      </td>
+                      <td className="whitespace-nowrap text-ink-muted">
+                        {item.expirationDate ? shortDate(item.expirationDate) : '—'}
+                      </td>
+                      <td>{rowActions(item)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Panel>
+
+      <Modal isOpen={!!adjustTarget} onClose={() => setAdjustTarget(null)} label="Ajustar stock">
+        <div className="p-5">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-semibold text-ink">Ajustar stock</h3>
+              <p className="mt-0.5 text-2xs text-ink-muted">{adjustTarget?.name}</p>
+            </div>
+            <button onClick={() => setAdjustTarget(null)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" aria-label="Cerrar">
+              <X className="h-4 w-4" />
+            </button>
           </div>
+          <p className="mb-3 text-xs text-ink-muted">
+            Stock actual:{' '}
+            <span className="num font-semibold text-ink">
+              {adjustTarget?.quantity} {adjustTarget?.unit}
+            </span>
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              step="0.01"
+              value={adjustQty}
+              onChange={e => setAdjustQty(e.target.value)}
+              className="input-field h-9"
+              placeholder="+ agrega, - quita"
+              autoFocus
+            />
+            <button onClick={handleAdjust} className="btn-primary h-9 shrink-0 px-3 text-[13px]">
+              <Check className="h-4 w-4" aria-hidden="true" />
+              Aplicar
+            </button>
+          </div>
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={() => setAdjustQty(String(Math.abs(parseFloat(adjustQty) || 0) * -1))}
+              className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-line text-2xs font-medium text-danger transition-colors hover:bg-danger-soft"
+            >
+              Restar
+            </button>
+            <button
+              onClick={() => setAdjustQty(String(Math.abs(parseFloat(adjustQty) || 0)))}
+              className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-line text-2xs font-medium text-ok transition-colors hover:bg-ok-soft"
+            >
+              Sumar
+            </button>
+          </div>
+          <div className="mt-3">
+            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Motivo</label>
+            <select value={adjustReason} onChange={e => setAdjustReason(e.target.value)} className="input-field h-9">
+              {Object.entries(REASON_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+        </div>
       </Modal>
 
-      <Modal isOpen={!!movementsTarget} onClose={() => setMovementsTarget(null)} label={movementsTarget ? `${movementsTarget.name} — movimientos` : 'Movimientos'} maxWidth="max-w-2xl">
-          <div className="flex flex-col">
-            <div className="flex justify-between items-center p-4 sm:p-6 border-b sticky top-0 bg-white z-10">
-              <h3 className="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2"><History className="w-5 h-5 text-purple-600" /> {movementsTarget?.name} — movimientos</h3>
-              <button onClick={() => setMovementsTarget(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+      <Modal
+        isOpen={!!movementsTarget}
+        onClose={() => setMovementsTarget(null)}
+        label={movementsTarget ? `${movementsTarget.name} — movimientos` : 'Movimientos'}
+        maxWidth="max-w-2xl"
+      >
+        <div className="flex flex-col">
+          <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
+            <div>
+              <h3 className="text-base font-semibold text-ink">Movimientos</h3>
+              <p className="mt-0.5 text-2xs text-ink-muted">{movementsTarget?.name}</p>
             </div>
-            <div className="overflow-auto flex-1 p-4 sm:p-6">
-              {loadingMovements ? (
-                <div className="flex justify-center py-10"><div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full"></div></div>
-              ) : movements.length === 0 ? (
-                <p className="text-center text-gray-400 py-10">No hay movimientos registrados</p>
-              ) : (
-                <>
-                  {/* Tarjetas en móvil */}
-                  <div className="md:hidden space-y-3">
-                    {movements.map(m => (
-                      <div key={m.id} className="card p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">{new Date(m.createdAt).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                          <span className={`font-bold ${m.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>{m.quantity > 0 ? '+' : ''}{m.quantity}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-500">{REASON_LABELS[m.reason] || m.reason}</span>
-                          <span className="text-gray-500">{m.previous} → <b className="text-gray-800">{m.newQuantity}</b></span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Tabla en desktop */}
-                  <table className="w-full text-left hidden md:table">
-                    <thead><tr className="text-xs font-bold text-gray-500 uppercase border-b"><th className="pb-3">Fecha</th><th className="pb-3">Cantidad</th><th className="pb-3">Anterior</th><th className="pb-3">Nuevo</th><th className="pb-3">Motivo</th></tr></thead>
-                    <tbody className="divide-y">
-                      {movements.map(m => (
-                        <tr key={m.id} className="text-sm hover:bg-gray-50">
-                          <td className="py-3 text-gray-500">{new Date(m.createdAt).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                          <td className={`py-3 font-bold ${m.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>{m.quantity > 0 ? '+' : ''}{m.quantity}</td>
-                          <td className="py-3 text-gray-500">{m.previous}</td>
-                          <td className="py-3 font-bold">{m.newQuantity}</td>
-                          <td className="py-3"><span className="bg-gray-100 px-2 py-0.5 rounded text-xs">{REASON_LABELS[m.reason] || m.reason}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-            </div>
+            <button onClick={() => setMovementsTarget(null)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" aria-label="Cerrar">
+              <X className="h-4 w-4" />
+            </button>
           </div>
+          <div className="max-h-[65vh] flex-1 overflow-auto p-4">
+            {loadingMovements ? (
+              <div className="flex justify-center py-10">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : movements.length === 0 ? (
+              <EmptyState icon={History} title="Sin movimientos" description="Los ajustes y ventas de este insumo aparecerán aquí." />
+            ) : (
+              <>
+                <div className="space-y-2 md:hidden">
+                  {movements.map(m => (
+                    <div key={m.id} className="rounded-lg border border-line px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="num text-2xs text-ink-muted">{movementDate(m.createdAt)}</span>
+                        <span className={`num text-[13px] font-semibold ${m.quantity > 0 ? 'text-ok' : 'text-danger'}`}>
+                          {m.quantity > 0 ? '+' : ''}{m.quantity}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between text-2xs text-ink-muted">
+                        <span>{REASON_LABELS[m.reason] || m.reason}</span>
+                        <span className="num">
+                          {m.previous} → <span className="font-semibold text-ink">{m.newQuantity}</span>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <table className="admin-table hidden md:table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th className="text-right">Cantidad</th>
+                      <th className="text-right">Anterior</th>
+                      <th className="text-right">Nuevo</th>
+                      <th>Motivo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {movements.map(m => (
+                      <tr key={m.id}>
+                        <td className="num whitespace-nowrap text-ink-muted">{movementDate(m.createdAt)}</td>
+                        <td className={`cell-num font-semibold ${m.quantity > 0 ? 'text-ok' : 'text-danger'}`}>
+                          {m.quantity > 0 ? '+' : ''}{m.quantity}
+                        </td>
+                        <td className="cell-num text-ink-muted">{m.previous}</td>
+                        <td className="cell-num font-semibold text-ink">{m.newQuantity}</td>
+                        <td>
+                          <span className="rounded-md bg-surface px-1.5 py-0.5 text-2xs font-medium text-ink-muted">
+                            {REASON_LABELS[m.reason] || m.reason}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+          </div>
+        </div>
       </Modal>
     </div>
   );

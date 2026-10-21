@@ -3,8 +3,9 @@ import { useSettings } from '../context/SettingsContext';
 import { useOrders } from '../context/OrdersContext';
 import { useFinance } from '../context/FinanceContext';
 import { useMenu } from '../context/MenuContext';
-import { Database, AlertTriangle, Download, Upload } from 'lucide-react';
+import { AlertTriangle, Download, Upload } from 'lucide-react';
 import { useConfirm, useToast } from './ui/feedback-context';
+import { Panel, PanelHeader } from './ui/Panel';
 
 export function SettingsDatos() {
     const { exchangeRate, business } = useSettings();
@@ -80,51 +81,36 @@ export function SettingsDatos() {
     };
 
     return (
-        <div className="card p-6 sm:p-8 bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200">
-            <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-red-100 rounded-xl text-red-600">
-                    <Database className="w-6 h-6" />
-                </div>
-                <div>
-                    <h2 className="text-xl font-bold text-gray-800">Copia de Seguridad</h2>
-                    <p className="text-sm text-red-600 font-medium">¡CRÍTICO! Protege tus datos</p>
-                </div>
-            </div>
+        <Panel>
+            <PanelHeader title="Copia de seguridad" subtitle="Respaldo local en JSON del catálogo y las ventas." />
 
-            <div className="bg-white rounded-xl p-4 mb-4 border border-red-100">
-                <div className="flex gap-2 items-start">
-                    <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-700">
-                        Si borras el historial del navegador o reseteas la PC, <b>perderás todo</b>.
-                        Haz copias de seguridad regularmente.
+            <div className="space-y-4 p-4">
+                <div className="flex items-start gap-2.5 rounded-xl border border-warn/30 bg-warn-soft px-3 py-2.5">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden="true" />
+                    <p className="text-2xs leading-relaxed text-warn">
+                        Si borras los datos del navegador o reseteas el equipo, perderás el historial.
+                        Descarga una copia al final de cada día.
                     </p>
                 </div>
-            </div>
 
-            <div className="space-y-3">
-                <button
-                    onClick={handleBackup}
-                    className="w-full btn-primary bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2"
-                >
-                    <Download className="w-5 h-5" />
-                    Descargar Copia de Seguridad
-                </button>
+                <div className="flex flex-wrap gap-2">
+                    <button onClick={handleBackup} className="btn-primary h-9 px-3.5 text-[13px]">
+                        <Download className="h-4 w-4" aria-hidden="true" />
+                        Descargar copia
+                    </button>
 
-                <label className="w-full btn-secondary flex items-center justify-center gap-2 cursor-pointer">
-                    <Upload className="w-5 h-5" />
-                    Restaurar desde Archivo
-                    <input
-                        type="file"
-                        accept=".json"
-                        onChange={handleRestore}
-                        className="hidden"
-                    />
-                </label>
+                    <label className="btn-secondary h-9 cursor-pointer px-3 text-[13px]">
+                        <Upload className="h-4 w-4" aria-hidden="true" />
+                        Restaurar desde archivo
+                        <input type="file" accept=".json" onChange={handleRestore} className="hidden" />
+                    </label>
+                </div>
 
-                <p className="text-xs text-gray-500 text-center pt-2">
-                    Recomendación: Haz una copia al final de cada día
+                <p className="text-2xs text-ink-soft">
+                    El respaldo incluye productos, pedidos, gastos, cierres y los datos del negocio de
+                    este navegador.
                 </p>
             </div>
-        </div>
+        </Panel>
     );
 }

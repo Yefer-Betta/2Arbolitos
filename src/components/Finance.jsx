@@ -2,14 +2,21 @@ import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { useOrders } from '../context/OrdersContext';
 import { useSettings } from '../context/SettingsContext';
-import { TrendingUp, FileText, Search } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { Calculator, FileText, Search, TrendingDown, TrendingUp } from 'lucide-react';
 import { SummaryView } from './finance/SummaryView';
 import { SalesView } from './finance/SalesView';
 import { ClosuresView } from './finance/ClosuresView';
 import { CloseDayModal } from './finance/CloseDayModal';
 import { ReprintTicketModal } from './finance/ReprintTicketModal';
 import { ClosureDetailModal } from './finance/ClosureDetailModal';
+import { PageHeader } from './ui/PageHeader';
+import { SubNav } from './ui/SubNav';
+
+const VIEWS = [
+    { id: 'summary', label: 'Resumen', icon: TrendingUp },
+    { id: 'sales', label: 'Consultar ventas', shortLabel: 'Ventas', icon: Search },
+    { id: 'closures', label: 'Cierres anteriores', shortLabel: 'Cierres', icon: FileText },
+];
 
 export function Finance() {
     const { expenses, addExpense, deleteExpense, lastClosureDate, closeDay, closures } = useFinance();
@@ -156,54 +163,34 @@ export function Finance() {
     const totalDifference = differences.cash_cop + (differences.cash_usd * rate) + (differences.cash_bs * rateBs) + differences.nequi + differences.debit;
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Contabilidad & Finanzas</h2>
-                    <p className="text-gray-500 text-sm">Control de ventas, gastos y cierre de caja</p>
-                </div>
-            </div>
+        <div className="space-y-4">
+            <PageHeader
+                title="Contabilidad"
+                subtitle="Ventas, gastos y cierre de caja del turno."
+                actions={
+                    <>
+                        <button
+                            onClick={() => {
+                                setActiveView('summary');
+                                setIsAdding(!isAdding);
+                            }}
+                            className="btn-secondary h-9 px-3 text-[13px]"
+                        >
+                            <TrendingDown className="h-4 w-4" aria-hidden="true" />
+                            {isAdding ? 'Descartar gasto' : 'Registrar gasto'}
+                        </button>
+                        <button
+                            onClick={() => setShowCloseModal(true)}
+                            className="btn-primary h-9 px-3.5 text-[13px]"
+                        >
+                            <Calculator className="h-4 w-4" aria-hidden="true" />
+                            Cierre de caja
+                        </button>
+                    </>
+                }
+            />
 
-            {/* Tabs */}
-            <div className="flex gap-2 border-b border-gray-200 pb-2">
-                <button
-                    onClick={() => setActiveView('summary')}
-                    className={cn(
-                        "px-4 py-2 rounded-t-lg font-medium transition-colors",
-                        activeView === 'summary' 
-                            ? "bg-primary text-white" 
-                            : "text-gray-600 hover:bg-gray-100"
-                    )}
-                >
-                    <TrendingUp className="w-4 h-4 inline mr-2" />
-                    Resumen
-                </button>
-                <button
-                    onClick={() => setActiveView('sales')}
-                    className={cn(
-                        "px-4 py-2 rounded-t-lg font-medium transition-colors",
-                        activeView === 'sales' 
-                            ? "bg-primary text-white" 
-                            : "text-gray-600 hover:bg-gray-100"
-                    )}
-                >
-                    <Search className="w-4 h-4 inline mr-2" />
-                    Consultar Ventas
-                </button>
-                <button
-                    onClick={() => setActiveView('closures')}
-                    className={cn(
-                        "px-4 py-2 rounded-t-lg font-medium transition-colors",
-                        activeView === 'closures' 
-                            ? "bg-primary text-white" 
-                            : "text-gray-600 hover:bg-gray-100"
-                    )}
-                >
-                    <FileText className="w-4 h-4 inline mr-2" />
-                    Cierres Anteriores
-                </button>
-            </div>
+            <SubNav items={VIEWS} value={activeView} onChange={setActiveView} />
 
             {activeView === 'summary' && (
                 <SummaryView
@@ -214,13 +201,13 @@ export function Finance() {
                     handleSubmit={handleSubmit}
                     currentOrders={currentOrders}
                     totalSalesCOP={totalSalesCOP}
+                    totalSalesUSD={totalSalesUSD}
                     totalExpenses={totalExpenses}
                     netBalance={netBalance}
                     lastClosureDate={lastClosureDate}
                     salesByMethod={salesByMethod}
                     currentExpenses={currentExpenses}
                     deleteExpense={deleteExpense}
-                    setShowCloseModal={setShowCloseModal}
                 />
             )}
 

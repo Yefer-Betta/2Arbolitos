@@ -1,261 +1,270 @@
 import React from 'react';
-import { Trash2, TrendingUp, TrendingDown, DollarSign, Wallet, Calculator, Smartphone, CreditCard } from 'lucide-react';
+import {
+    Trash2,
+    TrendingUp,
+    TrendingDown,
+    Wallet,
+    Receipt,
+} from 'lucide-react';
 import { formatCurrency, formatDate, cn } from '../../lib/utils';
 import { useConfirm } from '../ui/feedback-context';
+import { StatCard } from '../ui/StatCard';
+import { Panel, PanelHeader } from '../ui/Panel';
+import { EmptyState } from '../ui/EmptyState';
 
-export function SummaryView({ isAdding, setIsAdding, formData, setFormData, handleSubmit, currentOrders, totalSalesCOP, totalExpenses, netBalance, lastClosureDate, salesByMethod, currentExpenses, deleteExpense, setShowCloseModal }) {
+const METHODS = [
+    { key: 'cash_cop', label: 'Efectivo COP', dot: 'bg-ok', cop: true },
+    { key: 'cash_usd', label: 'Efectivo USD', dot: 'bg-info', usd: true },
+    { key: 'cash_bs', label: 'Efectivo Bs.', dot: 'bg-warn', bs: true },
+    { key: 'nequi', label: 'Nequi', dot: 'bg-primary', cop: true },
+    { key: 'debit', label: 'Débito', dot: 'bg-ink-soft', cop: true },
+];
+
+function methodValue(method, salesByMethod) {
+    const value = salesByMethod[method.key] || 0;
+    if (method.usd) return `$${value.toFixed(2)} USD`;
+    if (method.bs) return `Bs. ${value.toFixed(2)}`;
+    return formatCurrency(value);
+}
+
+export function SummaryView({
+    isAdding,
+    setIsAdding,
+    formData,
+    setFormData,
+    handleSubmit,
+    currentOrders,
+    totalSalesCOP,
+    totalSalesUSD = 0,
+    totalExpenses,
+    netBalance,
+    lastClosureDate,
+    salesByMethod,
+    currentExpenses,
+    deleteExpense,
+}) {
     const confirm = useConfirm();
+    const closureDate = new Date(lastClosureDate);
+    const hasClosure = !Number.isNaN(closureDate.getTime()) && closureDate.getFullYear() > 2000;
+
     return (
-                <>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => setShowCloseModal(true)}
-                            className="btn-primary bg-red-600 hover:bg-red-700 flex items-center gap-2"
+        <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                <StatCard
+                    label="Ventas del turno"
+                    value={formatCurrency(totalSalesCOP)}
+                    hint={`${currentOrders.length} pedidos · $${Number(totalSalesUSD).toFixed(2)} USD`}
+                    icon={TrendingUp}
+                    tone="ok"
+                />
+                <StatCard
+                    label="Gastos del turno"
+                    value={formatCurrency(totalExpenses)}
+                    hint={`${currentExpenses.length} registros`}
+                    icon={TrendingDown}
+                    tone="danger"
+                />
+                <StatCard
+                    label="Balance neto"
+                    value={formatCurrency(netBalance)}
+                    hint={hasClosure ? `Desde el cierre del ${formatDate(lastClosureDate)}` : 'Sin cierre previo · turno inicial'}
+                    icon={Wallet}
+                    tone="brand"
+                    className="col-span-2 sm:col-span-1"
+                />
+            </div>
+
+            <Panel>
+                <PanelHeader title="Ventas por método de pago" subtitle="Turno actual" />
+                <div className="grid grid-cols-2 gap-px bg-line sm:grid-cols-5">
+                    {METHODS.map((method, index) => (
+                        <div
+                            key={method.key}
+                            className={
+                                index === METHODS.length - 1
+                                    ? 'col-span-2 bg-background-paper px-4 py-3 sm:col-span-1'
+                                    : 'bg-background-paper px-4 py-3'
+                            }
                         >
-                            <Calculator className="w-5 h-5" />
-                            Cierre de Caja
-                        </button>
-                        {!isAdding && (
+                            <p className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wide text-ink-muted">
+                                <span className={cn('h-1.5 w-1.5 rounded-full', method.dot)} />
+                                {method.label}
+                            </p>
+                            <p className="num mt-1.5 text-[15px] font-semibold text-ink">
+                                {methodValue(method, salesByMethod)}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </Panel>
+
+            {isAdding && (
+                <Panel>
+                    <PanelHeader
+                        title="Nuevo gasto"
+                        subtitle="Se descuenta del balance del turno."
+                        actions={
                             <button
-                                onClick={() => setIsAdding(true)}
-                                className="btn-primary flex items-center gap-2"
+                                onClick={() => setIsAdding(false)}
+                                className="text-xs font-medium text-ink-muted hover:text-ink"
                             >
-                                <TrendingDown className="w-5 h-5" />
-                                Registrar Gasto
+                                Cancelar
                             </button>
-                        )}
-                    </div>
-
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="card p-6 border-l-4 border-l-green-500">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-gray-500 text-xs font-bold uppercase">Ventas del Turno</p>
-                                    <h3 className="text-2xl font-bold text-gray-800 mt-2">{formatCurrency(totalSalesCOP)}</h3>
-                                    <p className="text-xs text-gray-400 mt-1">{currentOrders.length} pedidos</p>
-                                </div>
-                                <div className="p-3 bg-green-50 rounded-xl text-green-600">
-                                    <TrendingUp className="w-6 h-6" />
-                                </div>
+                        }
+                    />
+                    <form onSubmit={handleSubmit} className="grid gap-3 p-4 sm:grid-cols-4">
+                        <div className="sm:col-span-2">
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Descripción</label>
+                            <input
+                                required
+                                type="text"
+                                placeholder="Ej. Compra de salsas"
+                                value={formData.description}
+                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                className="input-field h-9"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Categoría</label>
+                            <input
+                                required
+                                type="text"
+                                placeholder="Ej. Insumos"
+                                value={formData.category}
+                                onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                className="input-field h-9"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Monto (COP)</label>
+                            <div className="flex gap-2">
+                                <input
+                                    required
+                                    type="number"
+                                    placeholder="0"
+                                    value={formData.amount}
+                                    onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                                    className="input-field h-9"
+                                />
+                                <button type="submit" className="btn-primary h-9 shrink-0 px-3 text-[13px]">
+                                    Registrar
+                                </button>
                             </div>
                         </div>
+                    </form>
+                </Panel>
+            )}
 
-                        <div className="card p-6 border-l-4 border-l-red-500">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-gray-500 text-xs font-bold uppercase">Gastos del Turno</p>
-                                    <h3 className="text-2xl font-bold text-gray-800 mt-2">{formatCurrency(totalExpenses)}</h3>
-                                    <p className="text-xs text-gray-400 mt-1">{currentExpenses.length} registros</p>
-                                </div>
-                                <div className="p-3 bg-red-50 rounded-xl text-red-500">
-                                    <TrendingDown className="w-6 h-6" />
-                                </div>
-                            </div>
-                        </div>
+            <Panel>
+                <PanelHeader
+                    title="Gastos del turno"
+                    subtitle="Solo se muestran los gastos posteriores al último cierre."
+                />
 
-                        <div className="card p-6 border-l-4 border-l-primary">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-gray-500 text-xs font-bold uppercase">Balance Neto</p>
-                                    <h3 className={cn("text-2xl font-bold mt-2", netBalance >= 0 ? "text-primary" : "text-red-600")}>
-                                        {formatCurrency(netBalance)}
-                                    </h3>
-                                    <p className="text-xs text-gray-400 mt-1">Desde: {formatDate(lastClosureDate)}</p>
-                                </div>
-                                <div className="p-3 bg-primary/10 rounded-xl text-primary">
-                                    <Wallet className="w-6 h-6" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Sales by Payment Method */}
-                    <div className="card p-6">
-                        <h3 className="font-bold text-gray-700 mb-4">Ventas por Método de Pago</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-green-50 p-4 rounded-xl text-center">
-                                <DollarSign className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                                <p className="text-xs text-gray-500 uppercase font-bold">Efectivo COP</p>
-                                <p className="text-lg font-bold text-green-700">{formatCurrency(salesByMethod.cash_cop)}</p>
-                            </div>
-                            <div className="bg-blue-50 p-4 rounded-xl text-center">
-                                <DollarSign className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                                <p className="text-xs text-gray-500 uppercase font-bold">Efectivo USD</p>
-                                <p className="text-lg font-bold text-blue-700">${salesByMethod.cash_usd.toFixed(2)}</p>
-                            </div>
-                            <div className="bg-yellow-50 p-4 rounded-xl text-center">
-                                <DollarSign className="w-6 h-6 text-yellow-600 mx-auto mb-2" />
-                                <p className="text-xs text-gray-500 uppercase font-bold">Efectivo Bs.</p>
-                                <p className="text-lg font-bold text-yellow-700">Bs. {salesByMethod.cash_bs.toFixed(2)}</p>
-                            </div>
-                            <div className="bg-purple-50 p-4 rounded-xl text-center">
-                                <Smartphone className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                                <p className="text-xs text-gray-500 uppercase font-bold">Nequi</p>
-                                <p className="text-lg font-bold text-purple-700">{formatCurrency(salesByMethod.nequi)}</p>
-                            </div>
-                            <div className="bg-gray-100 p-4 rounded-xl text-center">
-                                <CreditCard className="w-6 h-6 text-gray-600 mx-auto mb-2" />
-                                <p className="text-xs text-gray-500 uppercase font-bold">Débito</p>
-                                <p className="text-lg font-bold text-gray-700">{formatCurrency(salesByMethod.debit)}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Add Expense Form */}
-                    {isAdding && (
-                        <div className="card p-6 bg-white border border-red-100 max-w-2xl mx-auto">
-                            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500">
-                                    <TrendingDown className="w-4 h-4" />
-                                </div>
-                                Nuevo Gasto
-                            </h3>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Descripción</label>
-                                        <input
-                                            required
-                                            type="text"
-                                            placeholder="Ej. Compra de Salsas"
-                                            value={formData.description}
-                                            onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                            className="input-field"
-                                        />
+                {currentExpenses.length === 0 ? (
+                    <EmptyState
+                        icon={Receipt}
+                        title="Sin gastos en este turno"
+                        description="Registra una compra o salida de caja para verla aquí."
+                        action={
+                            !isAdding ? (
+                                <button
+                                    onClick={() => setIsAdding(true)}
+                                    className="text-xs font-semibold text-ink-brand hover:underline"
+                                >
+                                    Registrar el primer gasto
+                                </button>
+                            ) : null
+                        }
+                    />
+                ) : (
+                    <>
+                        <div className="divide-y divide-line-soft md:hidden">
+                            {currentExpenses.map(expense => (
+                                <div key={expense.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                                    <div className="min-w-0">
+                                        <p className="truncate text-[13px] font-medium text-ink">{expense.description}</p>
+                                        <p className="mt-0.5 text-2xs text-ink-muted">
+                                            {new Date(expense.date).toLocaleDateString('es-CO')} · {expense.category}
+                                        </p>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Categoría</label>
-                                        <input
-                                            required
-                                            type="text"
-                                            placeholder="Ej. Insumos"
-                                            value={formData.category}
-                                            onChange={e => setFormData({ ...formData, category: e.target.value })}
-                                            className="input-field"
-                                        />
+                                    <div className="flex shrink-0 items-center gap-1">
+                                        <span className="num text-[13px] font-semibold text-danger">
+                                            - {formatCurrency(expense.amount)}
+                                        </span>
+                                        <button
+                                            onClick={() => {
+                                                confirm({
+                                                    title: '¿Eliminar este gasto?',
+                                                    confirmLabel: 'Eliminar',
+                                                    danger: true,
+                                                }).then(ok => {
+                                                    if (ok) deleteExpense(expense.id);
+                                                });
+                                            }}
+                                            className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-danger-soft hover:text-danger"
+                                            aria-label={`Eliminar gasto ${expense.description}`}
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Monto (COP)</label>
-                                    <input
-                                        required
-                                        type="number"
-                                        placeholder="0"
-                                        value={formData.amount}
-                                        onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                                        className="input-field"
-                                    />
-                                </div>
-
-                                <div className="flex justify-end gap-3 pt-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsAdding(false)}
-                                        className="btn-secondary"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="btn-primary"
-                                    >
-                                        Registrar Gasto
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-
-                    {/* Expenses Table */}
-                    <div className="card overflow-hidden">
-                        <div className="bg-gray-50 px-4 sm:px-6 py-4 border-b border-gray-200">
-                            <h3 className="font-bold text-gray-700">Gastos del Turno Actual</h3>
+                            ))}
                         </div>
 
-                        {/* Móvil: tarjetas */}
-                        <div className="md:hidden divide-y divide-gray-100">
-                            {currentExpenses.length === 0 ? (
-                                <p className="px-4 py-8 text-center text-gray-400 text-sm">No hay gastos registrados en este turno.</p>
-                            ) : (
-                                currentExpenses.map((expense) => (
-                                    <div key={expense.id} className="p-4 flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className="font-medium text-gray-900 text-sm break-words">{expense.description}</p>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                {new Date(expense.date).toLocaleDateString()} · {expense.category}
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <span className="font-bold text-red-600 text-sm whitespace-nowrap">- {formatCurrency(expense.amount)}</span>
-                                            <button
-                                                onClick={() => { confirm({ title: '¿Eliminar este gasto?', confirmLabel: 'Eliminar', danger: true }).then(ok => { if (ok) deleteExpense(expense.id); }); }}
-                                                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors -mr-2"
-                                                aria-label={`Eliminar gasto ${expense.description}`}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        {/* Desktop: tabla */}
-                        <div className="overflow-x-auto hidden md:block">
-                            <table className="w-full text-left">
-                                <thead className="bg-white border-b border-gray-100">
+                        <div className="hidden overflow-x-auto md:block">
+                            <table className="admin-table">
+                                <thead>
                                     <tr>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Fecha</th>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Descripción</th>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Categoría</th>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase text-right">Monto</th>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase text-center">Acciones</th>
+                                        <th>Fecha</th>
+                                        <th>Descripción</th>
+                                        <th>Categoría</th>
+                                        <th className="text-right">Monto</th>
+                                        <th className="w-12 text-center">
+                                            <span className="sr-only">Acciones</span>
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100 bg-white">
-                                    {currentExpenses.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
-                                                No hay gastos registrados en este turno.
+                                <tbody>
+                                    {currentExpenses.map(expense => (
+                                        <tr key={expense.id}>
+                                            <td className="num whitespace-nowrap text-ink-muted">
+                                                {new Date(expense.date).toLocaleDateString('es-CO')}
+                                            </td>
+                                            <td className="font-medium text-ink">{expense.description}</td>
+                                            <td>
+                                                <span className="rounded-md bg-surface px-1.5 py-0.5 text-2xs font-medium text-ink-muted">
+                                                    {expense.category}
+                                                </span>
+                                            </td>
+                                            <td className="cell-num whitespace-nowrap font-semibold text-danger">
+                                                - {formatCurrency(expense.amount)}
+                                            </td>
+                                            <td className="text-center">
+                                                <button
+                                                    onClick={() => {
+                                                        confirm({
+                                                            title: '¿Eliminar este gasto?',
+                                                            confirmLabel: 'Eliminar',
+                                                            danger: true,
+                                                        }).then(ok => {
+                                                            if (ok) deleteExpense(expense.id);
+                                                        });
+                                                    }}
+                                                    className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-danger-soft hover:text-danger"
+                                                    aria-label={`Eliminar gasto ${expense.description}`}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
                                             </td>
                                         </tr>
-                                    ) : (
-                                        currentExpenses.map((expense) => (
-                                            <tr key={expense.id} className="hover:bg-red-50/30 transition-colors">
-                                                <td className="px-6 py-4 text-sm text-gray-600">
-                                                    {new Date(expense.date).toLocaleDateString()}
-                                                </td>
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    {expense.description}
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-600">
-                                                    <span className="bg-gray-100 px-2 py-1 rounded text-xs font-medium border border-gray-200">
-                                                        {expense.category}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-red-600">
-                                                    - {formatCurrency(expense.amount)}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <button
-                                                        onClick={() => {
-                                                            confirm({ title: '¿Eliminar este gasto?', confirmLabel: 'Eliminar', danger: true }).then(ok => { if (ok) deleteExpense(expense.id); });
-                                                        }}
-                                                        className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
-                                                        aria-label={`Eliminar gasto ${expense.description}`}
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </>
+                    </>
+                )}
+            </Panel>
+        </div>
     );
 }

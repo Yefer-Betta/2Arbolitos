@@ -8,11 +8,12 @@ export const EMPTY_METHOD_TOTALS = {
   debit: 0,
 };
 
-/** Etiqueta legible para un `orderType`. */
+/** Etiqueta legible para un `orderType` (acepta el enum de Prisma y el slug). */
 export function getOrderTypeLabel(orderType) {
-  if (orderType?.startsWith('mesa-')) return 'Mesa';
-  if (orderType === 'para-llevar') return 'Para Llevar';
-  if (orderType === 'domicilio') return 'Domicilio';
+  const type = String(orderType || '').toLowerCase();
+  if (type === 'mesa' || type.startsWith('mesa-')) return 'Mesa';
+  if (type.includes('llevar')) return 'Para Llevar';
+  if (type.includes('domicilio')) return 'Domicilio';
   return 'General';
 }
 

@@ -1,177 +1,215 @@
 import React from 'react';
-import { Printer } from 'lucide-react';
+import { Printer, Receipt, Search } from 'lucide-react';
 import { getOrderTypeLabel as getTypeLabel } from '../../lib/sales';
-import { formatCurrency, cn } from '../../lib/utils';
+import { formatCurrency } from '../../lib/utils';
+import { Badge } from '../ui/Badge';
+import { Panel, PanelHeader } from '../ui/Panel';
+import { EmptyState } from '../ui/EmptyState';
 
-export function SalesView({ salesDateFilter, setSalesDateFilter, salesTypeFilter, setSalesTypeFilter, salesSearchId, setSalesSearchId, filteredSales, filteredSalesTotal, handlePrint }) {
+const TYPE_TONE = {
+    mesa: 'warn',
+    'para-llevar': 'info',
+    domicilio: 'brand',
+};
+
+function typeTone(orderType) {
+    const type = String(orderType || '').toLowerCase();
+    if (type === 'mesa' || type.startsWith('mesa-')) return TYPE_TONE.mesa;
+    if (type.includes('llevar')) return TYPE_TONE['para-llevar'];
+    if (type.includes('domicilio')) return TYPE_TONE.domicilio;
+    return 'neutral';
+}
+
+function timeOf(order) {
+    return new Date(order.date || order.createdAt).toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+}
+
+export function SalesView({
+    salesDateFilter,
+    setSalesDateFilter,
+    salesTypeFilter,
+    setSalesTypeFilter,
+    salesSearchId,
+    setSalesSearchId,
+    filteredSales,
+    filteredSalesTotal,
+    handlePrint,
+}) {
     return (
-                <div className="space-y-4">
-                    {/* Filters */}
-                    <div className="card p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Fecha</label>
-                                <input
-                                    type="date"
-                                    value={salesDateFilter}
-                                    onChange={e => setSalesDateFilter(e.target.value)}
-                                    className="input-field"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Tipo de Pedido</label>
-                                <select
-                                    value={salesTypeFilter}
-                                    onChange={e => setSalesTypeFilter(e.target.value)}
-                                    className="input-field"
-                                >
-                                    <option value="all">Todos</option>
-                                    <option value="mesa">Mesa</option>
-                                    <option value="para-llevar">Para Llevar</option>
-                                    <option value="domicilio">Domicilio</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1">Buscar ID</label>
-                                <input
-                                    type="text"
-                                    placeholder="ID de orden..."
-                                    value={salesSearchId}
-                                    onChange={e => setSalesSearchId(e.target.value)}
-                                    className="input-field"
-                                />
-                            </div>
-                            <div className="flex items-end">
-                                <div className="bg-primary/10 px-4 py-2 rounded-lg">
-                                    <p className="text-xs text-gray-500">Total del día</p>
-                                    <p className="text-xl font-bold text-primary">{formatCurrency(filteredSalesTotal)}</p>
-                                    <p className="text-xs text-gray-400">{filteredSales.length} pedidos</p>
-                                </div>
-                            </div>
+        <div className="space-y-4">
+            <Panel>
+                <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                        <label className="mb-1 block text-2xs font-semibold text-ink-muted">Fecha</label>
+                        <input
+                            type="date"
+                            value={salesDateFilter}
+                            onChange={e => setSalesDateFilter(e.target.value)}
+                            className="input-field h-9"
+                        />
+                    </div>
+                    <div>
+                        <label className="mb-1 block text-2xs font-semibold text-ink-muted">Tipo de pedido</label>
+                        <select
+                            value={salesTypeFilter}
+                            onChange={e => setSalesTypeFilter(e.target.value)}
+                            className="input-field h-9"
+                        >
+                            <option value="all">Todos</option>
+                            <option value="mesa">Mesa</option>
+                            <option value="para-llevar">Para llevar</option>
+                            <option value="domicilio">Domicilio</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="mb-1 block text-2xs font-semibold text-ink-muted">Buscar ID</label>
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft" />
+                            <input
+                                type="text"
+                                placeholder="ID de orden..."
+                                value={salesSearchId}
+                                onChange={e => setSalesSearchId(e.target.value)}
+                                className="input-field h-9 pl-8"
+                            />
                         </div>
                     </div>
-
-                    {/* Sales Table */}
-                    <div className="card overflow-hidden">
-                        {/* Móvil: tarjetas */}
-                        <div className="md:hidden divide-y divide-gray-100">
-                            {filteredSales.length === 0 ? (
-                                <p className="px-4 py-10 text-center text-gray-400 text-sm">No hay ventas para los filtros seleccionados.</p>
-                            ) : (
-                                filteredSales.map((order) => (
-                                    <div key={order.id} className="p-4 space-y-3">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <p className="font-mono text-xs text-gray-500">{order.id?.slice(0, 8).toUpperCase()}</p>
-                                                <p className="text-xs text-gray-400">{new Date(order.date || order.createdAt).toLocaleTimeString()}</p>
-                                            </div>
-                                            <span className={cn(
-                                                "px-2 py-1 rounded text-xs font-bold shrink-0",
-                                                order.orderType?.startsWith('mesa-') ? "bg-orange-100 text-orange-700" :
-                                                order.orderType === 'para-llevar' ? "bg-blue-100 text-blue-700" :
-                                                order.orderType === 'domicilio' ? "bg-purple-100 text-purple-700" :
-                                                "bg-gray-100 text-gray-700"
-                                            )}>
-                                                {getTypeLabel(order.orderType)}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-1">
-                                            {order.items?.slice(0, 3).map((item, i) => (
-                                                <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
-                                                    {item.quantity}x {item.product?.name?.slice(0, 10)}
-                                                </span>
-                                            ))}
-                                            {order.items?.length > 3 && (
-                                                <span className="text-xs text-gray-400">+{order.items.length - 3}</span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                                            <span className="font-bold text-green-700">{formatCurrency(order.totalCop)}</span>
-                                            <button
-                                                onClick={() => handlePrint(order)}
-                                                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-primary hover:bg-primary/10 rounded-lg transition-colors -mr-2 -my-1"
-                                                aria-label="Reimprimir factura"
-                                            >
-                                                <Printer className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        {/* Desktop: tabla */}
-                        <div className="overflow-x-auto hidden md:block">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 border-b border-gray-200">
-                                    <tr>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">ID</th>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Hora</th>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Tipo</th>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Items</th>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase text-right">Total</th>
-                                        <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase text-center">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {filteredSales.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
-                                                No hay ventas para los filtros seleccionados.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        filteredSales.map((order) => (
-                                            <tr key={order.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 text-sm font-mono text-gray-500">
-                                                    {order.id?.slice(0, 8).toUpperCase()}
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-600">
-                                                    {new Date(order.date || order.createdAt).toLocaleTimeString()}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={cn(
-                                                        "px-2 py-1 rounded text-xs font-bold",
-                                                        order.orderType?.startsWith('mesa-') ? "bg-orange-100 text-orange-700" :
-                                                        order.orderType === 'para-llevar' ? "bg-blue-100 text-blue-700" :
-                                                        order.orderType === 'domicilio' ? "bg-purple-100 text-purple-700" :
-                                                        "bg-gray-100 text-gray-700"
-                                                    )}>
-                                                        {getTypeLabel(order.orderType)}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-600">
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {order.items?.slice(0, 3).map((item, i) => (
-                                                            <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-xs">
-                                                                {item.quantity}x {item.product?.name?.slice(0, 10)}
-                                                            </span>
-                                                        ))}
-                                                        {order.items?.length > 3 && (
-                                                            <span className="text-xs text-gray-400">+{order.items.length - 3}</span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right font-bold text-green-700">
-                                                    {formatCurrency(order.totalCop)}
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <button
-                                                        onClick={() => handlePrint(order)}
-                                                        className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                                                        title="Reimprimir"
-                                                        aria-label="Reimprimir factura"
-                                                    >
-                                                        <Printer className="w-4 h-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                    <div className="flex items-end">
+                        <div className="w-full rounded-xl border border-line bg-surface px-3 py-1.5">
+                            <p className="text-2xs font-medium uppercase tracking-wide text-ink-muted">Total del día</p>
+                            <div className="flex items-baseline justify-between gap-2">
+                                <p className="num text-lg font-semibold leading-tight text-ink">
+                                    {formatCurrency(filteredSalesTotal)}
+                                </p>
+                                <span className="text-2xs text-ink-muted">{filteredSales.length} pedidos</span>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </Panel>
+
+            <Panel>
+                <PanelHeader title="Ventas del día" subtitle="Reimprime el ticket de cualquier pedido." />
+
+                {filteredSales.length === 0 ? (
+                    <EmptyState
+                        icon={Receipt}
+                        title="Sin ventas para estos filtros"
+                        description="Cambia la fecha o el tipo de pedido para ver otros resultados."
+                    />
+                ) : (
+                    <>
+                        <div className="divide-y divide-line-soft md:hidden">
+                            {filteredSales.map(order => (
+                                <div key={order.id} className="space-y-2 px-4 py-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="font-mono text-2xs text-ink-muted">
+                                                {order.id?.slice(0, 8).toUpperCase()}
+                                            </p>
+                                            <p className="num text-2xs text-ink-soft">{timeOf(order)}</p>
+                                        </div>
+                                        <Badge tone={typeTone(order.orderType)} className="rounded-md">
+                                            {getTypeLabel(order.orderType)}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                        {order.items?.slice(0, 3).map((item, i) => (
+                                            <span
+                                                key={i}
+                                                className="rounded bg-surface px-1.5 py-0.5 text-2xs text-ink-muted"
+                                            >
+                                                {item.quantity}x {item.product?.name?.slice(0, 14)}
+                                            </span>
+                                        ))}
+                                        {order.items?.length > 3 && (
+                                            <span className="text-2xs text-ink-soft">+{order.items.length - 3}</span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center justify-between border-t border-line-soft pt-2">
+                                        <span className="num text-[13px] font-semibold text-ink">
+                                            {formatCurrency(order.totalCop)}
+                                        </span>
+                                        <button
+                                            onClick={() => handlePrint(order)}
+                                            className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink"
+                                            aria-label="Reimprimir factura"
+                                        >
+                                            <Printer className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="hidden overflow-x-auto md:block">
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Hora</th>
+                                        <th>Tipo</th>
+                                        <th>Ítems</th>
+                                        <th className="text-right">Total</th>
+                                        <th className="w-12 text-center">
+                                            <span className="sr-only">Acciones</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredSales.map(order => (
+                                        <tr key={order.id}>
+                                            <td className="font-mono text-2xs text-ink-muted">
+                                                {order.id?.slice(0, 8).toUpperCase()}
+                                            </td>
+                                            <td className="num whitespace-nowrap text-ink-muted">{timeOf(order)}</td>
+                                            <td>
+                                                <Badge tone={typeTone(order.orderType)} className="rounded-md">
+                                                    {getTypeLabel(order.orderType)}
+                                                </Badge>
+                                            </td>
+                                            <td>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {order.items?.slice(0, 3).map((item, i) => (
+                                                        <span
+                                                            key={i}
+                                                            className="rounded bg-surface px-1.5 py-0.5 text-2xs text-ink-muted"
+                                                        >
+                                                            {item.quantity}x {item.product?.name?.slice(0, 14)}
+                                                        </span>
+                                                    ))}
+                                                    {order.items?.length > 3 && (
+                                                        <span className="text-2xs text-ink-soft">
+                                                            +{order.items.length - 3}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="cell-num font-semibold text-ink">
+                                                {formatCurrency(order.totalCop)}
+                                            </td>
+                                            <td className="text-center">
+                                                <button
+                                                    onClick={() => handlePrint(order)}
+                                                    className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink"
+                                                    title="Reimprimir"
+                                                    aria-label="Reimprimir factura"
+                                                >
+                                                    <Printer className="h-3.5 w-3.5" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                )}
+            </Panel>
+        </div>
     );
 }

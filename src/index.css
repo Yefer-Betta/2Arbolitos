@@ -24,6 +24,15 @@
   --app-brand: #1A4D2E;
   --app-brand-hover: #2D6A42;
 
+  --app-ok: #067647;
+  --app-ok-soft: #E7F6EC;
+  --app-warn: #B54708;
+  --app-warn-soft: #FEF3E7;
+  --app-danger: #B42318;
+  --app-danger-soft: #FEECEB;
+  --app-info: #175CD3;
+  --app-info-soft: #EFF4FF;
+
   /* Alias historicos (los usan reglas antiguas de modo oscuro) */
   --color-bg: var(--app-bg);
   --color-bg-paper: var(--app-surface);
@@ -48,6 +57,15 @@
 
   --app-brand: #2D6A42;
   --app-brand-hover: #357A4D;
+
+  --app-ok: #6FD3A0;
+  --app-ok-soft: rgb(6 118 71 / 0.22);
+  --app-warn: #F5B27A;
+  --app-warn-soft: rgb(181 71 8 / 0.24);
+  --app-danger: #F49B95;
+  --app-danger-soft: rgb(180 35 24 / 0.24);
+  --app-info: #8AB4F8;
+  --app-info-soft: rgb(23 92 211 / 0.24);
 }
 
 body {
@@ -203,6 +221,45 @@ body {
   .input-field:focus {
     border-color: var(--app-brand);
     box-shadow: 0 0 0 3px rgb(26 77 46 / 0.15);
+  }
+
+  /* Tablas de administracion: densidad compacta y cifras tabulares */
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .admin-table thead th {
+    padding: 0.5rem 0.875rem;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--app-ink-muted);
+    background-color: var(--app-surface-2);
+    border-bottom: 1px solid var(--app-line);
+    white-space: nowrap;
+  }
+
+  .admin-table tbody td {
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--app-line-soft);
+    vertical-align: middle;
+  }
+
+  .admin-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .admin-table tbody tr:hover {
+    background-color: var(--app-surface-2);
+  }
+
+  .admin-table .cell-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
 }
 

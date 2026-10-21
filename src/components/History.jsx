@@ -5,10 +5,51 @@ import { Clock, DollarSign, Calendar, TrendingUp, Download, History as HistoryIc
 import { PARA_LLEVAR_ID } from './VistaMesas';
 
 function orderOriginLabel(order) {
+    const type = String(order.orderType || '').toLowerCase();
+    if (type.includes('llevar') || order.tableId === PARA_LLEVAR_ID) return 'Para llevar';
+    if (type.includes('domicilio') || order.tableId === 'domicilio' || order.tableId?.startsWith('domicilio-')) {
+        return 'Domicilio';
+    }
+    // La API devuelve la mesa relacionada; el id suelto suele ser un UUID.
+    if (order.table?.name) return order.table.name;
+    if (order.table?.number) return `Mesa ${order.table.number}`;
     if (!order.tableId) return '—';
-    if (order.tableId === PARA_LLEVAR_ID) return 'Para llevar';
-    if (order.tableId === 'domicilio' || order.tableId?.startsWith('domicilio-')) return 'Domicilio';
-    return order.tableId.replace('mesa-', 'Mesa ');
+    if (order.tableId.startsWith('mesa-')) return `Mesa ${order.tableId.replace('mesa-', '')}`;
+    return 'Mesa';
+}
+
+const METHOD_LABELS = {
+    cash_cop: 'Efectivo COP',
+    cash_usd: 'Efectivo USD',
+    cash_bs: 'Efectivo Bs.',
+    nequi: 'Nequi',
+    card: 'Débito',
+    debit: 'Débito',
+    transfer: 'Transferencia',
+};
+
+function paymentLabel(order) {
+    const methods = order.payments?.length
+        ? order.payments.map(p => p.method)
+        : order.payment
+            ? [order.payment.method]
+            : [];
+    if (methods.length === 0) return 'N/A';
+    return methods
+        .map(m => METHOD_LABELS[String(m || '').toLowerCase()] || String(m || ''))
+        .join(' + ');
+}
+
+function formatDay(value) {
+    return new Date(value).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatTime(value) {
+    return new Date(value).toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
 }
 
 export function History() {
@@ -55,36 +96,48 @@ export function History() {
         URL.revokeObjectURL(url);
     };
 
+    const closureDate = new Date(lastClosureDate);
+    const hasClosure = !Number.isNaN(closureDate.getTime()) && closureDate.getFullYear() > 2000;
+
     return (
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Historial de Turno Actual</h2>
-                    <p className="text-gray-500 text-sm">
-                        Ventas desde el último cierre: <span className="font-bold text-primary">{new Date(lastClosureDate).toLocaleString()}</span>
+                    <h2 className="text-2xl font-semibold tracking-tight text-ink">Historial de Turno Actual</h2>
+                    <p className="text-sm text-ink-muted">
+                        {hasClosure ? (
+                            <>
+                                Ventas desde el último cierre:{' '}
+                                <span className="font-semibold text-ink-brand">
+                                    {closureDate.toLocaleString('es-CO')}
+                                </span>
+                            </>
+                        ) : (
+                            'Ventas del turno actual · sin cierres previos'
+                        )}
                     </p>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
                     <button
                         onClick={exportToExcel}
                         disabled={currentShiftOrders.length === 0}
-                        className="btn-secondary flex items-center gap-2"
+                        className="btn-secondary order-2 h-9 justify-center px-3 text-[13px] md:order-1"
                     >
-                        <Download className="w-4 h-4" /> Exportar Excel
+                        <Download className="h-4 w-4" aria-hidden="true" /> Exportar Excel
                     </button>
-                    <div className="card px-6 py-4 flex gap-8 bg-gradient-to-r from-primary to-primary-dark text-white shadow-xl shadow-primary/20">
+                    <div className="card order-1 grid grid-cols-2 gap-4 bg-gradient-to-r from-primary to-primary-dark px-4 py-3 text-white shadow-xl shadow-primary/20 md:order-2 md:flex md:gap-8 md:px-6 md:py-4">
                         <div>
-                            <span className="text-xs text-primary-light/80 font-bold uppercase tracking-wider flex items-center gap-1">
-                                <TrendingUp className="w-3 h-3" /> Ventas Turno (COP)
+                            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary-light/80 md:text-xs">
+                                <TrendingUp className="h-3 w-3" aria-hidden="true" /> Ventas turno (COP)
                             </span>
-                            <div className="text-2xl font-bold mt-1">${totalShiftCOP.toLocaleString()}</div>
+                            <div className="num mt-1 text-xl font-bold md:text-2xl">${totalShiftCOP.toLocaleString()}</div>
                         </div>
-                        <div className="border-l border-white/10 pl-8">
-                            <span className="text-xs text-primary-light/80 font-bold uppercase tracking-wider flex items-center gap-1">
-                                <DollarSign className="w-3 h-3" /> Ventas Turno (USD)
+                        <div className="border-l border-white/10 pl-4 md:pl-8">
+                            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary-light/80 md:text-xs">
+                                <DollarSign className="h-3 w-3" aria-hidden="true" /> Ventas turno (USD)
                             </span>
-                            <div className="text-2xl font-bold mt-1 text-secondary">${totalShiftUSD.toFixed(2)}</div>
+                            <div className="num mt-1 text-xl font-bold text-secondary md:text-2xl">${totalShiftUSD.toFixed(2)}</div>
                         </div>
                     </div>
                 </div>
@@ -118,8 +171,8 @@ export function History() {
                                     <tr key={order.id} className="hover:bg-gray-50 transition-colors group">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-gray-900 group-hover:text-primary transition-colors">{new Date(order.date || order.createdAt).toLocaleDateString()}</span>
-                                                <span className="text-xs text-gray-400">{new Date(order.date || order.createdAt).toLocaleTimeString()}</span>
+                                                <span className="font-bold text-gray-900 group-hover:text-primary transition-colors">{formatDay(order.date || order.createdAt)}</span>
+                                                <span className="num text-xs text-gray-400">{formatTime(order.date || order.createdAt)}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -146,8 +199,8 @@ export function History() {
                                                 ${order.totalUsd.toFixed(2)}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 text-right uppercase font-bold">
-                                            {order.payments?.map(p => p.method?.replace('_', ' ')).join(' + ') || order.payment?.method?.replace('_', ' ') || 'N/A'}
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-bold uppercase text-gray-500">
+                                            {paymentLabel(order)}
                                         </td>
                                     </tr>
                                 ))
@@ -169,8 +222,8 @@ export function History() {
                         <div key={order.id} className="card p-4 space-y-3">
                             <div className="flex items-start justify-between gap-3">
                                 <div>
-                                    <p className="font-bold text-gray-900">{new Date(order.date || order.createdAt).toLocaleDateString()}</p>
-                                    <p className="text-xs text-gray-400">{new Date(order.date || order.createdAt).toLocaleTimeString()}</p>
+                                    <p className="font-bold text-gray-900">{formatDay(order.date || order.createdAt)}</p>
+                                    <p className="num text-xs text-gray-400">{formatTime(order.date || order.createdAt)}</p>
                                 </div>
                                 <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium shrink-0">
                                     {orderOriginLabel(order)}
@@ -184,8 +237,8 @@ export function History() {
                                 ))}
                             </div>
                             <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                                <span className="text-[11px] text-gray-500 uppercase font-bold">
-                                    {order.payments?.map(p => p.method?.replace('_', ' ')).join(' + ') || order.payment?.method?.replace('_', ' ') || 'N/A'}
+                                <span className="text-[11px] font-bold uppercase text-gray-500">
+                                    {paymentLabel(order)}
                                 </span>
                                 <div className="text-right">
                                     <p className="font-bold text-green-700">${order.totalCop.toLocaleString()}</p>
@@ -208,10 +261,10 @@ export function History() {
                             <div key={closure.id} className="card p-4 hover:shadow-md transition-shadow">
                                 <div className="flex justify-between items-start mb-2">
                                     <span className="text-sm font-bold text-gray-500">
-                                        {new Date(closure.date).toLocaleDateString()}
+                                        {formatDay(closure.date)}
                                     </span>
-                                    <span className="text-xs text-gray-400">
-                                        {new Date(closure.date).toLocaleTimeString()}
+                                    <span className="num text-xs text-gray-400">
+                                        {formatTime(closure.date)}
                                     </span>
                                 </div>
                                 <div className="space-y-1">
