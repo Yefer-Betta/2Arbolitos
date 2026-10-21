@@ -23,7 +23,8 @@
     "docker:seed": "docker compose exec -T backend node prisma/seed.js",
     "docker:rebuild": "docker compose up -d --build",
     "backup": "node scripts/backup.js",
-    "pack:portable": "node scripts/pack-portable.js"
+    "pack:portable": "node scripts/pack-portable.js",
+    "shots": "node scripts/visual/shots.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

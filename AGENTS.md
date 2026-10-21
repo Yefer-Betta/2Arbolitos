@@ -197,6 +197,19 @@ Default users after seed: `admin/admin123`, `gerente/waiter123`, `cajero/waiter1
 
 The project has no test framework. There is a single CI workflow (`.github/workflows/docker-build.yml`) that builds and pushes Docker images to GHCR — it does not run tests.
 
+## Capturas visuales (POS)
+
+```bash
+npm run dev                 # frontend en 5173 y API en 3002
+npm run shots -- --tag antes
+npm run shots -- --tag despues --only pos,kitchen
+```
+
+- Arnés sin dependencias: `scripts/visual/shots.mjs` lanza Edge headless con CDP, inicia sesión real (`admin/admin123`) e inyecta la cookie `httpOnly`.
+- Guarda `screenshots/<tag>-<viewport>-<pantalla>.png` en 1440×900, 1024×768 y 390×844. La carpeta está en `.gitignore`.
+- Escenarios: `login`, `mesas`, `pedido` (Mesa 1 + 3 ítems), `carrito`, `cocina`, `historial`, `inventario`, y variantes `mesas-oscuro` / `pedido-oscuro`.
+- `pedido`/`carrito` limpian la mesa al terminar (`DELETE /tables/state/mesa-1`) para no dejar cuentas abiertas.
+
 ## Panel de control (Windows)
 
 `Panel.bat` → `scripts/panel/Panel.ps1` (WPF) + `scripts/lib/Ops.ps1` (operaciones compartidas con el instalador).

@@ -21,6 +21,9 @@ build
 release
 *.exe
 
+# Capturas del arnes visual (scripts/visual/shots.mjs)
+screenshots/
+
 # Runtime flags
 .shortcut-created
 

@@ -15,3 +15,27 @@ export const allTabs = [
     { id: 'audit', label: 'Auditoría', icon: ClipboardList, roles: ['ADMIN'], permissions: ['VIEW_AUDIT'] },
     { id: 'settings', label: 'Configuración', icon: Settings, roles: ['ADMIN'], permissions: ['MANAGE_SETTINGS'] },
 ];
+
+/**
+ * Agrupacion de la navegacion lateral. Los ids que no aparezcan en ninguna
+ * seccion se muestran al final, para no perder pantallas nuevas por olvido.
+ */
+export const tabSections = [
+    { label: 'Servicio', ids: ['pos', 'kitchen', 'history'] },
+    { label: 'Catálogo', ids: ['menu', 'modifiers', 'escandallo'] },
+    { label: 'Operación', ids: ['inventory', 'suppliers', 'customers'] },
+    { label: 'Sistema', ids: ['finance', 'admin', 'audit', 'settings'] },
+];
+
+export function groupTabs(tabs) {
+    const known = new Set(tabSections.flatMap(section => section.ids));
+    const sections = tabSections
+        .map(section => ({ label: section.label, items: tabs.filter(tab => section.ids.includes(tab.id)) }))
+        .filter(section => section.items.length > 0);
+
+    const rest = tabs.filter(tab => !known.has(tab.id));
+    if (rest.length > 0) {
+        sections.push({ label: 'Otros', items: rest });
+    }
+    return sections;
+}

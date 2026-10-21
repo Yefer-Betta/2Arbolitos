@@ -438,32 +438,35 @@ export function POS({ tableId, onBack }) {
 
 
     return (
-        <div className="flex flex-col md:flex-row h-full md:h-[calc(100dvh-theme(spacing.32))] gap-4 md:gap-6 relative">
+        <div className="relative flex h-full flex-col gap-4 md:flex-row md:gap-5">
             {/* Selector Menú / Carrito (solo móvil, sticky arriba) */}
-            <div className="md:hidden sticky top-0 z-30 -mx-4 px-4 pt-1 pb-2 bg-background/95 backdrop-blur-sm">
-                <div className="flex gap-2 bg-white rounded-xl p-1 border border-gray-200 shadow-sm">
+            <div className="sticky top-0 z-30 -mx-4 bg-background/95 px-4 pb-2 pt-1 backdrop-blur-sm md:hidden">
+                <div className="flex gap-1 rounded-xl border border-line bg-background-paper p-1">
                     <button
                         onClick={() => setMobileView('products')}
                         aria-pressed={mobileView === 'products'}
                         className={cn(
-                            "flex-1 min-h-[44px] rounded-lg font-bold flex items-center justify-center gap-2 text-sm transition-all",
-                            mobileView === 'products' ? "bg-primary text-white shadow" : "text-gray-500 active:bg-gray-100"
+                            "flex h-11 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors",
+                            mobileView === 'products' ? "bg-primary text-white" : "text-ink-muted active:bg-surface"
                         )}
                     >
-                        <Utensils className="w-4 h-4" /> Menú
+                        <Utensils className="w-4 h-4" aria-hidden="true" /> Menú
                     </button>
                     <button
                         onClick={() => setMobileView('cart')}
                         aria-pressed={mobileView === 'cart'}
                         className={cn(
-                            "flex-1 min-h-[44px] rounded-lg font-bold flex items-center justify-center gap-2 text-sm relative transition-all",
-                            mobileView === 'cart' ? "bg-primary text-white shadow" : "text-gray-500 active:bg-gray-100"
+                            "relative flex h-11 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors",
+                            mobileView === 'cart' ? "bg-primary text-white" : "text-ink-muted active:bg-surface"
                         )}
                     >
-                        <ShoppingCart className="w-4 h-4" /> Carrito
+                        <ShoppingCart className="w-4 h-4" aria-hidden="true" /> Carrito
                         {cart.length > 0 ? (
-                            <span aria-hidden="true" className="absolute top-1 right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                                {cart.length}
+                            <span
+                                aria-hidden="true"
+                                className="num ml-0.5 rounded-full bg-secondary px-1.5 text-2xs font-semibold text-primary-dark"
+                            >
+                                {cart.reduce((sum, item) => sum + (item.quantity || 0), 0)}
                             </span>
                         ) : null}
                     </button>

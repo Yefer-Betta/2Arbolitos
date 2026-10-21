@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Utensils, ShoppingBag, Truck, Plus, X, MapPin, Phone, DollarSign } from 'lucide-react';
+import { ChevronRight, LayoutGrid, MapPin, Phone, Plus, ShoppingBag, Truck, X } from 'lucide-react';
 import { useOrders } from '../context/OrdersContext';
 import { useSettings } from '../context/SettingsContext';
 import { Modal } from './Modal';
 import { useToast } from './ui/feedback-context';
+import { PageHeader } from './ui/PageHeader';
+import { Badge } from './ui/Badge';
+import { Money } from './ui/Money';
+import { Button } from './ui/Button';
+import { cn } from '../lib/utils';
 
 export const PARA_LLEVAR_ID = 'para-llevar';
 
@@ -43,6 +48,13 @@ export function VistaMesas({ onSelectTable }) {
 
     const deliveryTables = Object.entries(activeTables).filter(([id]) => id.startsWith('domicilio-'));
 
+    const tables = Array.from({ length: TOTAL_TABLES }, (_, i) => {
+        const id = `mesa-${i + 1}`;
+        const items = activeTables[id]?.items || [];
+        return { id, number: i + 1, items, occupied: items.length > 0, totals: calculateTableTotal(items) };
+    });
+    const freeTables = tables.filter(t => !t.occupied).length;
+
     const handleCrearDomicilio = () => {
         if (!domForm.direccion.trim() || !domForm.telefono.trim()) {
             toast.error('La dirección y el teléfono son obligatorios');
@@ -55,55 +67,70 @@ export function VistaMesas({ onSelectTable }) {
         onSelectTable(id);
     };
 
+    const closeDomicilio = () => {
+        setShowNuevoDomicilio(false);
+        setDomForm({ direccion: '', telefono: '', costoEnvio: '' });
+    };
+
     return (
-        <div>
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h2 className="text-3xl font-bold text-gray-800">Gestión de Pedidos</h2>
-                    <p className="text-gray-500">Selecciona una mesa o inicia una venta directa.</p>
-                </div>
-            </div>
+        <div className="space-y-6 md:space-y-8">
+            <PageHeader title="Pedidos" subtitle="Elige una mesa o inicia una venta directa." />
 
             {/* Acciones rápidas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:gap-3 lg:grid-cols-3">
                 <button
                     onClick={() => onSelectTable('para-llevar')}
-                    className="card p-6 text-left flex items-center gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 hover:border-blue-400 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                    className="group flex items-center gap-3 rounded-2xl border border-line bg-background-paper p-3.5 text-left transition-colors hover:border-primary/40"
                 >
-                    <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                        <Truck className="w-7 h-7" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-xl text-gray-800">Para Llevar</h3>
-                        <span className="text-sm font-bold text-blue-600">Venta Directa</span>
-                        <p className="text-xs text-gray-500 mt-1">Iniciar pedido sin asignar mesa</p>
-                    </div>
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/5 text-ink-brand">
+                        <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-ink">Para llevar</span>
+                        <span className="block truncate text-2xs text-ink-muted">Venta directa sin mesa</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-ink-soft transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                 </button>
 
                 <button
                     onClick={() => setShowNuevoDomicilio(true)}
-                    className="card p-6 text-left flex items-center gap-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 hover:border-purple-400 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                    className="group flex items-center gap-3 rounded-2xl border border-line bg-background-paper p-3.5 text-left transition-colors hover:border-primary/40"
                 >
-                    <div className="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-                        <ShoppingBag className="w-7 h-7" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-xl text-gray-800">Nuevo Domicilio</h3>
-                        <span className="text-sm font-bold text-purple-600">Entrega a Domicilio</span>
-                        <p className="text-xs text-gray-500 mt-1">Crear pedido con dirección y teléfono</p>
-                    </div>
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/5 text-ink-brand">
+                        <Truck className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-ink">Domicilio</span>
+                        <span className="block truncate text-2xs text-ink-muted">Entrega a domicilio</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-ink-soft transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                 </button>
+
+                <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface/60 p-3.5">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-background-paper text-ink-brand">
+                        <LayoutGrid className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                        <p className="num text-sm font-semibold text-ink">
+                            {freeTables} de {TOTAL_TABLES} mesas libres
+                        </p>
+                        <p className="truncate text-2xs text-ink-muted">
+                            {TOTAL_TABLES - freeTables === 0
+                                ? 'Sin cuentas abiertas'
+                                : `${TOTAL_TABLES - freeTables} con cuenta abierta`}
+                        </p>
+                    </div>
+                </div>
             </div>
 
             {/* Domicilios activos */}
             {deliveryTables.length > 0 && (
-                <div className="mb-8">
-                    <h3 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
-                        <ShoppingBag className="w-5 h-5 text-purple-600" />
-                        Domicilios Activos
-                        <span className="text-sm font-normal text-gray-400">({deliveryTables.length})</span>
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <section>
+                    <div className="mb-3 flex items-center gap-2">
+                        <h2 className="text-sm font-semibold text-ink">Domicilios en curso</h2>
+                        <Badge tone="brand">{deliveryTables.length}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:gap-3 lg:grid-cols-3 xl:grid-cols-4">
                         {deliveryTables.map(([id, entry]) => {
                             const items = entry.items || [];
                             const totals = calculateTableTotal(items);
@@ -111,171 +138,198 @@ export function VistaMesas({ onSelectTable }) {
                                 <button
                                     key={id}
                                     onClick={() => onSelectTable(id)}
-                                    className="card p-5 text-left flex flex-col gap-3 bg-gradient-to-br from-purple-50 to-white border-2 border-purple-200 hover:border-purple-400 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                                    className="group flex flex-col gap-3 rounded-2xl border border-line border-l-[3px] border-l-secondary bg-background-paper p-3.5 text-left transition-colors hover:border-primary/40 hover:border-l-secondary"
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-                                                <ShoppingBag className="w-5 h-5" />
-                                            </div>
-                                            <span className="font-bold text-purple-700">Domicilio</span>
-                                        </div>
-                                        <span className="text-xs font-bold text-purple-500 bg-purple-100 px-2 py-0.5 rounded-full">
-                                            {items.length} {items.length === 1 ? 'ítem' : 'ítems'}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="flex items-center gap-2 text-sm font-semibold text-ink">
+                                            <Truck className="h-4 w-4 text-ink-brand" aria-hidden="true" />
+                                            Domicilio
                                         </span>
+                                        <Badge>{items.length} {items.length === 1 ? 'ítem' : 'ítems'}</Badge>
                                     </div>
-                                    <div className="space-y-1 text-xs text-gray-600">
+
+                                    <div className="space-y-1 text-2xs text-ink-muted">
                                         <p className="flex items-center gap-1.5">
-                                            <MapPin className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                                            <MapPin className="h-3.5 w-3.5 shrink-0 text-ink-soft" aria-hidden="true" />
                                             <span className="truncate">{entry.deliveryAddress}</span>
                                         </p>
                                         <p className="flex items-center gap-1.5">
-                                            <Phone className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                                            <Phone className="h-3.5 w-3.5 shrink-0 text-ink-soft" aria-hidden="true" />
                                             {entry.deliveryPhone}
                                         </p>
                                         {entry.deliveryCost > 0 && (
-                                            <p className="flex items-center gap-1.5">
-                                                <DollarSign className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                                                Envío: ${Number(entry.deliveryCost).toLocaleString()} COP
+                                            <p className="flex items-center gap-1">
+                                                Envío <Money amount={entry.deliveryCost} className="font-medium text-ink-muted" />
                                             </p>
                                         )}
                                     </div>
-                                    <div className="pt-2 border-t border-purple-100">
-                                        <div className="text-right">
-                                            <div className="text-lg font-bold text-primary">
-                                                ${totals.cop.toLocaleString()}
-                                            </div>
-                                            <div className="text-xs text-gray-400">Total</div>
-                                        </div>
+
+                                    <div className="mt-auto flex items-center justify-between border-t border-line-soft pt-2.5">
+                                        <span className="text-2xs text-ink-muted">Total</span>
+                                        <Money amount={totals.cop} className="text-sm text-ink" />
                                     </div>
                                 </button>
                             );
                         })}
                     </div>
-                </div>
+                </section>
             )}
 
-            <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-700 mb-4">Mesas del Restaurante</h3>
-            </div>
+            {/* Mesas */}
+            <section>
+                <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-sm font-semibold text-ink">Mesas</h2>
+                        <span className="text-2xs text-ink-muted">{freeTables} de {TOTAL_TABLES} libres</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-2xs text-ink-muted">
+                        <span className="flex items-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-ok" aria-hidden="true" />
+                            Libre
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-secondary" aria-hidden="true" />
+                            Ocupada
+                        </span>
+                    </div>
+                </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 md:gap-5">
-                {Array.from({ length: TOTAL_TABLES }, (_, i) => i + 1).map(tableNumber => {
-                    const tableId = `mesa-${tableNumber}`;
-                    const tableOrder = activeTables[tableId]?.items || [];
-                    const isOccupied = tableOrder.length > 0;
-                    const totals = calculateTableTotal(tableOrder);
-
-                    return (
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:gap-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                    {tables.map(table => (
                         <button
-                            key={tableId}
-                            onClick={() => onSelectTable(tableId)}
-                            className={`card p-4 md:p-6 text-left flex flex-col justify-between group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden ${
-                                isOccupied
-                                    ? 'bg-orange-50 border-2 border-orange-200 hover:border-orange-400'
-                                    : 'bg-white hover:border-primary/30'
-                            }`}
+                            key={table.id}
+                            onClick={() => onSelectTable(table.id)}
+                            aria-label={`Mesa ${table.number}: ${table.occupied ? 'ocupada' : 'libre'}`}
+                            className={cn(
+                                'group flex min-h-[96px] flex-col justify-between rounded-2xl border border-line bg-background-paper p-3.5 text-left transition-colors hover:border-primary/40',
+                                table.occupied && 'border-l-[3px] border-l-secondary hover:border-l-secondary'
+                            )}
                         >
-                            <div className="flex items-center gap-2 md:gap-4 mb-3 md:mb-4">
-                                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                                    isOccupied ? 'bg-orange-100 text-orange-600' : 'bg-surface text-primary'
-                                }`}>
-                                    <Utensils className="w-5 h-5 md:w-6 md:h-6" />
+                            <div className="flex items-start justify-between gap-2">
+                                <div>
+                                    <p className="text-2xs uppercase tracking-wide text-ink-soft">Mesa</p>
+                                    <p className="num mt-0.5 text-2xl font-semibold leading-none text-ink">
+                                        {String(table.number).padStart(2, '0')}
+                                    </p>
                                 </div>
-                                <div className="min-w-0">
-                                    <h3 className="font-bold text-base md:text-xl text-gray-800 truncate">Mesa {tableNumber}</h3>
-                                    <span className={`text-xs md:text-sm font-bold transition-colors ${
-                                        isOccupied ? 'text-orange-600' : 'text-green-600'
-                                    }`}>
-                                        {isOccupied ? 'Ocupada' : 'Libre'}
-                                    </span>
-                                </div>
+                                <span
+                                    className={cn(
+                                        'flex items-center gap-1.5 text-2xs font-medium',
+                                        table.occupied ? 'text-warn' : 'text-ink-muted'
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            'h-1.5 w-1.5 rounded-full',
+                                            table.occupied ? 'bg-secondary' : 'bg-ok'
+                                        )}
+                                        aria-hidden="true"
+                                    />
+                                    {table.occupied ? 'Ocupada' : 'Libre'}
+                                </span>
                             </div>
 
-                            <div className="mt-auto pt-2 md:pt-4 border-t border-gray-100">
-                                {isOccupied ? (
-                                    <div className="text-right">
-                                        <div className="text-lg md:text-2xl font-bold text-primary leading-tight break-words">${totals.cop.toLocaleString()}</div>
-                                        <div className="text-[11px] md:text-xs font-medium text-gray-400">Total Cuenta</div>
-                                    </div>
+                            <div className="mt-2.5 flex items-end justify-between gap-2">
+                                {table.occupied ? (
+                                    <>
+                                        <span className="text-2xs text-ink-muted">
+                                            {table.items.length} {table.items.length === 1 ? 'ítem' : 'ítems'}
+                                        </span>
+                                        <Money amount={table.totals.cop} className="text-sm text-ink" />
+                                    </>
                                 ) : (
-                                    <p className="text-gray-400 text-xs md:text-sm leading-snug">Haz clic para iniciar un nuevo pedido.</p>
+                                    <>
+                                        <span className="text-2xs text-ink-soft">Abrir</span>
+                                        <ChevronRight
+                                            className="h-4 w-4 text-ink-soft transition-transform group-hover:translate-x-0.5"
+                                            aria-hidden="true"
+                                        />
+                                    </>
                                 )}
                             </div>
                         </button>
-                    );
-                })}
-            </div>
+                    ))}
+                </div>
+            </section>
 
             {/* Modal Nuevo Domicilio */}
-            <Modal isOpen={showNuevoDomicilio} onClose={() => { setShowNuevoDomicilio(false); setDomForm({ direccion: '', telefono: '', costoEnvio: '' }); }} label="Nuevo domicilio" maxWidth="max-w-md">
-                    <div className="p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                <ShoppingBag className="w-5 h-5 text-purple-600" />
-                                Nuevo Domicilio
-                            </h3>
-                            <button onClick={() => { setShowNuevoDomicilio(false); setDomForm({ direccion: '', telefono: '', costoEnvio: '' }); }} className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-red-500 transition-colors" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+            <Modal isOpen={showNuevoDomicilio} onClose={closeDomicilio} label="Nuevo domicilio" maxWidth="max-w-md">
+                <div className="p-5">
+                    <div className="mb-5 flex items-start justify-between gap-3">
+                        <div>
+                            <h3 className="text-base font-semibold text-ink">Nuevo domicilio</h3>
+                            <p className="mt-0.5 text-2xs text-ink-muted">Datos para la entrega del pedido.</p>
                         </div>
+                        <button
+                            onClick={closeDomicilio}
+                            className="grid h-9 w-9 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-surface hover:text-ink"
+                            aria-label="Cerrar"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2" htmlFor="dom-direccion">Dirección de entrega *</label>
-                                <input
-                                    id="dom-direccion"
-                                    type="text"
-                                    placeholder="Ej. Cra 5 #10-20, Barrio Centro"
-                                    value={domForm.direccion}
-                                    onChange={e => setDomForm({ ...domForm, direccion: e.target.value })}
-                                    className="input-field w-full"
-                                    autoFocus
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2" htmlFor="dom-telefono">Teléfono de contacto *</label>
-                                <input
-                                    id="dom-telefono"
-                                    type="tel"
-                                    inputMode="tel"
-                                    placeholder="Ej. 310 555 1234"
-                                    value={domForm.telefono}
-                                    onChange={e => setDomForm({ ...domForm, telefono: e.target.value })}
-                                    className="input-field w-full"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2" htmlFor="dom-costo">Costo de envío (COP)</label>
-                                <input
-                                    id="dom-costo"
-                                    type="text"
-                                    inputMode="numeric"
-                                    placeholder="0"
-                                    value={domForm.costoEnvio}
-                                    onChange={e => setDomForm({ ...domForm, costoEnvio: e.target.value.replace(/[^0-9]/g, '') })}
-                                    onBlur={e => { const v = e.target.value.replace(/[^0-9]/g, ''); setDomForm({ ...domForm, costoEnvio: v ? parseInt(v).toLocaleString('es-CO') : '' }); }}
-                                    onFocus={e => setDomForm({ ...domForm, costoEnvio: e.target.value.replace(/[^0-9]/g, '') })}
-                                    className="input-field w-full"
-                                />
-                            </div>
+                    <div className="space-y-3.5">
+                        <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-ink-muted" htmlFor="dom-direccion">
+                                Dirección de entrega *
+                            </label>
+                            <input
+                                id="dom-direccion"
+                                type="text"
+                                placeholder="Ej. Cra 5 #10-20, Barrio Centro"
+                                value={domForm.direccion}
+                                onChange={e => setDomForm({ ...domForm, direccion: e.target.value })}
+                                className="input-field"
+                                autoFocus
+                            />
                         </div>
-
-                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-                            <button
-                                onClick={() => { setShowNuevoDomicilio(false); setDomForm({ direccion: '', telefono: '', costoEnvio: '' }); }}
-                                className="btn-secondary"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleCrearDomicilio}
-                                className="btn-primary bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Crear Domicilio
-                            </button>
+                        <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-ink-muted" htmlFor="dom-telefono">
+                                Teléfono de contacto *
+                            </label>
+                            <input
+                                id="dom-telefono"
+                                type="tel"
+                                inputMode="tel"
+                                placeholder="Ej. 310 555 1234"
+                                value={domForm.telefono}
+                                onChange={e => setDomForm({ ...domForm, telefono: e.target.value })}
+                                className="input-field"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-ink-muted" htmlFor="dom-costo">
+                                Costo de envío (COP)
+                            </label>
+                            <input
+                                id="dom-costo"
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="0"
+                                value={domForm.costoEnvio}
+                                onChange={e => setDomForm({ ...domForm, costoEnvio: e.target.value.replace(/[^0-9]/g, '') })}
+                                onBlur={e => {
+                                    const v = e.target.value.replace(/[^0-9]/g, '');
+                                    setDomForm({ ...domForm, costoEnvio: v ? parseInt(v).toLocaleString('es-CO') : '' });
+                                }}
+                                onFocus={e => setDomForm({ ...domForm, costoEnvio: e.target.value.replace(/[^0-9]/g, '') })}
+                                className="input-field"
+                            />
                         </div>
                     </div>
-                </Modal>
+
+                    <div className="mt-5 flex justify-end gap-2 border-t border-line pt-4">
+                        <Button variant="secondary" onClick={closeDomicilio}>
+                            Cancelar
+                        </Button>
+                        <Button variant="primary" onClick={handleCrearDomicilio}>
+                            <Plus className="h-4 w-4" aria-hidden="true" />
+                            Crear domicilio
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

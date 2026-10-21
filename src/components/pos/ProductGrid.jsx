@@ -1,113 +1,144 @@
 import React from 'react';
-import { Search, Plus, Utensils } from 'lucide-react';
+import { ArrowLeft, Plus, Search } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { EmptyState } from '../ui/EmptyState';
+import { Money } from '../ui/Money';
 
-export function ProductGrid({ tableId, onBack, mobileView, searchTerm, setSearchTerm, categories, selectedCategory, setSelectedCategory, filteredProducts, addToCart, gridRef, handleGridKeys }) {
+function orderContext(tableId) {
+    if (!tableId) return { title: 'Caja rápida', subtitle: 'Pedido sin mesa asignada.' };
+    if (tableId.startsWith('mesa-')) {
+        return {
+            title: `Mesa ${tableId.replace('mesa-', '')}`,
+            subtitle: 'Añade productos a la mesa.',
+        };
+    }
+    if (tableId === 'para-llevar') {
+        return { title: 'Para llevar', subtitle: 'Venta directa sin mesa.' };
+    }
+    if (tableId.startsWith('domicilio')) {
+        return { title: 'Domicilio', subtitle: 'Pedido para entrega a domicilio.' };
+    }
+    return { title: 'Pedido', subtitle: '' };
+}
+
+export function ProductGrid({
+    tableId,
+    onBack,
+    mobileView,
+    searchTerm,
+    setSearchTerm,
+    categories,
+    selectedCategory,
+    setSelectedCategory,
+    filteredProducts,
+    addToCart,
+    gridRef,
+    handleGridKeys,
+}) {
+    const context = orderContext(tableId);
+
     return (
-            <div className={cn("flex flex-col gap-4 md:gap-6 min-h-0 md:flex-1 md:h-auto", mobileView !== 'products' && "hidden md:flex")}>
-                {/* Header Section */}
-                <div className="flex flex-col gap-4">
-                    <div>
-                        {tableId ? (
-                            <div className="flex items-center gap-4">
-                                <button onClick={onBack} className="btn-secondary p-2 h-10 w-10 text-lg">←</button>
-                                <div>
-{tableId.startsWith('mesa-') ? (
-                                        <>
-                                            <h2 className="text-2xl font-bold text-gray-800">Mesa <span className="text-primary">{tableId.replace('mesa-', '')}</span></h2>
-                                            <p className="text-gray-500 text-sm">Añade productos a la cuenta de la mesa.</p>
-                                        </>
-                                    ) : tableId === 'para-llevar' ? (
-                                        <>
-                                            <h2 className="text-2xl font-bold text-gray-800"><span className="text-blue-600">Para Llevar</span></h2>
-                                            <p className="text-gray-500 text-sm">Venta directa sin mesa.</p>
-                                        </>
-                                    ) : tableId?.startsWith('domicilio') ? (
-                                        <>
-                                            <h2 className="text-2xl font-bold text-gray-800"><span className="text-purple-600">Domicilio</span></h2>
-                                            <p className="text-gray-500 text-sm">Pedido para entrega a domicilio.</p>
-                                        </>
-                                    ) : null}
-                                </div>
-                            </div>
-                        ) : (
-                            <h2 className="text-2xl font-bold text-gray-800">Realizar Pedido (Caja Rápida)</h2>
-                        )}
-                    </div>
-                    {/* Search & Filter */}
-                    <div className="flex gap-4 bg-white p-2 rounded-2xl shadow-sm border border-black/5">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                            <input
-                                type="text"
-                                placeholder="Buscar productos..."
-                                className="w-full pl-12 pr-4 py-3 rounded-xl bg-transparent focus:bg-gray-50 outline-none transition-colors border-none"
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    </div>
+        <div className={cn('flex min-h-0 min-w-0 flex-col gap-4 md:flex-1', mobileView !== 'products' && 'hidden md:flex')}>
+            {/* Cabecera del pedido */}
+            <div className="flex items-center gap-3">
+                <button
+                    onClick={onBack}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-line bg-background-paper text-ink-muted transition-colors hover:bg-surface hover:text-ink"
+                    aria-label="Volver a las mesas"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                </button>
 
-                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                        {categories.map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => setSelectedCategory(cat)}
-                                className={cn(
-                                    "px-5 py-2 rounded-xl whitespace-nowrap text-sm font-semibold transition-all duration-200 border",
-                                    selectedCategory === cat
-                                        ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
-                                        : "bg-white text-gray-600 border-gray-100 hover:border-primary/30 hover:text-primary"
-                                )}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
+                <div className="min-w-0 flex-1">
+                    <h1 className="truncate text-xl font-semibold tracking-tight text-ink">{context.title}</h1>
+                    <p className="mt-0.5 hidden truncate text-xs text-ink-muted sm:block">{context.subtitle}</p>
                 </div>
 
-                {/* Grid */}
-                <div className="flex-1 overflow-y-auto pr-2 min-h-0">
-                    <div
-                        ref={gridRef}
-                        onKeyDown={handleGridKeys}
-                        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4"
-                    >
-                        {filteredProducts.map((product, idx) => (
-                            <button
-                                key={product.id}
-                                data-grid-index={idx}
-                                onClick={() => addToCart(product)}
-                                className="flex flex-col p-3 sm:p-5 bg-white hover:bg-surface border border-transparent hover:border-primary/20 rounded-2xl shadow-sm hover:shadow-md transition-all text-left group relative overflow-hidden min-h-[92px] active:scale-[0.98]"
-                            >
-                                <div className="hidden md:block absolute top-0 right-0 p-3 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                    <div className="bg-primary text-white p-2 rounded-lg shadow-lg">
-                                        <Plus className="w-4 h-4" />
-                                    </div>
-                                </div>
-                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-2 sm:mb-3 text-secondary shrink-0">
-                                    <Utensils className="w-4 h-4 sm:w-5 sm:h-5" />
-                                </div>
+                <span className="hidden shrink-0 text-2xs text-ink-muted sm:block">
+                    {filteredProducts.length} {filteredProducts.length === 1 ? 'producto' : 'productos'}
+                </span>
+            </div>
 
-                                <span className="text-[10px] sm:text-xs font-bold text-secondary uppercase tracking-wider mb-0.5 sm:mb-1">{product.category}</span>
-                                <span className="font-bold text-gray-800 mb-2 line-clamp-2 text-sm sm:text-base lg:text-lg leading-snug">{product.name}</span>
+            {/* Buscador + categorías en una sola franja */}
+            <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center">
+                <div className="relative w-full xl:max-w-[280px]">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft" aria-hidden="true" />
+                    <input
+                        type="text"
+                        placeholder="Buscar producto..."
+                        className="input-field pl-9"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        aria-label="Buscar producto"
+                    />
+                </div>
 
-                                <div className="mt-auto pt-2 sm:pt-3 border-t border-gray-50 w-full">
-                                    <span className="font-bold text-sm sm:text-base lg:text-xl text-primary block break-words leading-snug">
-                                        {product.isUsd ? `$${product.price.toFixed(2)}` : `$${product.price.toLocaleString()}`}
-                                        <span className="text-[10px] lg:text-xs font-medium text-gray-500 ml-1 align-top">{product.isUsd ? 'USD' : 'COP'}</span>
-                                    </span>
-                                </div>
-                            </button>
-                        ))}
-                        {filteredProducts.length === 0 && (
-                            <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-400">
-                                <Search className="w-12 h-12 mb-4 opacity-20" />
-                                <p>No se encontraron productos.</p>
-                            </div>
-                        )}
-                    </div>
+                <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 scrollbar-hide">
+                    {categories.map(cat => (
+                        <button
+                            key={cat}
+                            onClick={() => setSelectedCategory(cat)}
+                            aria-pressed={selectedCategory === cat}
+                            className={cn(
+                                'h-9 shrink-0 whitespace-nowrap rounded-full border px-3.5 text-xs font-semibold transition-colors',
+                                selectedCategory === cat
+                                    ? 'border-primary bg-primary text-white'
+                                    : 'border-line bg-background-paper text-ink-muted hover:border-primary/40 hover:text-ink-brand'
+                            )}
+                        >
+                            {cat}
+                        </button>
+                    ))}
                 </div>
             </div>
+
+            {/* Rejilla de productos */}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+                <div
+                    ref={gridRef}
+                    onKeyDown={handleGridKeys}
+                    className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2.5 md:gap-3"
+                >
+                    {filteredProducts.map((product, idx) => (
+                        <button
+                            key={product.id}
+                            data-grid-index={idx}
+                            onClick={() => addToCart(product)}
+                            className="group relative flex min-h-[104px] flex-col rounded-xl border border-line bg-background-paper p-3 text-left transition-colors hover:border-primary/40 hover:bg-surface/40 active:scale-[0.99]"
+                        >
+                            <div className="flex items-start justify-between gap-2">
+                                <span className="line-clamp-1 text-2xs font-semibold text-ink-soft">
+                                    {product.category}
+                                </span>
+                                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/5 text-ink-brand opacity-0 transition-opacity group-hover:opacity-100">
+                                    <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                                </span>
+                            </div>
+
+                            <span className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-ink">
+                                {product.name}
+                            </span>
+
+                            <div className="mt-auto pt-2">
+                                <Money
+                                    amount={product.price}
+                                    currency={product.isUsd ? 'USD' : 'COP'}
+                                    className="text-base text-ink-brand"
+                                />
+                            </div>
+                        </button>
+                    ))}
+
+                    {filteredProducts.length === 0 && (
+                        <EmptyState
+                            icon={Search}
+                            title="Sin resultados"
+                            description="Prueba con otro nombre o cambia de categoría."
+                            className="col-span-full"
+                        />
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }

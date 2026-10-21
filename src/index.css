@@ -3,136 +3,218 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Tokens de la interfaz.
+ * Las utilidades de Tailwind (bg-background, text-ink, border-line...) leen
+ * estas variables, asi que el modo oscuro se resuelve cambiandolas aqui.
+ */
 :root {
-  --color-bg: #F9F7F2;
-  --color-bg-paper: #FFFFFF;
-  --color-surface: #F0EBE0;
-  --color-text: #1f2937;
-  --color-text-secondary: #6b7280;
-  --color-border: #e5e7eb;
+  --app-bg: #F9F7F2;
+  --app-surface: #FFFFFF;
+  --app-surface-2: #F0EBE0;
+  --app-ink: #1F2937;
+  --app-ink-strong: #111827;
+  --app-ink-muted: #6B7280;
+  --app-ink-soft: #9CA3AF;
+  --app-line: #E7E2D8;
+  --app-line-soft: #F1EDE5;
+
+  --app-ink-brand: #1A4D2E;
+
+  --app-brand: #1A4D2E;
+  --app-brand-hover: #2D6A42;
+
+  /* Alias historicos (los usan reglas antiguas de modo oscuro) */
+  --color-bg: var(--app-bg);
+  --color-bg-paper: var(--app-surface);
+  --color-surface: var(--app-surface-2);
+  --color-text: var(--app-ink);
+  --color-text-secondary: var(--app-ink-muted);
+  --color-border: var(--app-line);
 }
 
 .dark {
-  --color-bg: #111827;
-  --color-bg-paper: #1f2937;
-  --color-surface: #374151;
-  --color-text: #f3f4f6;
-  --color-text-secondary: #9ca3af;
-  --color-border: #4b5563;
+  --app-bg: #0F1621;
+  --app-surface: #182030;
+  --app-surface-2: #212B3C;
+  --app-ink: #F3F4F6;
+  --app-ink-strong: #FFFFFF;
+  --app-ink-muted: #A6B0BF;
+  --app-ink-soft: #8792A2;
+  --app-line: #2C3648;
+  --app-line-soft: #232C3C;
+
+  --app-ink-brand: #8FD3A6;
+
+  --app-brand: #2D6A42;
+  --app-brand-hover: #357A4D;
 }
 
 body {
   font-family: 'Outfit', sans-serif;
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  background-color: var(--app-bg);
+  color: var(--app-ink);
 }
 
 .dark .bg-white,
 .dark .card,
 .dark .input-field,
 .dark .btn-secondary {
-  background-color: var(--color-bg-paper);
+  background-color: var(--app-surface);
 }
 
 .dark .bg-surface,
 .dark .bg-gray-50,
 .dark .bg-gray-100 {
-  background-color: var(--color-surface);
+  background-color: var(--app-surface-2);
 }
 
 .dark .text-gray-800,
 .dark .text-gray-900,
 .dark .text-gray-700 {
-  color: var(--color-text);
+  color: var(--app-ink);
 }
 
 .dark .text-gray-500,
 .dark .text-gray-600,
 .dark .text-gray-400 {
-  color: var(--color-text-secondary);
+  color: var(--app-ink-muted);
 }
 
 .dark .border-gray-200,
 .dark .border-gray-100,
 .dark .border-black\/5 {
-  border-color: var(--color-border);
+  border-color: var(--app-line);
 }
 
 .dark .input-field {
-  background-color: var(--color-surface);
-  border-color: var(--color-border);
-  color: var(--color-text);
+  background-color: var(--app-surface);
+  border-color: var(--app-line);
+  color: var(--app-ink);
 }
 
 .dark .hover\:bg-gray-50:hover {
-  background-color: var(--color-surface);
+  background-color: var(--app-surface-2);
 }
 
-.btn-primary {
-  background-color: #1A4D2E;
-  color: white;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 6px -1px rgb(26 77 46 / 0.2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2.75rem;
-}
+/* ---------------------------------------------------------------- */
+/* Componentes base                                                  */
+/* ---------------------------------------------------------------- */
 
-.btn-primary:hover {
-  background-color: #2D6A42;
-}
-
-.btn-secondary {
-  color: #1A4D2E;
-  border: 1px solid rgb(26 77 46 / 0.2);
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-  border-radius: 0.75rem;
-  background-color: var(--color-bg-paper);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2.75rem;
-}
-
-.btn-secondary:hover {
-  background-color: rgb(26 77 46 / 0.05);
-}
-
-.card {
-  border-radius: 1rem;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  background-color: var(--color-bg-paper);
-  border: 1px solid var(--color-border);
-}
-
-.input-field {
-  width: 100%;
-  padding: 0.625rem 1rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bg-paper);
-  color: var(--color-text);
-  outline: none;
-  /* iOS: 16px evita el zoom automático de Safari al enfocar */
-  @media (max-width: 640px) {
-    font-size: 16px !important;
+@layer components {
+  .card {
+    border-radius: 1rem;
+    background-color: var(--app-surface);
+    border: 1px solid var(--app-line);
+    box-shadow: 0 1px 2px 0 rgb(16 24 40 / 0.04);
   }
-  /* área táctil mínima de 44px */
-  min-height: 44px;
-  min-width: 44px;
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0 1rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    min-height: 2.5rem;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background-color: var(--app-brand);
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--app-brand-hover);
+  }
+
+  .btn-secondary {
+    color: var(--app-ink);
+    border: 1px solid var(--app-line);
+    background-color: var(--app-surface);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--app-surface-2);
+  }
+
+  .btn-ghost {
+    color: var(--app-ink-muted);
+    background-color: transparent;
+  }
+
+  .btn-ghost:hover {
+    background-color: var(--app-surface-2);
+    color: var(--app-ink);
+  }
+
+  .btn-danger {
+    color: #B42318;
+    background-color: #FEECEB;
+  }
+
+  .btn-danger:hover {
+    background-color: #B42318;
+    color: #fff;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--app-line);
+    background-color: var(--app-surface);
+    color: var(--app-ink);
+    outline: none;
+    min-height: 2.5rem;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .input-field::placeholder {
+    color: var(--app-ink-soft);
+  }
+
+  /* iOS: 16px evita el zoom automatico de Safari al enfocar */
+  @media (max-width: 640px) {
+    .input-field {
+      font-size: 16px;
+      min-height: 44px;
+    }
+  }
+
+  /* Area tactil minima en pantallas sin puntero fino */
+  @media (pointer: coarse) {
+    .btn-primary,
+    .btn-secondary,
+    .btn-ghost,
+    .btn-danger {
+      min-height: 44px;
+    }
+  }
+
+  .input-field:focus {
+    border-color: var(--app-brand);
+    box-shadow: 0 0 0 3px rgb(26 77 46 / 0.15);
+  }
 }
 
-.input-field:focus {
-  border-color: #1A4D2E;
-  box-shadow: 0 0 0 2px rgb(26 77 46 / 0.2);
+/* Cifras alineadas en columnas de precios y totales */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
   width: 4px;
+  height: 4px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
@@ -145,7 +227,7 @@ body {
   background: rgb(255 255 255 / 0.35);
 }
 
-/* Ocultar scrollbar (fila de categorías, etc.) */
+/* Ocultar scrollbar (fila de categorias, etc.) */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -156,7 +238,7 @@ body {
 
 /* Foco visible consistente en todos los navegadores */
 :focus-visible {
-  outline: 2px solid #2D6A42;
+  outline: 2px solid var(--app-brand-hover);
   outline-offset: 2px;
 }
 

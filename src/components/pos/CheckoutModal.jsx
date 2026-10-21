@@ -24,7 +24,7 @@ export function CheckoutModal({ isCheckoutOpen, closeCheckout, showRecipe, total
                                 <div className="flex gap-2 sm:gap-4 p-3 sm:p-4 bg-surface rounded-xl sm:rounded-2xl border border-primary/10">
                                     <div className="flex-1 text-center border-r border-gray-200 py-2">
                                         <p className="text-gray-500 text-xs font-bold uppercase">Total a Pagar</p>
-                                        <p className="text-xl sm:text-3xl font-bold text-primary">${totals.cop.toLocaleString()}</p>
+                                        <p className="text-xl sm:text-3xl font-bold text-ink-brand">${totals.cop.toLocaleString()}</p>
                                         <p className="text-xs sm:text-sm text-gray-400">COP</p>
                                         {discountData.discountValue > 0 && (
                                             <p className="text-xs text-red-500 font-bold mt-1">
@@ -136,7 +136,7 @@ export function CheckoutModal({ isCheckoutOpen, closeCheckout, showRecipe, total
 
                                     <button
                                         onClick={addPaymentSplit}
-                                        className="w-full mt-2 py-2 px-3 rounded-xl border-2 border-dashed border-primary/30 text-primary font-bold text-sm hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
+                                        className="w-full mt-2 py-2 px-3 rounded-xl border-2 border-dashed border-primary/30 text-ink-brand font-bold text-sm hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
                                     >
                                         + Agregar método de pago
                                     </button>
