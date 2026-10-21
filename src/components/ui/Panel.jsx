@@ -24,7 +24,7 @@ export function PanelHeader({ title, subtitle, actions, className }) {
                 <h2 className="truncate text-sm font-semibold text-ink">{title}</h2>
                 {subtitle && <p className="mt-0.5 truncate text-2xs text-ink-muted">{subtitle}</p>}
             </div>
-            {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+            {actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>}
         </header>
     );
 }

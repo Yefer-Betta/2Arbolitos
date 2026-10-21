@@ -1,7 +1,23 @@
 import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
-import { Plus, Edit2, Trash2, X, Check, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, Users } from 'lucide-react';
 import { useConfirm, useToast } from '../components/ui/feedback-context';
+import { Panel, PanelHeader } from '../components/ui/Panel';
+import { Badge } from '../components/ui/Badge';
+import { EmptyState } from '../components/ui/EmptyState';
+
+const ROLE = {
+    ADMIN: { label: 'Administrador', tone: 'brand' },
+    MANAGER: { label: 'Gerente', tone: 'info' },
+    CASHIER: { label: 'Cajero', tone: 'ok' },
+    WAITER: { label: 'Mesero', tone: 'neutral' },
+    COOK: { label: 'Cocinero', tone: 'warn' },
+};
+
+function roleOf(user) {
+    const key = String(user.role || '').toUpperCase();
+    return ROLE[key] || { label: key || 'Sin rol', tone: 'neutral' };
+}
 
 export function UserManager() {
     const { users, addUser, updateUser, deleteUser } = useUser();
@@ -72,40 +88,34 @@ export function UserManager() {
     };
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Gestión de Usuarios</h2>
-                    <p className="text-gray-500 text-sm">Añade, edita o elimina usuarios y sus roles.</p>
-                </div>
-                <button onClick={() => handleOpenForm()} className="btn-primary flex items-center gap-2">
-                    <Plus className="w-5 h-5" />
-                    Nuevo Usuario
-                </button>
-            </div>
-
+        <div className="space-y-3">
             {isFormOpen && (
-                <div className="card p-8 bg-white border border-primary/10">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-primary">{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
-                        <button onClick={handleCloseForm} className="text-gray-400 hover:text-red-500"><X /></button>
-                    </div>
-                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Panel>
+                    <PanelHeader
+                        title={editingUser ? 'Editar usuario' : 'Nuevo usuario'}
+                        subtitle={editingUser ? 'Deja la contraseña vacía para conservarla.' : 'Define credenciales y rol de acceso.'}
+                        actions={
+                            <button onClick={handleCloseForm} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" aria-label="Cerrar formulario">
+                                <X className="h-4 w-4" />
+                            </button>
+                        }
+                    />
+                    <form onSubmit={handleSubmit} className="grid gap-3 p-4 sm:grid-cols-2">
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Nombre Completo</label>
-                            <input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input-field" placeholder="Ej. Juan Pérez" />
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Nombre completo</label>
+                            <input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input-field h-9" placeholder="Ej. Juan Pérez" />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Nombre de Usuario</label>
-                            <input required value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} className="input-field" placeholder="Ej. juanp" />
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Nombre de usuario</label>
+                            <input required value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} className="input-field h-9" placeholder="Ej. juanp" />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Contraseña</label>
-                            <input type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="input-field" placeholder={editingUser ? 'Dejar en blanco para no cambiar' : 'Requerida'} />
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Contraseña</label>
+                            <input type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="input-field h-9" placeholder={editingUser ? 'Dejar en blanco para no cambiar' : 'Requerida'} />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Rol</label>
-                            <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="input-field">
+                            <label className="mb-1 block text-2xs font-semibold text-ink-muted">Rol</label>
+                            <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="input-field h-9">
                                 <option value="ADMIN">Administrador</option>
                                 <option value="MANAGER">Gerente</option>
                                 <option value="CASHIER">Cajero</option>
@@ -113,43 +123,110 @@ export function UserManager() {
                                 <option value="COOK">Cocinero</option>
                             </select>
                         </div>
-                        <div className="col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t">
-                            <button type="button" onClick={handleCloseForm} className="btn-secondary">Cancelar</button>
-                            <button type="submit" className="btn-primary flex items-center gap-2"><Check className="w-5 h-5" /> Guardar</button>
+                        <div className="flex items-end justify-end gap-2 sm:col-span-2">
+                            <button type="button" onClick={handleCloseForm} className="btn-secondary h-9 px-3 text-[13px]">Cancelar</button>
+                            <button type="submit" className="btn-primary h-9 px-3.5 text-[13px]">
+                                <Check className="h-4 w-4" aria-hidden="true" />
+                                Guardar
+                            </button>
                         </div>
                     </form>
-                </div>
+                </Panel>
             )}
 
-            <div className="card overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-surface">
-                        <tr>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Nombre</th>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Usuario</th>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Rol</th>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {users.map(user => (
-                            <tr key={user.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 font-medium">{user.name}</td>
-                                <td className="px-6 py-4 text-gray-600">{user.username}</td>
-                                <td className="px-6 py-4">
-                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary">{user.role.toUpperCase()}</span>
-                                </td>
-                                <td className="px-6 py-4 text-right space-x-2">
-                                    <button onClick={() => handleOpenForm(user)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
-                                    {user.role.toUpperCase() !== 'ADMIN' && (
-                                        <button onClick={() => handleDelete(user)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" aria-label={`Eliminar a ${user.name}`}><Trash2 className="w-4 h-4" /></button>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <Panel>
+                <PanelHeader
+                    title="Usuarios"
+                    subtitle={`${users.length} ${users.length === 1 ? 'cuenta' : 'cuentas'} con acceso al POS`}
+                    actions={
+                        !isFormOpen ? (
+                            <button onClick={() => handleOpenForm()} className="btn-primary h-9 px-3.5 text-[13px]">
+                                <Plus className="h-4 w-4" aria-hidden="true" />
+                                Nuevo usuario
+                            </button>
+                        ) : null
+                    }
+                />
+
+                {users.length === 0 ? (
+                    <EmptyState
+                        icon={Users}
+                        title="No hay usuarios"
+                        description="Crea la primera cuenta para que el equipo pueda iniciar sesión."
+                    />
+                ) : (
+                    <>
+                        <div className="divide-y divide-line-soft md:hidden">
+                            {users.map(user => {
+                                const role = roleOf(user);
+                                return (
+                                    <div key={user.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                                        <div className="flex min-w-0 items-center gap-2.5">
+                                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-[13px] font-semibold text-ink-brand">
+                                                {user.name?.charAt(0)?.toUpperCase() || '?'}
+                                            </span>
+                                            <div className="min-w-0">
+                                                <p className="truncate text-[13px] font-semibold text-ink">{user.name}</p>
+                                                <p className="flex items-center gap-1.5 text-2xs text-ink-muted">
+                                                    <span className="truncate">{user.username}</span>
+                                                    <Badge tone={role.tone}>{role.label}</Badge>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-1">
+                                            <button onClick={() => handleOpenForm(user)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" aria-label={`Editar a ${user.name}`}>
+                                                <Pencil className="h-3.5 w-3.5" />
+                                            </button>
+                                            {String(user.role).toUpperCase() !== 'ADMIN' && (
+                                                <button onClick={() => handleDelete(user)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft hover:bg-danger-soft hover:text-danger" aria-label={`Eliminar a ${user.name}`}>
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="hidden overflow-x-auto md:block">
+                            <table className="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Usuario</th>
+                                        <th>Rol</th>
+                                        <th className="w-24 text-right"><span className="sr-only">Acciones</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {users.map(user => {
+                                        const role = roleOf(user);
+                                        return (
+                                            <tr key={user.id}>
+                                                <td className="font-medium text-ink">{user.name}</td>
+                                                <td className="text-ink-muted">{user.username}</td>
+                                                <td><Badge tone={role.tone}>{role.label}</Badge></td>
+                                                <td>
+                                                    <div className="-mr-2 flex justify-end">
+                                                        <button onClick={() => handleOpenForm(user)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink" aria-label={`Editar a ${user.name}`}>
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </button>
+                                                        {String(user.role).toUpperCase() !== 'ADMIN' && (
+                                                            <button onClick={() => handleDelete(user)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-danger-soft hover:text-danger" aria-label={`Eliminar a ${user.name}`}>
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                )}
+            </Panel>
         </div>
     );
 }

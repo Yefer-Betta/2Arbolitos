@@ -1,11 +1,35 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiDelete } from '../lib/api.js';
-import { Shield, Check, X as XIcon, ShieldCheck } from 'lucide-react';
+import { Shield, Check, X as XIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useToast } from './ui/feedback-context';
+import { Panel, PanelHeader } from './ui/Panel';
+import { EmptyState } from './ui/EmptyState';
 
 const ROLES = ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER', 'COOK'];
 const ROLE_LABELS = { ADMIN: 'Administrador', MANAGER: 'Gerente', CASHIER: 'Cajero', WAITER: 'Mesero', COOK: 'Cocinero' };
+
+const PERMISSION_LABELS = {
+  create_product: 'Crear productos',
+  edit_product: 'Editar productos',
+  delete_product: 'Eliminar productos',
+  manage_inventory: 'Gestionar inventario',
+  manage_orders: 'Gestionar pedidos',
+  view_orders: 'Ver pedidos',
+  view_reports: 'Ver reportes',
+  view_audit: 'Ver auditoría',
+  manage_users: 'Gestionar usuarios',
+  manage_permissions: 'Gestionar permisos',
+  manage_settings: 'Gestionar ajustes',
+  manage_backup: 'Gestionar respaldos',
+};
+
+function permissionLabel(name) {
+  const key = String(name || '').trim().toLowerCase();
+  if (PERMISSION_LABELS[key]) return PERMISSION_LABELS[key];
+  const spaced = key.replace(/_/g, ' ');
+  return spaced.replace(/^./, c => c.toUpperCase());
+}
 
 export function PermissionManager() {
   const toast = useToast();
@@ -29,10 +53,11 @@ export function PermissionManager() {
         }
       }
       setRolePerms(rp);
-    } catch {}
+    } catch { /* sin datos */ }
     setLoading(false);
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadAll(); }, [loadAll]);
 
   const togglePermission = async (role, permissionId, has) => {
@@ -52,106 +77,110 @@ export function PermissionManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
-      </div>
+      <Panel>
+        <div className="flex items-center justify-center py-16">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </Panel>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Permisos por Rol</h2>
-          <p className="text-gray-500 text-sm">Asigna qué permisos tiene cada rol del sistema</p>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-medium self-start">
-          <ShieldCheck className="w-5 h-5 shrink-0" />
-          ADMIN tiene todos los permisos
-        </div>
-      </div>
+    <Panel>
+      <PanelHeader
+        title="Permisos por rol"
+        subtitle="El administrador conserva todos los permisos; los demás roles se ajustan aquí."
+      />
 
-      {/* Móvil: tarjeta por permiso con toggles por rol */}
-      <div className="md:hidden space-y-3">
-        {permissions.map(perm => (
-          <div key={perm.id} className="card p-4 space-y-3">
-            <p className="font-bold text-sm text-gray-800">{perm.name.replace(/_/g, ' ')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {ROLES.map(role => {
-                const has = role === 'ADMIN' || rolePerms[role]?.includes(perm.id);
-                return (
-                  <button
-                    key={role}
-                    disabled={role === 'ADMIN'}
-                    onClick={() => togglePermission(role, perm.id, has)}
-                    aria-pressed={has}
-                    aria-label={`${has ? 'Quitar' : 'Dar'} permiso de ${perm.name.replace(/_/g, ' ')} a ${ROLE_LABELS[role]}`}
-                    className={cn(
-                      'min-h-[44px] px-3 rounded-xl flex items-center justify-between gap-2 text-xs font-bold border transition-all disabled:opacity-60',
-                      has ? 'bg-green-100 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500'
-                    )}
-                  >
-                    <span className="truncate">{ROLE_LABELS[role]}</span>
-                    {has ? <Check className="w-4 h-4 shrink-0" /> : <XIcon className="w-4 h-4 shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Desktop: matriz */}
-      <div className="overflow-x-auto hidden md:block">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-surface">
-              <th className="px-4 py-3 text-xs font-bold text-gray-500 uppercase w-48">Permiso</th>
-              {ROLES.map(role => (
-                <th key={role} className="px-3 py-3 text-xs font-bold text-gray-500 uppercase text-center">
-                  <div className="flex flex-col items-center gap-1">
-                    <Shield className={`w-4 h-4 ${role === 'ADMIN' ? 'text-primary' : 'text-gray-400'}`} />
-                    <span>{ROLE_LABELS[role]}</span>
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
+      {permissions.length === 0 ? (
+        <EmptyState
+          icon={Shield}
+          title="No hay permisos definidos"
+          description="Los permisos se crean junto con las funciones del sistema."
+        />
+      ) : (
+        <>
+          {/* Móvil: tarjeta por permiso con toggles por rol */}
+          <div className="divide-y divide-line-soft md:hidden">
             {permissions.map(perm => (
-              <tr key={perm.id} className="hover:bg-gray-50">
-                <td className="px-4 py-4 font-medium text-sm text-gray-800">{perm.name.replace(/_/g, ' ')}</td>
-                {ROLES.map(role => {
-                  const has = role === 'ADMIN' || rolePerms[role]?.includes(perm.id);
-                  return (
-                    <td key={role} className="px-3 py-4 text-center">
+              <div key={perm.id} className="px-4 py-3">
+                <p className="text-[13px] font-semibold text-ink">{permissionLabel(perm.name)}</p>
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  {ROLES.map(role => {
+                    const has = role === 'ADMIN' || rolePerms[role]?.includes(perm.id);
+                    return (
                       <button
+                        key={role}
                         disabled={role === 'ADMIN'}
                         onClick={() => togglePermission(role, perm.id, has)}
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center mx-auto transition-all ${
+                        aria-pressed={has}
+                        aria-label={`${has ? 'Quitar' : 'Dar'} permiso de ${permissionLabel(perm.name)} a ${ROLE_LABELS[role]}`}
+                        className={cn(
+                          'flex min-h-[38px] items-center justify-between gap-2 rounded-lg border px-2.5 text-2xs font-semibold transition-colors disabled:opacity-60',
                           has
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-60'
-                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200 disabled:opacity-60'
-                        }`}
-                        title={has ? `Quitar permiso a ${ROLE_LABELS[role]}` : `Dar permiso a ${ROLE_LABELS[role]}`}
+                            ? 'border-ok/25 bg-ok-soft text-ok'
+                            : 'border-line bg-surface text-ink-muted hover:text-ink'
+                        )}
                       >
-                        {has ? <Check className="w-4 h-4" /> : <XIcon className="w-4 h-4" />}
+                        <span className="truncate">{ROLE_LABELS[role]}</span>
+                        {has ? <Check className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : <XIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
                       </button>
-                    </td>
-                  );
-                })}
-              </tr>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
 
-      {permissions.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
-          <Shield className="w-12 h-12 opacity-20 mb-4" />
-          <p className="font-medium">No hay permisos definidos</p>
-        </div>
+          {/* Desktop: matriz */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th className="w-56">Permiso</th>
+                  {ROLES.map(role => (
+                    <th key={role} className="text-center">
+                      <span className="inline-flex items-center gap-1">
+                        <Shield className={cn('h-3 w-3', role === 'ADMIN' ? 'text-ink-brand' : 'text-ink-soft')} aria-hidden="true" />
+                        {ROLE_LABELS[role]}
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {permissions.map(perm => (
+                  <tr key={perm.id}>
+                    <td className="font-medium text-ink">{permissionLabel(perm.name)}</td>
+                    {ROLES.map(role => {
+                      const has = role === 'ADMIN' || rolePerms[role]?.includes(perm.id);
+                      return (
+                        <td key={role} className="text-center">
+                          <button
+                            disabled={role === 'ADMIN'}
+                            onClick={() => togglePermission(role, perm.id, has)}
+                            className={cn(
+                              'mx-auto grid h-7 w-7 place-items-center rounded-lg transition-colors disabled:opacity-60',
+                              has
+                                ? 'bg-ok-soft text-ok hover:bg-ok-soft/70'
+                                : 'bg-surface text-ink-soft hover:bg-line-soft hover:text-ink-muted'
+                            )}
+                            title={has ? `Quitar permiso a ${ROLE_LABELS[role]}` : `Dar permiso a ${ROLE_LABELS[role]}`}
+                            aria-label={`${has ? 'Quitar' : 'Dar'} permiso de ${permissionLabel(perm.name)} a ${ROLE_LABELS[role]}`}
+                            aria-pressed={has}
+                          >
+                            {has ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <XIcon className="h-3.5 w-3.5" aria-hidden="true" />}
+                          </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
-    </div>
+    </Panel>
   );
 }

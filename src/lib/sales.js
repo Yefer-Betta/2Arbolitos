@@ -8,12 +8,21 @@ export const EMPTY_METHOD_TOTALS = {
   debit: 0,
 };
 
+/** Normaliza el tipo de pedido (enum de Prisma, slug antiguo o `mesa-1`). */
+export function normalizeOrderType(orderType) {
+  const type = String(orderType || '').toLowerCase();
+  if (type === 'mesa' || type.startsWith('mesa-')) return 'mesa';
+  if (type.includes('llevar')) return 'para-llevar';
+  if (type.includes('domicilio')) return 'domicilio';
+  return 'otro';
+}
+
 /** Etiqueta legible para un `orderType` (acepta el enum de Prisma y el slug). */
 export function getOrderTypeLabel(orderType) {
-  const type = String(orderType || '').toLowerCase();
-  if (type === 'mesa' || type.startsWith('mesa-')) return 'Mesa';
-  if (type.includes('llevar')) return 'Para Llevar';
-  if (type.includes('domicilio')) return 'Domicilio';
+  const type = normalizeOrderType(orderType);
+  if (type === 'mesa') return 'Mesa';
+  if (type === 'para-llevar') return 'Para Llevar';
+  if (type === 'domicilio') return 'Domicilio';
   return 'General';
 }
 

@@ -69,6 +69,17 @@ const SCENARIOS = [
   { name: 'contabilidad-ventas', tab: 'finance', click: 'Consultar ventas' },
   { name: 'ajustes', tab: 'settings' },
   { name: 'ajustes-servidor', tab: 'settings', click: 'Servidor' },
+  { name: 'modificadores', tab: 'modifiers' },
+  { name: 'clientes', tab: 'customers' },
+  { name: 'clientes-reservas', tab: 'customers', click: 'Reservas' },
+  { name: 'proveedores', tab: 'suppliers' },
+  { name: 'proveedores-ordenes', tab: 'suppliers', click: 'Órdenes' },
+  { name: 'escandallo', tab: 'escandallo' },
+  { name: 'escandallo-margenes', tab: 'escandallo', click: 'Márgenes' },
+  { name: 'administracion', tab: 'admin' },
+  { name: 'administracion-permisos', tab: 'admin', click: 'Permisos' },
+  { name: 'administracion-asistencia', tab: 'admin', click: 'Asistencia' },
+  { name: 'auditoria', tab: 'audit' },
 ];
 
 function arg(name, fallback = null) {

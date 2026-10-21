@@ -3,6 +3,7 @@ import { useFinance } from '../context/FinanceContext';
 import { useOrders } from '../context/OrdersContext';
 import { useSettings } from '../context/SettingsContext';
 import { Calculator, FileText, Search, TrendingDown, TrendingUp } from 'lucide-react';
+import { normalizeOrderType } from '../lib/sales';
 import { SummaryView } from './finance/SummaryView';
 import { SalesView } from './finance/SalesView';
 import { ClosuresView } from './finance/ClosuresView';
@@ -18,6 +19,12 @@ const VIEWS = [
     { id: 'closures', label: 'Cierres anteriores', shortLabel: 'Cierres', icon: FileText },
 ];
 
+/** Fecha local en formato YYYY-MM-DD (evita el desfase de toISOString). */
+function toDateInputValue(date) {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+}
+
 export function Finance() {
     const { expenses, addExpense, deleteExpense, lastClosureDate, closeDay, closures } = useFinance();
     const { orders } = useOrders();
@@ -29,7 +36,7 @@ export function Finance() {
     const [showCloseModal, setShowCloseModal] = useState(false);
 
     // Sales filters
-    const [salesDateFilter, setSalesDateFilter] = useState(new Date().toISOString().split('T')[0]);
+    const [salesDateFilter, setSalesDateFilter] = useState(() => toDateInputValue(new Date()));
     const [salesTypeFilter, setSalesTypeFilter] = useState('all');
     const [salesSearchId, setSalesSearchId] = useState('');
 
@@ -131,12 +138,8 @@ export function Finance() {
         if (!order?.date && !order?.createdAt) return false;
         const orderDate = new Date(order.date || order.createdAt);
         if (isNaN(orderDate.getTime())) return false;
-        if (orderDate.toISOString().split('T')[0] !== salesDateFilter) return false;
-        if (salesTypeFilter !== 'all') {
-            if (salesTypeFilter === 'mesa' && !order.orderType?.startsWith('mesa-')) return false;
-            if (salesTypeFilter === 'para-llevar' && order.orderType !== 'para-llevar') return false;
-            if (salesTypeFilter === 'domicilio' && order.orderType !== 'domicilio') return false;
-        }
+        if (toDateInputValue(orderDate) !== salesDateFilter) return false;
+        if (salesTypeFilter !== 'all' && normalizeOrderType(order.orderType) !== salesTypeFilter) return false;
         if (salesSearchId && !order.id?.toLowerCase().includes(salesSearchId.toLowerCase())) return false;
         return true;
     }).sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));

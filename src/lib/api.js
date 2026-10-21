@@ -156,6 +156,33 @@ export async function apiPut(endpoint, data) {
   }
 }
 
+export async function apiPatch(endpoint, data) {
+  if (syncManager.isOnline) {
+    try {
+      return await syncManager.fetchFromAPI(endpoint, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+    } catch (error) {
+      if (!isRetryableError(error)) throw error;
+      console.warn('API request failed, queueing for later:', error);
+      await syncManager.addToQueue({
+        type: 'UPDATE',
+        endpoint,
+        data,
+      });
+      return { offline: true, ...data };
+    }
+  } else {
+    await syncManager.addToQueue({
+      type: 'UPDATE',
+      endpoint,
+      data,
+    });
+    return { offline: true, ...data };
+  }
+}
+
 export async function apiDelete(endpoint, id) {
   if (syncManager.isOnline) {
     try {

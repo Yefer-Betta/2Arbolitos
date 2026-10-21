@@ -1,5 +1,5 @@
 import prisma from '../config/database.js';
-import { auditAction } from '../middleware/audit.js';
+import { auditLog } from '../middleware/audit.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 
 export const customerController = {
@@ -36,7 +36,7 @@ export const customerController = {
       data: { name, phone, email, address },
     });
 
-    await auditAction('Customer', customer.id, 'CREATE', null, customer, req.user?.id);
+    await auditLog('Customer', customer.id, 'CREATE', null, customer, req.user?.id);
     res.status(201).json(customer);
   }),
 
@@ -50,7 +50,7 @@ export const customerController = {
       data: { name, phone, email, address },
     });
 
-    await auditAction('Customer', customer.id, 'UPDATE', existing, customer, req.user?.id);
+    await auditLog('Customer', customer.id, 'UPDATE', existing, customer, req.user?.id);
     res.json(customer);
   }),
 

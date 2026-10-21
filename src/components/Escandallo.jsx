@@ -1,7 +1,58 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet } from '../lib/api.js';
-import { Plus, Trash2, Save, Calculator, DollarSign, RefreshCw, PieChart, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Save,
+  Calculator,
+  RefreshCw,
+  PieChart,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  UtensilsCrossed,
+} from 'lucide-react';
 import { useToast } from './ui/feedback-context';
+import { PageHeader } from './ui/PageHeader';
+import { Panel, PanelHeader } from './ui/Panel';
+import { SubNav } from './ui/SubNav';
+import { StatCard } from './ui/StatCard';
+import { EmptyState } from './ui/EmptyState';
+import { formatCurrency, cn } from '../lib/utils';
+
+const TABS = [
+  { id: 'calculator', label: 'Calculadora', icon: Calculator },
+  { id: 'analysis', label: 'Margen por producto', shortLabel: 'Márgenes', icon: PieChart },
+];
+
+const UNITS = [
+  { value: 'g', label: 'g' },
+  { value: 'ml', label: 'ml' },
+  { value: 'und', label: 'und' },
+];
+
+const EMPTY_INGREDIENT = { nombre: '', cantidadUsada: '', unidad: 'g', costoPresentacion: '', cantidadPresentacion: '' };
+
+function marginTone(margin) {
+  if (margin >= 40) return { text: 'text-ok', icon: TrendingUp };
+  if (margin >= 20) return { text: 'text-warn', icon: Minus };
+  return { text: 'text-danger', icon: TrendingDown };
+}
+
+/** Margen del producto; sin insumos vinculados no hay dato real que mostrar. */
+function MarginCell({ product, className }) {
+  if (!(product.linkedItems > 0)) {
+    return <span className={cn('text-2xs text-ink-soft', className)} title="Sin insumos vinculados">—</span>;
+  }
+  const tone = marginTone(product.margin);
+  const Icon = tone.icon;
+  return (
+    <span className={cn('inline-flex items-center gap-1 font-semibold', tone.text, className)}>
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {product.margin.toFixed(1)}%
+    </span>
+  );
+}
 
 export default function Escandallo() {
   const toast = useToast();
@@ -9,15 +60,17 @@ export default function Escandallo() {
   const [costAnalysis, setCostAnalysis] = useState([]);
 
   const loadCostAnalysis = useCallback(async () => {
-    try { const d = await apiGet('/products/cost-analysis'); setCostAnalysis(Array.isArray(d) ? d : []); } catch {}
+    try { const d = await apiGet('/products/cost-analysis'); setCostAnalysis(Array.isArray(d) ? d : []); } catch { /* sin datos */ }
   }, []);
 
+  // Carga asincrona al cambiar de pestana: el setState ocurre tras el await.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (tab === 'analysis') loadCostAnalysis(); }, [tab, loadCostAnalysis]);
 
   // Calculator state
   const [nombrePlato, setNombrePlato] = useState('');
   const [ingredientes, setIngredientes] = useState([]);
-  const [nuevoIngrediente, setNuevoIngrediente] = useState({ nombre: '', cantidadUsada: '', unidad: 'g', costoPresentacion: '', cantidadPresentacion: '' });
+  const [nuevoIngrediente, setNuevoIngrediente] = useState(EMPTY_INGREDIENT);
   const [margenDeseado, setMargenDeseado] = useState(35);
   const [impuesto, setImpuesto] = useState(0);
 
@@ -32,7 +85,7 @@ export default function Escandallo() {
   const agregarIngrediente = () => {
     if (!nuevoIngrediente.nombre || !nuevoIngrediente.costoPresentacion) return;
     setIngredientes([...ingredientes, { ...nuevoIngrediente, id: Date.now() }]);
-    setNuevoIngrediente({ nombre: '', cantidadUsada: '', unidad: 'g', costoPresentacion: '', cantidadPresentacion: '' });
+    setNuevoIngrediente(EMPTY_INGREDIENT);
   };
 
   const eliminarIngrediente = (id) => {
@@ -52,214 +105,270 @@ export default function Escandallo() {
     toast.success('Escandallo guardado correctamente');
   };
 
-  const marginIcon = (margin) => {
-    if (margin >= 40) return <TrendingUp className="w-4 h-4 text-green-500" />;
-    if (margin >= 20) return <Minus className="w-4 h-4 text-yellow-500" />;
-    return <TrendingDown className="w-4 h-4 text-red-500" />;
-  };
-
-  const marginColor = (margin) => {
-    if (margin >= 40) return 'text-green-600';
-    if (margin >= 20) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  const linkedProducts = costAnalysis.filter(p => (p.linkedItems || 0) > 0);
+  const avgMargin = linkedProducts.length
+    ? linkedProducts.reduce((sum, p) => sum + (p.margin || 0), 0) / linkedProducts.length
+    : 0;
+  const lowMargin = linkedProducts.filter(p => (p.margin || 0) < 20).length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="p-3 bg-secondary/10 rounded-xl text-secondary">
-          <Calculator className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Escandallo</h1>
-          <p className="text-sm text-gray-500">Análisis de costos y márgenes</p>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Escandallo"
+        subtitle="Costo de recetas y margen real de cada producto."
+      />
 
-      <div className="flex gap-2">
-        <button onClick={() => setTab('calculator')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${tab === 'calculator' ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-          <Calculator className="w-4 h-4 inline mr-1" /> Calculadora
-        </button>
-        <button onClick={() => setTab('analysis')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${tab === 'analysis' ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-          <PieChart className="w-4 h-4 inline mr-1" /> Margen por Producto
-        </button>
-      </div>
+      <SubNav items={TABS} value={tab} onChange={setTab} />
 
       {tab === 'calculator' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="card p-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Plato / Producto</label>
-              <input type="text" value={nombrePlato} onChange={e => setNombrePlato(e.target.value)} placeholder="Ej: Hamburguesa Especial" className="input-field w-full" />
-            </div>
-
-            <div className="card p-4">
-              <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-secondary" /> Agregar Ingrediente
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
-                <div className="md:col-span-2">
-                  <label className="text-xs text-gray-500">Ingrediente</label>
-                  <input type="text" placeholder="Ej: Carne Molida" value={nuevoIngrediente.nombre} onChange={e => setNuevoIngrediente({...nuevoIngrediente, nombre: e.target.value})} className="input-field w-full text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500">Cant. Usada</label>
-                  <input type="number" placeholder="150" value={nuevoIngrediente.cantidadUsada} onChange={e => setNuevoIngrediente({...nuevoIngrediente, cantidadUsada: e.target.value})} className="input-field w-full text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500">Costo Paquete</label>
-                  <input type="number" placeholder="$" value={nuevoIngrediente.costoPresentacion} onChange={e => setNuevoIngrediente({...nuevoIngrediente, costoPresentacion: e.target.value})} className="input-field w-full text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500">Cant. Paquete</label>
-                  <input type="number" placeholder="1000" value={nuevoIngrediente.cantidadPresentacion} onChange={e => setNuevoIngrediente({...nuevoIngrediente, cantidadPresentacion: e.target.value})} className="input-field w-full text-sm" />
-                </div>
-                <button onClick={agregarIngrediente} className="bg-secondary text-white p-2 rounded-lg hover:bg-secondary-dark flex justify-center">
-                  <Plus className="w-5 h-5" />
-                </button>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <div className="space-y-3 lg:col-span-2">
+            <Panel>
+              <PanelHeader title="Producto" subtitle="Nombre del plato o producto a costear." />
+              <div className="p-4">
+                <input
+                  type="text"
+                  value={nombrePlato}
+                  onChange={e => setNombrePlato(e.target.value)}
+                  placeholder="Ej. Hamburguesa Especial"
+                  className="input-field h-9"
+                  aria-label="Nombre del plato o producto"
+                />
               </div>
-              <p className="text-xs text-gray-400 mt-2">* Asegúrate de usar la misma unidad (gramos, ml) para la cantidad usada y la del paquete.</p>
-            </div>
+            </Panel>
 
-            <div className="card overflow-hidden">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-600 font-medium border-b">
-                  <tr>
-                    <th className="p-3">Ingrediente</th>
-                    <th className="p-3 text-right">Cant.</th>
-                    <th className="p-3 text-right">Costo Real</th>
-                    <th className="p-3 text-center">Acción</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {ingredientes.map(ing => (
-                    <tr key={ing.id} className="hover:bg-gray-50">
-                      <td className="p-3">{ing.nombre}</td>
-                      <td className="p-3 text-right">{ing.cantidadUsada} {ing.unidad}</td>
-                      <td className="p-3 text-right font-medium">${Math.round(calcularCostoIngrediente(ing)).toLocaleString()}</td>
-                      <td className="p-3 text-center">
-                        <button onClick={() => eliminarIngrediente(ing.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                      </td>
-                    </tr>
-                  ))}
-                  {ingredientes.length === 0 && (
-                    <tr><td colSpan="4" className="p-8 text-center text-gray-400">No hay ingredientes agregados aún.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <Panel>
+              <PanelHeader title="Ingredientes" subtitle="Usa la misma unidad en la cantidad usada y en el paquete." />
+
+              <div className="grid gap-3 border-b border-line p-4 sm:grid-cols-2 lg:grid-cols-[1fr_140px_110px_110px]">
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Ingrediente</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Carne molida"
+                    value={nuevoIngrediente.nombre}
+                    onChange={e => setNuevoIngrediente({ ...nuevoIngrediente, nombre: e.target.value })}
+                    className="input-field h-9 text-[13px]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Cant. usada</label>
+                  <div className="flex gap-1">
+                    <input
+                      type="number"
+                      placeholder="150"
+                      value={nuevoIngrediente.cantidadUsada}
+                      onChange={e => setNuevoIngrediente({ ...nuevoIngrediente, cantidadUsada: e.target.value })}
+                      className="input-field num h-9 min-w-0 text-[13px]"
+                    />
+                    <select
+                      value={nuevoIngrediente.unidad}
+                      onChange={e => setNuevoIngrediente({ ...nuevoIngrediente, unidad: e.target.value })}
+                      className="input-field h-9 w-12 shrink-0 px-1 text-[13px]"
+                      aria-label="Unidad"
+                    >
+                      {UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Costo paquete</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={nuevoIngrediente.costoPresentacion}
+                    onChange={e => setNuevoIngrediente({ ...nuevoIngrediente, costoPresentacion: e.target.value })}
+                    className="input-field num h-9 text-[13px]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Cant. paquete</label>
+                  <input
+                    type="number"
+                    placeholder="1000"
+                    value={nuevoIngrediente.cantidadPresentacion}
+                    onChange={e => setNuevoIngrediente({ ...nuevoIngrediente, cantidadPresentacion: e.target.value })}
+                    className="input-field num h-9 text-[13px]"
+                  />
+                </div>
+                <div className="flex justify-end sm:col-span-2 lg:col-span-4">
+                  <button onClick={agregarIngrediente} className="btn-primary h-9 px-3.5 text-[13px]">
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    Agregar ingrediente
+                  </button>
+                </div>
+              </div>
+
+              {ingredientes.length === 0 ? (
+                <EmptyState
+                  icon={UtensilsCrossed}
+                  title="Aún no hay ingredientes"
+                  description="Agrega la primera materia prima para calcular el costo del plato."
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Ingrediente</th>
+                        <th className="text-right">Cantidad</th>
+                        <th className="text-right">Costo real</th>
+                        <th className="w-12 text-right"><span className="sr-only">Acciones</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ingredientes.map(ing => (
+                        <tr key={ing.id}>
+                          <td className="font-medium text-ink">{ing.nombre}</td>
+                          <td className="num text-right text-ink-muted">{ing.cantidadUsada} {ing.unidad}</td>
+                          <td className="num text-right font-medium text-ink">{formatCurrency(calcularCostoIngrediente(ing))}</td>
+                          <td>
+                            <div className="-mr-2 flex justify-end">
+                              <button onClick={() => eliminarIngrediente(ing.id)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-danger-soft hover:text-danger" aria-label={`Eliminar ${ing.nombre}`}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Panel>
           </div>
 
-          <div className="space-y-6">
-            <div className="card p-6 border border-secondary/20">
-              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <PieChart className="w-5 h-5 text-secondary" /> Resumen de Costos
-              </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-                  <span className="text-gray-600">Costo Materia Prima</span>
-                  <span className="text-xl font-bold text-gray-800">${Math.round(costoTotalMateriaPrima).toLocaleString()}</span>
+          <div>
+            <Panel className="lg:sticky lg:top-4">
+              <PanelHeader title="Resumen de costos" subtitle={`${ingredientes.length} ingrediente(s)`} />
+              <div className="space-y-3 p-4">
+                <div className="flex items-center justify-between rounded-xl bg-surface px-3 py-2">
+                  <span className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">Materia prima</span>
+                  <span className="num text-sm font-semibold text-ink">{formatCurrency(costoTotalMateriaPrima)}</span>
                 </div>
-                <div className="pt-4 border-t">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Margen de Ganancia Deseado (%)</label>
-                  <input type="number" value={margenDeseado} onChange={e => setMargenDeseado(Number(e.target.value))} className="input-field w-full text-right font-mono" />
+
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Margen deseado (%)</label>
+                  <input
+                    type="number"
+                    value={margenDeseado}
+                    onChange={e => setMargenDeseado(Number(e.target.value))}
+                    className="input-field num h-9 text-right"
+                  />
                 </div>
-                <div className="pt-4 border-t">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Impuesto / Propina (%)</label>
-                  <input type="number" value={impuesto} onChange={e => setImpuesto(Number(e.target.value))} className="input-field w-full text-right font-mono" />
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Impuesto / propina (%)</label>
+                  <input
+                    type="number"
+                    value={impuesto}
+                    onChange={e => setImpuesto(Number(e.target.value))}
+                    className="input-field num h-9 text-right"
+                  />
                 </div>
-                <div className="mt-6 p-4 bg-secondary/10 rounded-xl border border-secondary/20">
-                  <p className="text-sm text-secondary font-medium mb-1">Precio de Venta Sugerido</p>
-                  <p className="text-3xl font-bold text-secondary">${Math.round(precioConImpuesto).toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 mt-1">Ganancia Neta: ${Math.round(gananciaBruta).toLocaleString()}</p>
+
+                <div className="rounded-xl bg-primary px-3.5 py-3 text-white">
+                  <p className="text-2xs font-semibold uppercase tracking-wide text-white/70">Precio de venta sugerido</p>
+                  <p className="num mt-1 text-3xl font-semibold leading-none tracking-tight">{formatCurrency(precioConImpuesto)}</p>
+                  <p className="mt-1.5 text-2xs text-white/75">
+                    Ganancia neta: <span className="num font-semibold text-white">{formatCurrency(gananciaBruta)}</span>
+                  </p>
+                  {margenDeseado >= 100 && (
+                    <p className="mt-1.5 text-2xs font-medium text-white">El margen debe ser menor a 100%.</p>
+                  )}
                 </div>
-                <button onClick={guardarEscandallo} className="w-full btn-primary bg-secondary hover:bg-secondary-dark flex items-center justify-center gap-2">
-                  <Save className="w-4 h-4" /> Guardar Receta
+
+                <button onClick={guardarEscandallo} className="btn-primary h-9 w-full px-3.5 text-[13px]">
+                  <Save className="h-4 w-4" aria-hidden="true" />
+                  Guardar receta
                 </button>
               </div>
-            </div>
+            </Panel>
           </div>
         </div>
       )}
 
       {tab === 'analysis' && (
-        <div className="card overflow-hidden">
-          <div className="p-4 bg-gradient-to-r from-surface to-white border-b flex items-center justify-between">
-            <p className="text-sm text-gray-500">
-              Costo estimado basado en insumos vinculados a cada producto
-            </p>
-            <button onClick={loadCostAnalysis} className="p-2 hover:bg-gray-100 rounded-lg"><RefreshCw className="w-4 h-4 text-gray-500" /></button>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+            <StatCard label="Con receta" value={linkedProducts.length} hint="Con insumos vinculados" icon={PieChart} tone="brand" />
+            <StatCard label="Margen promedio" value={`${avgMargin.toFixed(1)}%`} hint="Sobre precio de venta" icon={TrendingUp} tone={avgMargin >= 40 ? 'ok' : 'warn'} />
+            <StatCard label="Bajo margen" value={lowMargin} hint="Menos de 20%" icon={TrendingDown} tone={lowMargin === 0 ? 'ok' : 'danger'} className="col-span-2 sm:col-span-1" />
           </div>
-          {costAnalysis.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <PieChart className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">No hay datos de costos</p>
-              <p className="text-sm">Vincule insumos a productos en Inventario para ver el análisis</p>
-            </div>
-          ) : (
-            <>
-              {/* Móvil: tarjetas */}
-              <div className="md:hidden space-y-3">
-                {costAnalysis.map(p => (
-                  <div key={p.id} className="card p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-bold text-gray-800 text-sm break-words">{p.name}</p>
-                        <p className="text-xs text-gray-500">{p.category}</p>
-                      </div>
-                      <div className={`flex items-center gap-1 font-bold text-sm shrink-0 ${marginColor(p.margin)}`}>
-                        {marginIcon(p.margin)}
-                        {p.margin.toFixed(1)}%
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-100">
-                      <span className="text-gray-500">Precio venta</span>
-                      <span className="font-medium">{p.isUsd ? `$${p.price.toFixed(2)} USD` : `$${p.price.toLocaleString()}`}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">Costo insumos</span>
-                      <span className="font-medium">${p.totalInventoryCost.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span>Insumos vinculados</span>
-                      <span>{p.linkedItems}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
 
-              {/* Desktop: tabla */}
-              <div className="overflow-x-auto hidden md:block">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600 font-medium border-b">
-                  <tr>
-                    <th className="p-3 text-left">Producto</th>
-                    <th className="p-3 text-left">Categoría</th>
-                    <th className="p-3 text-right">Precio Venta</th>
-                    <th className="p-3 text-right">Costo Insumos</th>
-                    <th className="p-3 text-right">Margen</th>
-                    <th className="p-3 text-center">Insumos</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {costAnalysis.map(p => (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="p-3 font-medium text-gray-800">{p.name}</td>
-                      <td className="p-3 text-gray-500">{p.category}</td>
-                      <td className="p-3 text-right font-medium">{p.isUsd ? '$' : '$'}{p.isUsd ? p.price.toFixed(2) + ' USD' : p.price.toLocaleString()}</td>
-                      <td className="p-3 text-right">${p.totalInventoryCost.toLocaleString()}</td>
-                      <td className={`p-3 text-right font-bold flex items-center justify-end gap-1 ${marginColor(p.margin)}`}>
-                        {marginIcon(p.margin)}
-                        {p.margin.toFixed(1)}%
-                      </td>
-                      <td className="p-3 text-center text-xs text-gray-400">{p.linkedItems}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            </>
-          )}
+          <Panel>
+            <PanelHeader
+              title="Margen por producto"
+              subtitle="Costo estimado según los insumos vinculados en Inventario."
+              actions={
+                <button onClick={loadCostAnalysis} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink" title="Actualizar" aria-label="Actualizar datos">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </button>
+              }
+            />
+
+            {costAnalysis.length === 0 ? (
+              <EmptyState
+                icon={PieChart}
+                title="No hay datos de costos"
+                description="Vincula insumos a los productos en Inventario para ver su margen."
+              />
+            ) : (
+              <>
+                <div className="divide-y divide-line-soft md:hidden">
+                  {costAnalysis.map(p => {
+                    return (
+                      <div key={p.id} className="px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-[13px] font-semibold text-ink">{p.name}</p>
+                            <p className="text-2xs text-ink-muted">{p.category}</p>
+                          </div>
+                          <MarginCell product={p} className="shrink-0 text-[13px]" />
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-2xs">
+                          <span className="text-ink-muted">Precio venta</span>
+                          <span className="num text-right font-medium text-ink">{p.isUsd ? `${p.price.toFixed(2)} USD` : formatCurrency(p.price)}</span>
+                          <span className="text-ink-muted">Costo insumos</span>
+                          <span className="num text-right font-medium text-ink">{formatCurrency(p.totalInventoryCost)}</span>
+                          <span className="text-ink-muted">Insumos vinculados</span>
+                          <span className="num text-right text-ink-muted">{p.linkedItems}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th className="text-right">Precio venta</th>
+                        <th className="text-right">Costo insumos</th>
+                        <th className="text-right">Margen</th>
+                        <th className="text-right">Insumos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {costAnalysis.map(p => {
+                        return (
+                          <tr key={p.id}>
+                            <td className="font-medium text-ink">{p.name}</td>
+                            <td className="text-ink-muted">{p.category}</td>
+                            <td className="num text-right text-ink">{p.isUsd ? `${p.price.toFixed(2)} USD` : formatCurrency(p.price)}</td>
+                            <td className="num text-right text-ink-muted">{formatCurrency(p.totalInventoryCost)}</td>
+                            <td className="text-right"><MarginCell product={p} className="justify-end" /></td>
+                            <td className="num text-right text-ink-muted">{p.linkedItems}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </Panel>
         </div>
       )}
     </div>

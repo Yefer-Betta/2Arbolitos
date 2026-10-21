@@ -1,15 +1,32 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiPut } from '../lib/api.js';
-import { Plus, Edit2, X, Search, Users, Phone, Mail, MapPin, ChevronRight, CalendarDays } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { Plus, Pencil, X, Search, Users, Phone, Mail, MapPin, History, Check, CalendarDays } from 'lucide-react';
 import { ReservationManager } from './ReservationManager';
 import { Modal } from './Modal';
 import { useConfirm, useToast } from './ui/feedback-context';
+import { PageHeader } from './ui/PageHeader';
+import { Panel, PanelHeader } from './ui/Panel';
+import { StatCard } from './ui/StatCard';
+import { SubNav } from './ui/SubNav';
+import { Badge } from './ui/Badge';
+import { EmptyState } from './ui/EmptyState';
+import { getOrderTypeLabel } from '../lib/sales';
+import { formatCurrency } from '../lib/utils';
 
 const TABS = [
   { id: 'customers', label: 'Clientes', icon: Users },
   { id: 'reservations', label: 'Reservas', icon: CalendarDays },
 ];
+
+const ORDER_STATUS = {
+  PENDING: { label: 'Pendiente', tone: 'warn' },
+  PREPARING: { label: 'En preparación', tone: 'info' },
+  READY: { label: 'Listo', tone: 'info' },
+  SERVED: { label: 'Servido', tone: 'ok' },
+  CANCELLED: { label: 'Cancelado', tone: 'danger' },
+};
+
+const EMPTY_FORM = { name: '', phone: '', email: '', address: '' };
 
 function CustomerList() {
   const toast = useToast();
@@ -18,7 +35,7 @@ function CustomerList() {
   const [search, setSearch] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', address: '' });
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [orders, setOrders] = useState([]);
 
@@ -27,13 +44,15 @@ function CustomerList() {
       const q = search ? `?search=${encodeURIComponent(search)}` : '';
       const data = await apiGet(`/customers${q}`);
       if (Array.isArray(data)) setCustomers(data);
-    } catch {}
+    } catch { /* sin datos */ }
   }, [search]);
 
+  // Carga inicial asincrona: el setState ocurre tras el await, no en el render.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadCustomers(); }, [loadCustomers]);
 
   const resetForm = () => {
-    setFormData({ name: '', phone: '', email: '', address: '' });
+    setFormData(EMPTY_FORM);
     setEditingId(null); setIsFormOpen(false);
   };
 
@@ -82,121 +101,197 @@ function CustomerList() {
     } catch { setOrders([]); }
   };
 
+  const withPhone = customers.filter(c => c.phone).length;
+  const withEmail = customers.filter(c => c.email).length;
+
   return (
     <>
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text" placeholder="Buscar por nombre, teléfono o email..."
-            value={search} onChange={e => setSearch(e.target.value)}
-            className="input-field pl-10 w-full"
-          />
-        </div>
-        <button onClick={() => { resetForm(); setIsFormOpen(true); }} className="btn-primary bg-secondary hover:bg-secondary-dark flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Nuevo Cliente
-        </button>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+        <StatCard label="Clientes" value={customers.length} hint={search ? 'Resultado de la búsqueda' : 'Registrados en el sistema'} icon={Users} tone="brand" />
+        <StatCard label="Con teléfono" value={withPhone} hint="Para contacto y domicilios" icon={Phone} tone="neutral" />
+        <StatCard label="Con email" value={withEmail} hint="Para reservas y facturas" icon={Mail} tone="neutral" className="col-span-2 sm:col-span-1" />
       </div>
 
-      <Modal isOpen={isFormOpen} onClose={requestClose} label={editingId ? 'Editar Cliente' : 'Nuevo Cliente'}>
-        <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold">{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
-              <button onClick={resetForm} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+      {isFormOpen && (
+        <Panel>
+          <PanelHeader
+            title={editingId ? 'Editar cliente' : 'Nuevo cliente'}
+            subtitle={editingId ? 'Actualiza los datos de contacto.' : 'Solo el nombre es obligatorio.'}
+            actions={
+              <button onClick={requestClose} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" aria-label="Cerrar formulario">
+                <X className="h-4 w-4" />
+              </button>
+            }
+          />
+          <form onSubmit={handleSubmit} className="grid gap-3 p-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Nombre *</label>
+              <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input-field h-9" placeholder="Ej. María Gómez" required />
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input-field w-full" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                <input type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="input-field w-full" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="input-field w-full" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                <input type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="input-field w-full" />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button type="submit" className="flex-1 btn-primary bg-secondary hover:bg-secondary-dark">
-                  {editingId ? 'Guardar Cambios' : 'Crear Cliente'}
-                </button>
-                <button type="button" onClick={resetForm} className="btn-secondary">Cancelar</button>
-              </div>
-            </form>
-        </div>
-      </Modal>
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Teléfono</label>
+              <input type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="input-field h-9" placeholder="Ej. 300 123 4567" />
+            </div>
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Email</label>
+              <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="input-field h-9" placeholder="cliente@correo.com" />
+            </div>
+            <div>
+              <label className="mb-1 block text-2xs font-semibold text-ink-muted">Dirección</label>
+              <input type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="input-field h-9" placeholder="Para domicilios" />
+            </div>
+            <div className="flex items-end justify-end gap-2 sm:col-span-2">
+              <button type="button" onClick={requestClose} className="btn-secondary h-9 px-3 text-[13px]">Cancelar</button>
+              <button type="submit" className="btn-primary h-9 px-3.5 text-[13px]">
+                <Check className="h-4 w-4" aria-hidden="true" />
+                {editingId ? 'Guardar cambios' : 'Crear cliente'}
+              </button>
+            </div>
+          </form>
+        </Panel>
+      )}
 
       <Modal isOpen={!!selectedCustomer} onClose={() => setSelectedCustomer(null)} label={selectedCustomer ? `Historial de ${selectedCustomer.name}` : 'Historial'} maxWidth="max-w-2xl">
-        <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold">Historial de {selectedCustomer?.name}</h2>
-              <button onClick={() => setSelectedCustomer(null)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+        <div className="p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="truncate text-lg font-semibold text-ink">Historial de {selectedCustomer?.name}</h2>
+              <p className="text-2xs text-ink-muted">Pedidos asociados a este cliente.</p>
             </div>
-            {orders.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">Este cliente no tiene órdenes registradas</p>
-            ) : (
-              <div className="space-y-3">
-                {orders.map(order => (
-                  <div key={order.id} className="border rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-sm">
-                        {new Date(order.createdAt).toLocaleDateString('es-CO', { dateStyle: 'medium' })}
-                        {' '}
-                        {new Date(order.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+            <button onClick={() => setSelectedCustomer(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" aria-label="Cerrar"><X className="h-4 w-4" /></button>
+          </div>
+          {orders.length === 0 ? (
+            <EmptyState
+              icon={History}
+              title="Sin órdenes registradas"
+              description="Cuando este cliente haga un pedido aparecerá aquí."
+            />
+          ) : (
+            <div className="divide-y divide-line-soft rounded-xl border border-line">
+              {orders.map(order => {
+                const status = ORDER_STATUS[order.status] || { label: order.status, tone: 'neutral' };
+                return (
+                  <div key={order.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="num text-[13px] font-medium text-ink">
+                        {new Date(order.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        <span className="ml-1.5 text-ink-muted">
+                          {new Date(order.createdAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                        </span>
                       </p>
-                      <p className="text-xs text-gray-500">
-                        {order.orderType} · {order.table?.number ? `Mesa ${order.table.number}` : ''} · {order.status}
+                      <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-2xs text-ink-muted">
+                        <span>{getOrderTypeLabel(order.orderType)}</span>
+                        {order.table?.number ? <span>· Mesa {order.table.number}</span> : null}
+                        <span>· {order.items?.length || 0} producto(s)</span>
+                        <Badge tone={status.tone}>{status.label}</Badge>
                       </p>
-                      <p className="text-xs text-gray-400">{order.items.length} producto(s)</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-secondary">${order.totalCop.toLocaleString()}</p>
-                      {order.totalUsd > 0 && <p className="text-xs text-gray-400">${order.totalUsd.toFixed(2)} USD</p>}
+                    <div className="shrink-0 text-right">
+                      <p className="num text-[13px] font-semibold text-ink">{formatCurrency(order.totalCop || 0)}</p>
+                      {order.totalUsd > 0 && <p className="num text-2xs text-ink-muted">{formatCurrency(order.totalUsd)} USD</p>}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          )}
         </div>
       </Modal>
 
-      <div className="card overflow-hidden">
+      <Panel>
+        <PanelHeader
+          title="Directorio"
+          subtitle={`${customers.length} ${customers.length === 1 ? 'cliente' : 'clientes'}`}
+          actions={
+            <div className="relative w-full sm:w-64">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft" aria-hidden="true" />
+              <input
+                type="text"
+                placeholder="Nombre, teléfono o email..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="input-field h-8 pl-8 text-[13px]"
+              />
+            </div>
+          }
+        />
+
         {customers.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p className="font-medium">No hay clientes registrados</p>
-            <p className="text-sm">Agregue el primer cliente con el botón "Nuevo Cliente"</p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title={search ? 'Sin resultados' : 'No hay clientes registrados'}
+            description={search ? 'Prueba con otro nombre, teléfono o email.' : 'Registra al primer cliente para asociar pedidos y reservas.'}
+            action={!search && !isFormOpen ? (
+              <button onClick={() => { resetForm(); setIsFormOpen(true); }} className="btn-primary h-9 px-3.5 text-[13px]">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Nuevo cliente
+              </button>
+            ) : null}
+          />
         ) : (
-          <div className="divide-y">
-            {customers.map(c => (
-              <div key={c.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-800 truncate">{c.name}</p>
-                  <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                    {c.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{c.phone}</span>}
-                    {c.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{c.email}</span>}
-                    {c.address && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{c.address}</span>}
+          <>
+            <div className="divide-y divide-line-soft md:hidden">
+              {customers.map(c => (
+                <div key={c.id} className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold text-ink">{c.name}</p>
+                      <div className="mt-1 space-y-0.5 text-2xs text-ink-muted">
+                        {c.phone && <p className="flex items-center gap-1"><Phone className="h-3 w-3 shrink-0" aria-hidden="true" />{c.phone}</p>}
+                        {c.email && <p className="flex items-center gap-1 truncate"><Mail className="h-3 w-3 shrink-0" aria-hidden="true" />{c.email}</p>}
+                        {c.address && <p className="flex items-center gap-1 truncate"><MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />{c.address}</p>}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button onClick={() => handleEdit(c)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" title="Editar" aria-label={`Editar ${c.name}`}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => viewOrders(c)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" title="Historial" aria-label={`Ver historial de ${c.name}`}>
+                        <History className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => handleEdit(c)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-secondary" title="Editar">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => viewOrders(c)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-secondary" title="Historial">
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th className="w-24 text-right"><span className="sr-only">Acciones</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customers.map(c => (
+                    <tr key={c.id}>
+                      <td>
+                        <p className="font-medium text-ink">{c.name}</p>
+                        {c.address && <p className="mt-0.5 truncate text-2xs text-ink-muted">{c.address}</p>}
+                      </td>
+                      <td className="num text-ink-muted">{c.phone || '—'}</td>
+                      <td className="text-ink-muted">{c.email || '—'}</td>
+                      <td>
+                        <div className="-mr-2 flex justify-end">
+                          <button onClick={() => handleEdit(c)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink" title="Editar" aria-label={`Editar ${c.name}`}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={() => viewOrders(c)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink" title="Historial" aria-label={`Ver historial de ${c.name}`}>
+                            <History className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-      </div>
+      </Panel>
     </>
   );
 }
@@ -205,36 +300,13 @@ export function CustomerManager() {
   const [tab, setTab] = useState('customers');
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="p-3 bg-secondary/10 rounded-xl text-secondary">
-          <Users className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Clientes</h1>
-          <p className="text-sm text-gray-500">Gestión de clientes y reservas</p>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Clientes"
+        subtitle="Datos de contacto, historial de pedidos y reservas."
+      />
 
-      <div className="flex gap-2 bg-white rounded-xl p-1.5 border border-gray-200 w-fit">
-        {TABS.map(t => {
-          const Icon = t.icon;
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                'flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all',
-                active ? 'bg-primary text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+      <SubNav items={TABS} value={tab} onChange={setTab} />
 
       {tab === 'customers' ? <CustomerList /> : <ReservationManager />}
     </div>

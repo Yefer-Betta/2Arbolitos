@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet } from '../lib/api.js';
-import { ClipboardList, Search, Filter, Calendar, User, Activity } from 'lucide-react';
+import { ClipboardList, Filter, Calendar, ChevronDown } from 'lucide-react';
+import { PageHeader } from './ui/PageHeader';
+import { Panel } from './ui/Panel';
+import { Badge } from './ui/Badge';
+import { EmptyState } from './ui/EmptyState';
+import { cn } from '../lib/utils';
 
 const ENTITY_LABELS = {
   Product: 'Producto',
@@ -11,12 +16,15 @@ const ENTITY_LABELS = {
   Table: 'Mesa',
   Settings: 'Configuración',
   Permission: 'Permiso',
+  Supplier: 'Proveedor',
+  Customer: 'Cliente',
+  Reservation: 'Reserva',
 };
 
-const ACTION_COLORS = {
-  CREATE: 'text-green-600 bg-green-50',
-  UPDATE: 'text-blue-600 bg-blue-50',
-  DELETE: 'text-red-600 bg-red-50',
+const ACTION = {
+  CREATE: { label: 'Creación', tone: 'ok' },
+  UPDATE: { label: 'Edición', tone: 'info' },
+  DELETE: { label: 'Eliminación', tone: 'danger' },
 };
 
 export function AuditViewer() {
@@ -35,30 +43,31 @@ export function AuditViewer() {
       params.set('limit', '200');
       const data = await apiGet(`/audit?${params.toString()}`);
       setLogs(Array.isArray(data) ? data : []);
-    } catch {}
+    } catch { /* sin datos */ }
     setLoading(false);
   }, [entityFilter, daysFilter]);
 
+  // Carga asincrona: el setState ocurre tras el await, no en el render.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadLogs(); }, [loadLogs]);
 
   const entities = [...new Set(logs.map(l => l.entity))];
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Registro de Auditoría</h2>
-          <p className="text-gray-500 text-sm">Cambios realizados en el sistema</p>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Auditoría"
+        subtitle="Registro automático de cambios en productos, insumos, pedidos y usuarios."
+      />
 
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[180px] flex-1 sm:max-w-xs">
+          <Filter className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft" aria-hidden="true" />
           <select
             value={entityFilter}
             onChange={e => setEntityFilter(e.target.value)}
-            className="input-field pl-10"
+            className="input-field h-9 pl-8 text-[13px]"
+            aria-label="Entidad"
           >
             <option value="">Todas las entidades</option>
             {entities.map(e => (
@@ -66,88 +75,98 @@ export function AuditViewer() {
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-400" />
-          <select value={daysFilter} onChange={e => setDaysFilter(e.target.value)} className="input-field w-32">
+        <div className="relative">
+          <Calendar className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft" aria-hidden="true" />
+          <select
+            value={daysFilter}
+            onChange={e => setDaysFilter(e.target.value)}
+            className="input-field h-9 pl-8 text-[13px]"
+            aria-label="Periodo"
+          >
             <option value="1">Hoy</option>
             <option value="7">7 días</option>
             <option value="30">30 días</option>
             <option value="90">90 días</option>
           </select>
         </div>
+        <p className="ml-auto text-2xs text-ink-muted">
+          {logs.length} {logs.length === 1 ? 'registro' : 'registros'}
+        </p>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
-        </div>
-      ) : logs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
-          <ClipboardList className="w-12 h-12 opacity-20 mb-4" />
-          <p className="font-medium">No hay registros de auditoría</p>
-          <p className="text-sm">Los cambios se registrarán automáticamente al modificar productos, insumos, etc.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {logs.map(log => (
-            <div key={log.id} className="card bg-white overflow-hidden">
-              <button
-                onClick={() => setExpanded(expanded === log.id ? null : log.id)}
-                className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors text-left"
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-600'}`}>
-                  <Activity className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-600'}`}>
-                      {log.action}
-                    </span>
-                    <span className="font-medium text-sm text-gray-800">{ENTITY_LABELS[log.entity] || log.entity}</span>
-                    <span className="text-xs font-mono text-gray-400">{log.entityId?.slice(0, 8)}...</span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {new Date(log.timestamp).toLocaleString('es-CO')}
-                    </span>
-                    {log.userId && (
-                      <span className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        {log.userId.slice(0, 8)}...
+      <Panel>
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          </div>
+        ) : logs.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title="No hay registros de auditoría"
+            description="Los cambios se registran automáticamente al modificar productos, insumos, pedidos o usuarios."
+          />
+        ) : (
+          <div className="divide-y divide-line-soft">
+            {logs.map(log => {
+              const action = ACTION[log.action] || { label: log.action, tone: 'neutral' };
+              const isOpen = expanded === log.id;
+              return (
+                <div key={log.id}>
+                  <button
+                    onClick={() => setExpanded(isOpen ? null : log.id)}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface"
+                    aria-expanded={isOpen}
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                        <Badge tone={action.tone}>{action.label}</Badge>
+                        <span className="text-[13px] font-medium text-ink">{ENTITY_LABELS[log.entity] || log.entity}</span>
+                        <span className="truncate font-mono text-2xs text-ink-soft">{log.entityId?.slice(0, 8)}…</span>
                       </span>
-                    )}
-                  </div>
-                </div>
-                <div className="text-gray-300">
-                  <svg className={`w-5 h-5 transition-transform ${expanded === log.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </button>
+                      <span className="num mt-0.5 block text-2xs text-ink-muted sm:hidden">
+                        {new Date(log.timestamp).toLocaleString('es-CO', {
+                          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+                        })}
+                      </span>
+                    </span>
+                    <span className="hidden shrink-0 items-center gap-3 text-2xs text-ink-muted sm:flex">
+                      <span className="num">
+                        {new Date(log.timestamp).toLocaleString('es-CO', {
+                          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+                        })}
+                      </span>
+                      {log.userId && <span className="font-mono">{log.userId.slice(0, 8)}…</span>}
+                    </span>
+                    <ChevronDown className={cn('h-4 w-4 shrink-0 text-ink-soft transition-transform', isOpen && 'rotate-180')} aria-hidden="true" />
+                  </button>
 
-              {expanded === log.id && (
-                <div className="px-4 pb-4 pt-0 border-t border-gray-100">
-                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {log.before && (
-                      <div>
-                        <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Antes</h4>
-                        <pre className="bg-gray-50 rounded-lg p-3 text-xs overflow-auto max-h-48">{JSON.stringify(log.before, null, 2)}</pre>
+                  {isOpen && (
+                    <div className="border-t border-line-soft px-4 pb-3 pt-3">
+                      <p className="num mb-2 text-2xs text-ink-muted sm:hidden">
+                        {new Date(log.timestamp).toLocaleString('es-CO')}
+                      </p>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {log.before && (
+                          <div>
+                            <h4 className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">Antes</h4>
+                            <pre className="max-h-48 overflow-auto rounded-lg bg-surface p-3 font-mono text-2xs text-ink">{JSON.stringify(log.before, null, 2)}</pre>
+                          </div>
+                        )}
+                        {log.after && (
+                          <div>
+                            <h4 className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">Después</h4>
+                            <pre className="max-h-48 overflow-auto rounded-lg bg-surface p-3 font-mono text-2xs text-ink">{JSON.stringify(log.after, null, 2)}</pre>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {log.after && (
-                      <div>
-                        <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Después</h4>
-                        <pre className="bg-gray-50 rounded-lg p-3 text-xs overflow-auto max-h-48">{JSON.stringify(log.after, null, 2)}</pre>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }

@@ -1,15 +1,42 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost, apiPut } from '../lib/api.js';
-import { Plus, X, Edit2, Building2, Phone, Mail, MapPin, Package, Truck, Check, Ban, Eye, ClipboardList } from 'lucide-react';
+import {
+  Plus,
+  X,
+  Pencil,
+  Building2,
+  Phone,
+  Mail,
+  MapPin,
+  Package,
+  Truck,
+  Check,
+  Ban,
+  ClipboardList,
+  Trash2,
+} from 'lucide-react';
 import { useToast } from './ui/feedback-context';
 import { Modal } from './Modal';
+import { PageHeader } from './ui/PageHeader';
+import { Panel, PanelHeader } from './ui/Panel';
+import { SubNav } from './ui/SubNav';
+import { Badge } from './ui/Badge';
+import { EmptyState } from './ui/EmptyState';
+import { formatCurrency } from '../lib/utils';
+
+const TABS = [
+  { id: 'suppliers', label: 'Proveedores', icon: Building2 },
+  { id: 'orders', label: 'Órdenes de compra', shortLabel: 'Órdenes', icon: ClipboardList },
+];
 
 const PO_STATUS = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  APPROVED: 'bg-blue-100 text-blue-800',
-  RECEIVED: 'bg-green-100 text-green-800',
-  CANCELLED: 'bg-red-100 text-red-800',
+  PENDING: { label: 'Pendiente', tone: 'warn' },
+  APPROVED: { label: 'Aprobada', tone: 'info' },
+  RECEIVED: { label: 'Recibida', tone: 'ok' },
+  CANCELLED: { label: 'Cancelada', tone: 'danger' },
 };
+
+const EMPTY_SUPPLIER = { name: '', phone: '', email: '', address: '', notes: '' };
 
 export function SupplierManager() {
   const toast = useToast();
@@ -18,7 +45,7 @@ export function SupplierManager() {
   const [orders, setOrders] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', address: '', notes: '' });
+  const [formData, setFormData] = useState(EMPTY_SUPPLIER);
 
   // PO form
   const [isPOFormOpen, setIsPOFormOpen] = useState(false);
@@ -26,15 +53,17 @@ export function SupplierManager() {
   const [inventoryItems, setInventoryItems] = useState([]);
 
   const loadSuppliers = useCallback(async () => {
-    try { const d = await apiGet('/suppliers'); setSuppliers(Array.isArray(d) ? d : []); } catch {}
+    try { const d = await apiGet('/suppliers'); setSuppliers(Array.isArray(d) ? d : []); } catch { /* sin datos */ }
   }, []);
   const loadOrders = useCallback(async () => {
-    try { const d = await apiGet('/purchase-orders'); setOrders(Array.isArray(d) ? d : []); } catch {}
+    try { const d = await apiGet('/purchase-orders'); setOrders(Array.isArray(d) ? d : []); } catch { /* sin datos */ }
   }, []);
   const loadInventory = useCallback(async () => {
-    try { const d = await apiGet('/inventory'); setInventoryItems(Array.isArray(d) ? d : []); } catch {}
+    try { const d = await apiGet('/inventory'); setInventoryItems(Array.isArray(d) ? d : []); } catch { /* sin datos */ }
   }, []);
 
+  // Carga inicial asincrona: el setState ocurre tras el await, no en el render.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadSuppliers(); if (tab === 'orders') { loadOrders(); loadInventory(); } }, [tab, loadSuppliers, loadOrders, loadInventory]);
 
   const handleSubmit = async (e) => {
@@ -48,10 +77,22 @@ export function SupplierManager() {
         const created = await apiPost('/suppliers', formData);
         setSuppliers(prev => [...prev, created]);
       }
-      setFormData({ name: '', phone: '', email: '', address: '', notes: '' });
+      setFormData(EMPTY_SUPPLIER);
       setEditingId(null); setIsFormOpen(false);
       toast.success(editingId ? 'Proveedor actualizado' : 'Proveedor creado');
     } catch (err) { toast.error('Error: ' + (err.message || '')); }
+  };
+
+  const startCreate = () => {
+    setEditingId(null);
+    setFormData(EMPTY_SUPPLIER);
+    setIsFormOpen(true);
+  };
+
+  const startEdit = (s) => {
+    setFormData({ name: s.name, phone: s.phone || '', email: s.email || '', address: s.address || '', notes: s.notes || '' });
+    setEditingId(s.id);
+    setIsFormOpen(true);
   };
 
   const addPOItem = () => {
@@ -92,202 +133,308 @@ export function SupplierManager() {
     } catch (err) { toast.error('Error: ' + (err.message || '')); }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="p-3 bg-secondary/10 rounded-xl text-secondary">
-          <Building2 className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Proveedores</h1>
-          <p className="text-sm text-gray-500">Gestión de proveedores y órdenes de compra</p>
-        </div>
-      </div>
+  const pendingOrders = orders.filter(o => o.status === 'PENDING' || o.status === 'APPROVED').length;
 
-      {/* Tabs */}
-      <div className="flex gap-2">
-        <button onClick={() => setTab('suppliers')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${tab === 'suppliers' ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-          <Building2 className="w-4 h-4 inline mr-1" /> Proveedores
-        </button>
-        <button onClick={() => setTab('orders')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors ${tab === 'orders' ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-          <ClipboardList className="w-4 h-4 inline mr-1" /> Órdenes de Compra
-        </button>
-      </div>
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        title="Proveedores"
+        subtitle="Contactos y órdenes de compra de materias primas."
+        actions={
+          tab === 'suppliers' ? (
+            !isFormOpen ? (
+              <button onClick={startCreate} className="btn-primary h-9 px-3.5 text-[13px]">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Nuevo proveedor
+              </button>
+            ) : null
+          ) : (
+            <button onClick={() => { setIsPOFormOpen(true); loadInventory(); }} className="btn-primary h-9 px-3.5 text-[13px]">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Nueva orden
+            </button>
+          )
+        }
+      />
+
+      <SubNav items={TABS} value={tab} onChange={setTab} />
 
       {tab === 'suppliers' && (
         <>
-          <div className="flex justify-end">
-            <button onClick={() => { setEditingId(null); setFormData({ name: '', phone: '', email: '', address: '', notes: '' }); setIsFormOpen(true); }} className="btn-primary bg-secondary hover:bg-secondary-dark flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Nuevo Proveedor
-            </button>
-          </div>
-
-          <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} label={editingId ? 'Editar Proveedor' : 'Nuevo Proveedor'}>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold">{editingId ? 'Editar Proveedor' : 'Nuevo Proveedor'}</h2>
-                  <button onClick={() => setIsFormOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+          {isFormOpen && (
+            <Panel>
+              <PanelHeader
+                title={editingId ? 'Editar proveedor' : 'Nuevo proveedor'}
+                subtitle="Nombre obligatorio; el resto es opcional."
+                actions={
+                  <button onClick={() => setIsFormOpen(false)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" aria-label="Cerrar formulario">
+                    <X className="h-4 w-4" />
+                  </button>
+                }
+              />
+              <form onSubmit={handleSubmit} className="grid gap-3 p-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Nombre *</label>
+                  <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input-field h-9" placeholder="Ej. Distribuidora El Campo" required />
                 </div>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                    <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input-field w-full" required />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                      <input type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="input-field w-full" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                      <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="input-field w-full" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                    <input type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="input-field w-full" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-                    <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="input-field w-full" rows="2" />
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <button type="submit" className="flex-1 btn-primary bg-secondary hover:bg-secondary-dark">{editingId ? 'Guardar' : 'Crear'}</button>
-                    <button type="button" onClick={() => setIsFormOpen(false)} className="btn-secondary">Cancelar</button>
-                  </div>
-                </form>
-              </div>
-          </Modal>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            {suppliers.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 col-span-2">
-                <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="font-medium">No hay proveedores registrados</p>
-              </div>
-            ) : (
-              suppliers.map(s => (
-                <div key={s.id} className="card p-4 flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-800">{s.name}</p>
-                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 flex-wrap">
-                      {s.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{s.phone}</span>}
-                      {s.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{s.email}</span>}
-                      {s.address && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{s.address}</span>}
-                    </div>
-                  </div>
-                  <button onClick={() => { setFormData({ name: s.name, phone: s.phone || '', email: s.email || '', address: s.address || '', notes: s.notes || '' }); setEditingId(s.id); setIsFormOpen(true); }} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <Edit2 className="w-4 h-4 text-gray-500" />
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Teléfono</label>
+                  <input type="text" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="input-field h-9" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Email</label>
+                  <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="input-field h-9" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Dirección</label>
+                  <input type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="input-field h-9" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Notas</label>
+                  <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="input-field" rows="2" placeholder="Días de entrega, condiciones..." />
+                </div>
+                <div className="flex items-end justify-end gap-2 sm:col-span-2">
+                  <button type="button" onClick={() => setIsFormOpen(false)} className="btn-secondary h-9 px-3 text-[13px]">Cancelar</button>
+                  <button type="submit" className="btn-primary h-9 px-3.5 text-[13px]">
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                    {editingId ? 'Guardar cambios' : 'Crear proveedor'}
                   </button>
                 </div>
-              ))
+              </form>
+            </Panel>
+          )}
+
+          <Panel>
+            <PanelHeader title="Proveedores" subtitle={`${suppliers.length} registrados`} />
+
+            {suppliers.length === 0 ? (
+              <EmptyState
+                icon={Building2}
+                title="No hay proveedores registrados"
+                description="Agrega a quién le compras para asociar órdenes e insumos."
+                action={!isFormOpen ? (
+                  <button onClick={startCreate} className="btn-primary h-9 px-3.5 text-[13px]">
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    Nuevo proveedor
+                  </button>
+                ) : null}
+              />
+            ) : (
+              <>
+                <div className="divide-y divide-line-soft md:hidden">
+                  {suppliers.map(s => (
+                    <div key={s.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-ink">{s.name}</p>
+                        <div className="mt-1 space-y-0.5 text-2xs text-ink-muted">
+                          {s.phone && <p className="flex items-center gap-1"><Phone className="h-3 w-3 shrink-0" aria-hidden="true" />{s.phone}</p>}
+                          {s.email && <p className="flex items-center gap-1 truncate"><Mail className="h-3 w-3 shrink-0" aria-hidden="true" />{s.email}</p>}
+                          {s.address && <p className="flex items-center gap-1 truncate"><MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />{s.address}</p>}
+                        </div>
+                      </div>
+                      <button onClick={() => startEdit(s)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" title="Editar" aria-label={`Editar ${s.name}`}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Proveedor</th>
+                        <th>Contacto</th>
+                        <th>Dirección</th>
+                        <th className="w-16 text-right"><span className="sr-only">Acciones</span></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {suppliers.map(s => (
+                        <tr key={s.id}>
+                          <td>
+                            <p className="font-medium text-ink">{s.name}</p>
+                            {s.notes && <p className="mt-0.5 max-w-xs truncate text-2xs text-ink-muted">{s.notes}</p>}
+                          </td>
+                          <td className="text-ink-muted">
+                            {s.phone || s.email ? (
+                              <div className="space-y-0.5">
+                                {s.phone && <p className="num">{s.phone}</p>}
+                                {s.email && <p className="text-2xs">{s.email}</p>}
+                              </div>
+                            ) : '—'}
+                          </td>
+                          <td className="max-w-[220px] truncate text-ink-muted">{s.address || '—'}</td>
+                          <td>
+                            <div className="-mr-2 flex justify-end">
+                              <button onClick={() => startEdit(s)} className="grid h-8 w-8 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-surface hover:text-ink" title="Editar" aria-label={`Editar ${s.name}`}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
-          </div>
+          </Panel>
         </>
       )}
 
       {tab === 'orders' && (
         <>
-          <div className="flex justify-end">
-            <button onClick={() => { setIsPOFormOpen(true); loadInventory(); }} className="btn-primary bg-secondary hover:bg-secondary-dark flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Nueva Orden de Compra
-            </button>
-          </div>
-
-          <Modal isOpen={isPOFormOpen} onClose={() => setIsPOFormOpen(false)} label="Nueva Orden de Compra" maxWidth="max-w-lg">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold">Nueva Orden de Compra</h2>
-                  <button onClick={() => setIsPOFormOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+          <Modal isOpen={isPOFormOpen} onClose={() => setIsPOFormOpen(false)} label="Nueva Orden de Compra" maxWidth="max-w-xl">
+            <div className="p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-ink">Nueva orden de compra</h2>
+                  <p className="text-2xs text-ink-muted">Los items entran al stock al marcarla como recibida.</p>
                 </div>
-                <form onSubmit={handleCreatePO} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-                    <select value={poForm.supplierId} onChange={e => setPoForm({ ...poForm, supplierId: e.target.value })} className="input-field w-full">
-                      <option value="">Sin proveedor</option>
-                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
+                <button onClick={() => setIsPOFormOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg text-ink-muted hover:bg-surface hover:text-ink" aria-label="Cerrar"><X className="h-4 w-4" /></button>
+              </div>
+              <form onSubmit={handleCreatePO} className="space-y-3">
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Proveedor</label>
+                  <select value={poForm.supplierId} onChange={e => setPoForm({ ...poForm, supplierId: e.target.value })} className="input-field h-9">
+                    <option value="">Sin proveedor</option>
+                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-2xs font-semibold text-ink-muted">Items</span>
+                    <button type="button" onClick={addPOItem} className="text-2xs font-semibold text-ink-brand hover:underline">+ Agregar item</button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Items</label>
+                  {poForm.items.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-line px-3 py-4 text-center text-2xs text-ink-muted">
+                      Agrega al menos un insumo a la orden.
+                    </p>
+                  ) : (
                     <div className="space-y-2">
+                      <div className="hidden grid-cols-[1fr_64px_96px_28px] gap-2 px-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted sm:grid">
+                        <span>Insumo</span>
+                        <span className="text-center">Cant.</span>
+                        <span className="text-center">Costo</span>
+                        <span />
+                      </div>
                       {poForm.items.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <select value={item.inventoryItemId} onChange={e => updatePOItem(idx, 'inventoryItemId', e.target.value)} className="input-field flex-1 text-sm">
+                        <div key={idx} className="grid grid-cols-[1fr_28px] gap-2 sm:grid-cols-[1fr_64px_96px_28px]">
+                          <select value={item.inventoryItemId} onChange={e => updatePOItem(idx, 'inventoryItemId', e.target.value)} className="input-field h-9 min-w-0 text-[13px]">
                             <option value="">Seleccionar insumo...</option>
                             {inventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name} ({inv.unit})</option>)}
                           </select>
-                          <input type="number" min="1" value={item.quantity} onChange={e => updatePOItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="input-field w-16 text-sm text-center" />
-                          <input type="number" min="0" step="100" value={item.unitCost} onChange={e => updatePOItem(idx, 'unitCost', parseFloat(e.target.value) || 0)} className="input-field w-24 text-sm text-center" placeholder="Costo" />
-                          <button type="button" onClick={() => removePOItem(idx)} className="p-1.5 hover:bg-red-50 rounded-lg"><X className="w-4 h-4 text-red-400" /></button>
+                          <input type="number" min="1" value={item.quantity} onChange={e => updatePOItem(idx, 'quantity', parseInt(e.target.value) || 1)} className="input-field num order-3 h-9 text-center text-[13px] sm:order-none" aria-label="Cantidad" />
+                          <input type="number" min="0" step="100" value={item.unitCost} onChange={e => updatePOItem(idx, 'unitCost', parseFloat(e.target.value) || 0)} className="input-field num order-4 h-9 text-center text-[13px] sm:order-none" placeholder="Costo" aria-label="Costo unitario" />
+                          <button type="button" onClick={() => removePOItem(idx)} className="order-2 grid h-9 w-7 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-danger-soft hover:text-danger sm:order-none" aria-label="Quitar item">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       ))}
                     </div>
-                    <button type="button" onClick={addPOItem} className="mt-2 text-sm text-secondary font-bold hover:underline">+ Agregar item</button>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-                    <textarea value={poForm.notes} onChange={e => setPoForm({ ...poForm, notes: e.target.value })} className="input-field w-full" rows="2" />
-                  </div>
-                  {poForm.items.length > 0 && (
-                    <div className="text-right text-sm font-bold text-gray-700">
-                      Total: ${poForm.items.reduce((sum, i) => sum + (i.quantity || 0) * (i.unitCost || 0), 0).toLocaleString()}
-                    </div>
                   )}
-                  <div className="flex gap-2 pt-2">
-                    <button type="submit" className="flex-1 btn-primary bg-secondary hover:bg-secondary-dark">Crear Orden</button>
-                    <button type="button" onClick={() => setIsPOFormOpen(false)} className="btn-secondary">Cancelar</button>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-2xs font-semibold text-ink-muted">Notas</label>
+                  <textarea value={poForm.notes} onChange={e => setPoForm({ ...poForm, notes: e.target.value })} className="input-field" rows="2" />
+                </div>
+
+                {poForm.items.length > 0 && (
+                  <div className="flex items-center justify-between rounded-xl bg-surface px-3 py-2">
+                    <span className="text-2xs font-semibold uppercase tracking-wide text-ink-muted">Total estimado</span>
+                    <span className="num text-sm font-semibold text-ink">
+                      {formatCurrency(poForm.items.reduce((sum, i) => sum + (i.quantity || 0) * (i.unitCost || 0), 0))}
+                    </span>
                   </div>
-                </form>
-              </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button type="submit" className="btn-primary h-9 flex-1 px-3.5 text-[13px]">Crear orden</button>
+                  <button type="button" onClick={() => setIsPOFormOpen(false)} className="btn-secondary h-9 px-3 text-[13px]">Cancelar</button>
+                </div>
+              </form>
+            </div>
           </Modal>
 
-          <div className="space-y-3">
+          <Panel>
+            <PanelHeader
+              title="Órdenes de compra"
+              subtitle={`${orders.length} en total · ${pendingOrders} por recibir`}
+            />
+
             {orders.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="font-medium">No hay órdenes de compra</p>
-              </div>
+              <EmptyState
+                icon={ClipboardList}
+                title="No hay órdenes de compra"
+                description="Crea una orden para reponer insumos y controlar costos."
+                action={
+                  <button onClick={() => { setIsPOFormOpen(true); loadInventory(); }} className="btn-primary h-9 px-3.5 text-[13px]">
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                    Nueva orden
+                  </button>
+                }
+              />
             ) : (
-              orders.map(o => {
-                const total = o.items.reduce((sum, i) => sum + (i.quantity || 0) * (i.unitCost || 0), 0);
-                return (
-                  <div key={o.id} className="card p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Truck className="w-4 h-4 text-gray-500" />
-                        <span className="font-bold text-gray-800">{o.supplier?.name || 'Sin proveedor'}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PO_STATUS[o.status] || ''}`}>{o.status}</span>
-                      </div>
-                      <div className="text-right text-sm">
-                        <span className="font-bold">${total.toLocaleString()}</span>
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500 mb-2">
-                      {new Date(o.createdAt).toLocaleDateString('es-CO', { dateStyle: 'medium' })} · {o.items.length} item(s)
-                      {o.receivedAt && ` · Recibido: ${new Date(o.receivedAt).toLocaleDateString('es-CO', { dateStyle: 'medium' })}`}
-                    </div>
-                    <details className="text-xs">
-                      <summary className="text-secondary font-medium cursor-pointer hover:underline">Ver items</summary>
-                      <div className="mt-2 space-y-1 bg-gray-50 rounded-xl p-3">
-                        {o.items.map((item, i) => (
-                          <div key={i} className="flex justify-between">
-                            <span>{item.name || 'Insumo'}</span>
-                            <span>{item.quantity} × ${(item.unitCost || 0).toLocaleString()} = ${((item.quantity || 0) * (item.unitCost || 0)).toLocaleString()}</span>
+              <div className="divide-y divide-line-soft">
+                {orders.map(o => {
+                  const total = o.items.reduce((sum, i) => sum + (i.quantity || 0) * (i.unitCost || 0), 0);
+                  const status = PO_STATUS[o.status] || { label: o.status, tone: 'neutral' };
+                  return (
+                    <div key={o.id} className="px-4 py-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Truck className="h-3.5 w-3.5 shrink-0 text-ink-soft" aria-hidden="true" />
+                            <span className="truncate text-[13px] font-semibold text-ink">{o.supplier?.name || 'Sin proveedor'}</span>
+                            <Badge tone={status.tone}>{status.label}</Badge>
                           </div>
-                        ))}
+                          <p className="mt-0.5 text-2xs text-ink-muted">
+                            {new Date(o.createdAt).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            {' · '}{o.items.length} {o.items.length === 1 ? 'ítem' : 'ítems'}
+                            {o.receivedAt ? ` · recibida ${new Date(o.receivedAt).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' })}` : ''}
+                          </p>
+                        </div>
+
+                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                          <p className="num mr-1 text-[13px] font-semibold text-ink">{formatCurrency(total)}</p>
+                          {o.status === 'PENDING' && (
+                            <button onClick={() => handlePOStatus(o.id, 'APPROVED')} className="inline-flex h-8 items-center gap-1 rounded-lg bg-info-soft px-2.5 text-2xs font-semibold text-info transition-opacity hover:opacity-80">
+                              <Check className="h-3 w-3" aria-hidden="true" />Aprobar
+                            </button>
+                          )}
+                          {o.status === 'APPROVED' && (
+                            <button onClick={() => handlePOStatus(o.id, 'RECEIVED')} className="inline-flex h-8 items-center gap-1 rounded-lg bg-ok-soft px-2.5 text-2xs font-semibold text-ok transition-opacity hover:opacity-80">
+                              <Package className="h-3 w-3" aria-hidden="true" />Recibir
+                            </button>
+                          )}
+                          {(o.status === 'PENDING' || o.status === 'APPROVED') && (
+                            <button onClick={() => handlePOStatus(o.id, 'CANCELLED')} className="inline-flex h-8 items-center gap-1 rounded-lg bg-danger-soft px-2.5 text-2xs font-semibold text-danger transition-opacity hover:opacity-80">
+                              <Ban className="h-3 w-3" aria-hidden="true" />Cancelar
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </details>
-                    <div className="flex gap-1 mt-2">
-                      {o.status === 'PENDING' && <button onClick={() => handlePOStatus(o.id, 'APPROVED')} className="px-3 py-1 text-xs font-bold bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"><Check className="w-3 h-3 inline mr-1" />Aprobar</button>}
-                      {o.status === 'APPROVED' && <button onClick={() => handlePOStatus(o.id, 'RECEIVED')} className="px-3 py-1 text-xs font-bold bg-green-100 text-green-700 rounded-lg hover:bg-green-200"><Package className="w-3 h-3 inline mr-1" />Recibir</button>}
-                      {(o.status === 'PENDING' || o.status === 'APPROVED') && <button onClick={() => handlePOStatus(o.id, 'CANCELLED')} className="px-3 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-lg hover:bg-red-200"><Ban className="w-3 h-3 inline mr-1" />Cancelar</button>}
+
+                      <details className="mt-1 text-2xs">
+                        <summary className="w-fit cursor-pointer list-none font-medium text-ink-brand hover:underline">Ver items</summary>
+                        <div className="mt-2 space-y-1 rounded-lg bg-surface px-3 py-2">
+                          {o.items.map((item, i) => (
+                            <div key={i} className="flex justify-between gap-3">
+                              <span className="truncate text-ink-muted">{item.name || 'Insumo'}</span>
+                              <span className="num shrink-0 text-ink">{item.quantity} × {formatCurrency(item.unitCost || 0)} <span className="text-ink-muted">= {formatCurrency((item.quantity || 0) * (item.unitCost || 0))}</span></span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
-          </div>
+          </Panel>
         </>
       )}
     </div>

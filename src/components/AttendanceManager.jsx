@@ -1,21 +1,36 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet, apiPost } from '../lib/api.js';
-import { Clock, LogIn, LogOut, CalendarDays, Users, Search, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Clock, LogIn, LogOut, CalendarDays, CheckCircle } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { useToast } from './ui/feedback-context';
+import { Panel, PanelHeader } from './ui/Panel';
+import { StatCard } from './ui/StatCard';
+import { Badge } from './ui/Badge';
+import { EmptyState } from './ui/EmptyState';
 
-const STATUS_STYLES = {
-  PRESENT: 'bg-green-100 text-green-800',
-  LATE: 'bg-yellow-100 text-yellow-800',
-  ABSENT: 'bg-red-100 text-red-800',
-  HALF_DAY: 'bg-orange-100 text-orange-800',
+const STATUS = {
+  PRESENT: { label: 'Presente', tone: 'ok' },
+  LATE: { label: 'Tarde', tone: 'warn' },
+  ABSENT: { label: 'Ausente', tone: 'danger' },
+  HALF_DAY: { label: 'Medio día', tone: 'info' },
 };
+
+const ROLE_LABELS = { ADMIN: 'Administrador', MANAGER: 'Gerente', CASHIER: 'Cajero', WAITER: 'Mesero', COOK: 'Cocinero' };
 
 function toLocalDateString(d = new Date()) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+function timeLabel(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function roleLabel(role) {
+  return ROLE_LABELS[String(role || '').toUpperCase()] || role || '—';
 }
 
 export function AttendanceManager() {
@@ -33,18 +48,21 @@ export function AttendanceManager() {
       if (filterUser) params.set('userId', filterUser);
       const d = await apiGet(`/attendance?${params}`);
       setRecords(Array.isArray(d) ? d : []);
-    } catch {}
+    } catch { /* sin datos */ }
   }, [selectedDate, filterUser]);
 
   const loadUsers = useCallback(async () => {
-    try { const d = await apiGet('/users'); setUsers(Array.isArray(d) ? d : []); } catch {}
+    try { const d = await apiGet('/users'); setUsers(Array.isArray(d) ? d : []); } catch { /* sin datos */ }
   }, []);
 
   const loadTodayStatus = useCallback(async () => {
-    try { const d = await apiGet('/attendance/today'); setTodayStatus(d); } catch {}
+    try { const d = await apiGet('/attendance/today'); setTodayStatus(d); } catch { /* sin datos */ }
   }, []);
 
+  // Carga inicial asincrona: el setState ocurre tras el await, no en el render.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadRecords(); loadUsers(); }, [loadRecords, loadUsers]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadTodayStatus(); }, [loadTodayStatus]);
 
   const handleCheckIn = async () => {
@@ -65,107 +83,150 @@ export function AttendanceManager() {
     } catch (err) { toast.error('Error: ' + (err.message || '')); }
   };
 
-  const today = toLocalDateString();
+  const presentCount = records.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
+  const totalHours = records.reduce((sum, r) => sum + (r.hours || 0), 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="p-3 bg-secondary/10 rounded-xl text-secondary">
-          <Clock className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Asistencia</h1>
-          <p className="text-sm text-gray-500">Registro de entrada y salida de empleados</p>
-        </div>
-      </div>
-
-      {/* Check In/Out card */}
-      <div className="card p-6 bg-gradient-to-br from-secondary/5 to-secondary/10 border border-secondary/20">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-gray-800 text-lg">{currentUser.name}</h2>
-            <p className="text-sm text-gray-500">
-              {!todayStatus.checkedIn
-                ? 'Aún no has registrado tu entrada hoy'
-                : todayStatus.checkedOut
-                  ? 'Jornada completada'
-                  : 'Jornada en curso'}
-            </p>
-            {todayStatus.checkedIn && !todayStatus.checkedOut && (
-              <p className="text-xs text-gray-400 mt-1">
-                Entrada: {new Date(todayStatus.record?.checkIn).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+    <div className="space-y-3">
+      <Panel>
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-ink-brand">
+              {currentUser?.name?.charAt(0)?.toUpperCase() || '?'}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.09em] text-ink-muted">Mi jornada</p>
+              <p className="truncate text-[13px] font-semibold text-ink">{currentUser?.name}</p>
+              <p className="text-2xs text-ink-muted">
+                {!todayStatus.checkedIn
+                  ? 'Aún no has registrado tu entrada hoy'
+                  : todayStatus.checkedOut
+                    ? 'Jornada completada'
+                    : 'Jornada en curso'}
               </p>
-            )}
-            {todayStatus.checkedIn && todayStatus.checkedOut && (
-              <p className="text-xs text-gray-400 mt-1">
-                {new Date(todayStatus.record?.checkIn).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })} →{' '}
-                {new Date(todayStatus.record?.checkOut).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })} ·{' '}
-                {todayStatus.record?.hours?.toFixed(1)} horas
-              </p>
-            )}
+              {todayStatus.checkedIn && (
+                <p className="num mt-0.5 text-2xs text-ink-muted">
+                  {timeLabel(todayStatus.record?.checkIn)}
+                  {todayStatus.checkedOut && ` → ${timeLabel(todayStatus.record?.checkOut)} · ${todayStatus.record?.hours?.toFixed(1)} h`}
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             {!todayStatus.checkedIn && (
-              <button onClick={handleCheckIn} className="btn-primary bg-green-600 hover:bg-green-700 flex items-center gap-2">
-                <LogIn className="w-4 h-4" /> Marcar Entrada
+              <button onClick={handleCheckIn} className="btn-primary h-9 px-3.5 text-[13px]">
+                <LogIn className="h-4 w-4" aria-hidden="true" />
+                Marcar entrada
               </button>
             )}
             {todayStatus.checkedIn && !todayStatus.checkedOut && (
-              <button onClick={handleCheckOut} className="btn-primary bg-red-500 hover:bg-red-600 flex items-center gap-2">
-                <LogOut className="w-4 h-4" /> Marcar Salida
+              <button onClick={handleCheckOut} className="btn-danger h-9 px-3.5 text-[13px]">
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+                Marcar salida
               </button>
             )}
           </div>
         </div>
+      </Panel>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+        <StatCard label="Registros" value={records.length} hint="En la fecha elegida" icon={CalendarDays} tone="brand" />
+        <StatCard label="Presentes" value={presentCount} hint="Incluye llegadas tarde" icon={CheckCircle} tone={presentCount === 0 ? 'neutral' : 'ok'} />
+        <StatCard label="Horas trabajadas" value={`${totalHours.toFixed(1)} h`} hint="Suma del día" icon={Clock} tone="neutral" className="col-span-2 sm:col-span-1" />
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="input-field pl-10 w-full" />
-        </div>
-        <select value={filterUser} onChange={e => setFilterUser(e.target.value)} className="input-field max-w-xs">
-          <option value="">Todos los empleados</option>
-          {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
-        </select>
-      </div>
+      <Panel>
+        <PanelHeader
+          title="Registros de asistencia"
+          subtitle={new Date(`${selectedDate}T12:00`).toLocaleDateString('es-CO', { dateStyle: 'full' })}
+          actions={
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={e => setSelectedDate(e.target.value)}
+                className="input-field h-8 w-36 text-[13px]"
+                aria-label="Fecha"
+              />
+              <select
+                value={filterUser}
+                onChange={e => setFilterUser(e.target.value)}
+                className="input-field h-8 text-[13px] sm:w-44"
+                aria-label="Empleado"
+              >
+                <option value="">Todos los empleados</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+          }
+        />
 
-      {/* Records */}
-      <div className="card overflow-hidden">
         {records.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p className="font-medium">No hay registros para esta fecha</p>
-          </div>
+          <EmptyState
+            icon={Clock}
+            title="No hay registros para esta fecha"
+            description="Las entradas y salidas del equipo aparecerán aquí."
+          />
         ) : (
-          <div className="divide-y">
-            {records.map(r => (
-              <div key={r.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary font-bold text-sm">
-                    {r.user?.name?.charAt(0) || '?'}
+          <>
+            <div className="divide-y divide-line-soft md:hidden">
+              {records.map(r => {
+                const status = STATUS[r.status] || { label: r.status, tone: 'neutral' };
+                return (
+                  <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-[13px] font-semibold text-ink-brand">
+                        {r.user?.name?.charAt(0) || '?'}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-ink">{r.user?.name || 'Usuario'}</p>
+                        <p className="text-2xs text-ink-muted">{roleLabel(r.user?.role)}</p>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <Badge tone={status.tone}>{status.label}</Badge>
+                      <p className="num mt-1 text-2xs text-ink-muted">
+                        {timeLabel(r.checkIn)}{r.checkOut ? ` → ${timeLabel(r.checkOut)}` : ''}
+                      </p>
+                      {r.hours > 0 && <p className="num text-2xs font-semibold text-ink">{r.hours.toFixed(1)} h</p>}
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-800">{r.user?.name || 'Usuario'}</p>
-                    <p className="text-xs text-gray-500">{r.user?.role}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[r.status] || ''}`}>{r.status}</span>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    {new Date(r.checkIn).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-                    {r.checkOut && ` → ${new Date(r.checkOut).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`}
-                  </p>
-                  {r.hours > 0 && <p className="text-xs font-bold text-gray-700">{r.hours.toFixed(1)} horas</p>}
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Empleado</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th className="text-right">Entrada</th>
+                    <th className="text-right">Salida</th>
+                    <th className="text-right">Horas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {records.map(r => {
+                    const status = STATUS[r.status] || { label: r.status, tone: 'neutral' };
+                    return (
+                      <tr key={r.id}>
+                        <td className="font-medium text-ink">{r.user?.name || 'Usuario'}</td>
+                        <td className="text-ink-muted">{roleLabel(r.user?.role)}</td>
+                        <td><Badge tone={status.tone}>{status.label}</Badge></td>
+                        <td className="num text-right text-ink">{timeLabel(r.checkIn)}</td>
+                        <td className="num text-right text-ink-muted">{timeLabel(r.checkOut)}</td>
+                        <td className="num text-right font-medium text-ink">{r.hours > 0 ? `${r.hours.toFixed(1)}` : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }

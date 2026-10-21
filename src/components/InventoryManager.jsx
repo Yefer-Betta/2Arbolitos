@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { apiGet, apiPost, apiPut, apiDelete } from '../lib/api.js';
+import { apiGet, apiPost, apiPatch, apiDelete } from '../lib/api.js';
 import {
   Plus,
   Pencil,
@@ -110,7 +110,7 @@ export function InventoryManager() {
     };
     try {
       if (editingId) {
-        const updated = await apiPut(`/inventory/${editingId}`, payload);
+        const updated = await apiPatch(`/inventory/${editingId}`, payload);
         setItems(prev => prev.map(i => i.id === editingId ? { ...i, ...updated } : i));
       } else {
         const created = await apiPost('/inventory', payload);

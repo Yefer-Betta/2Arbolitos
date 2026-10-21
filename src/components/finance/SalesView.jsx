@@ -1,6 +1,6 @@
 import React from 'react';
 import { Printer, Receipt, Search } from 'lucide-react';
-import { getOrderTypeLabel as getTypeLabel } from '../../lib/sales';
+import { getOrderTypeLabel as getTypeLabel, normalizeOrderType } from '../../lib/sales';
 import { formatCurrency } from '../../lib/utils';
 import { Badge } from '../ui/Badge';
 import { Panel, PanelHeader } from '../ui/Panel';
@@ -13,11 +13,7 @@ const TYPE_TONE = {
 };
 
 function typeTone(orderType) {
-    const type = String(orderType || '').toLowerCase();
-    if (type === 'mesa' || type.startsWith('mesa-')) return TYPE_TONE.mesa;
-    if (type.includes('llevar')) return TYPE_TONE['para-llevar'];
-    if (type.includes('domicilio')) return TYPE_TONE.domicilio;
-    return 'neutral';
+    return TYPE_TONE[normalizeOrderType(orderType)] || 'neutral';
 }
 
 function timeOf(order) {
