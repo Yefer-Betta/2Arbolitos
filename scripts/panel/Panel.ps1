@@ -35,9 +35,9 @@ trap {
     exit 1
 }
 
-$Script:OpsPath = Join-Path $PSScriptRoot 'Ops.ps1'
+$Script:OpsPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'lib\Ops.ps1'
 if (-not (Test-Path -LiteralPath $Script:OpsPath)) {
-    throw "No se encontro Ops.ps1 junto a Panel.ps1 ($Script:OpsPath)."
+    throw "No se encontro Ops.ps1 en scripts\lib ($Script:OpsPath)."
 }
 . $Script:OpsPath
 
@@ -270,6 +270,8 @@ $xamlText = @'
             <Button x:Name="BtnBackup" Content="Respaldar ahora" Style="{StaticResource GhostButton}"
                     Height="38" Margin="0,12,0,0"/>
             <Button x:Name="BtnDiag" Content="Diagnostico" Style="{StaticResource GhostButton}"
+                    Height="38" Margin="0,8,0,0"/>
+            <Button x:Name="BtnRepair" Content="Reparar instalacion" Style="{StaticResource GhostButton}"
                     Height="38" Margin="0,8,0,0"/>
           </StackPanel>
         </Border>
@@ -946,6 +948,19 @@ $logCombo.Add_SelectionChanged({
         Show-Diagnostics
     } catch {
         Show-Banner $false (Get-FriendlyError $_.Exception.Message)
+    }
+})
+
+(Get-El 'BtnRepair').Add_Click({
+    $bat = Join-Path (Get-ArbolitosRoot) 'instalar.bat'
+    if (-not (Test-Path -LiteralPath $bat)) {
+        Show-Banner $false 'No se encontro instalar.bat en la carpeta del proyecto.'
+        return
+    }
+    try {
+        Start-Process -FilePath $bat
+    } catch {
+        Show-Banner $false ('No se pudo abrir el instalador: ' + $_.Exception.Message)
     }
 })
 

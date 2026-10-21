@@ -1,6 +1,8 @@
 # Logs
 logs
 *.log
+# ...excepto los casos de prueba del instalador, que son fixtures versionados
+!scripts/setup/fixtures/*.log
 error_log.txt
 npm-debug.log*
 yarn-debug.log*

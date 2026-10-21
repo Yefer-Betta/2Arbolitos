@@ -35,7 +35,7 @@ Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra g
 - Windows 10/11, macOS o Linux
 - **Docker Desktop** instalado y corriendo
 
-### Instalación Automática (recomendada)
+### Instalación visual (recomendada)
 
 ```batch
 git clone https://github.com/Yefer-Betta/2Arbolitos.git
@@ -43,15 +43,36 @@ cd 2Arbolitos
 instalar.bat
 ```
 
-El script `instalar.bat` (solo instalación) hace todo automáticamente:
-1. Se auto-eleva a Administrador
-2. Detecta la IP local del servidor
-3. Genera `.env` con secretos aleatorios
-4. Abre el puerto 80 en el firewall de Windows
-5. Construye e inicia los contenedores Docker
-6. Muestra la URL y un código QR para acceder desde el celular
+`instalar.bat` abre una ventana (PowerShell 5.1 + WPF, sin dependencias nuevas) con tres flujos:
 
-> Ejecutar como **Administrador** en Windows para que abra el puerto automáticamente.
+| Acción | Qué hace |
+|--------|----------|
+| **Instalar o reinstalar** | Genera `.env` con secretos aleatorios, abre el puerto en el firewall, construye las imágenes y arranca los contenedores, mostrando el progreso en vivo. |
+| **Revisar y reparar** | Analiza Docker, `.env`, contenedores, puerto y firewall, y ofrece una corrección por cada problema encontrado. |
+| **Desinstalar** | Detiene y elimina los contenedores. La base de datos y los respaldos se conservan salvo que marques la casilla y escribas `BORRAR`. |
+
+Al terminar deja un acceso directo **2Arbolitos POS** en el escritorio que abre el sistema (`http://localhost`).
+
+Si la ventana no abre o prefieres texto, el mismo instalador funciona en consola:
+
+```batch
+instalar.bat /consola
+```
+
+Ambos caminos comparten la lógica (`scripts\setup\SetupOps.ps1`) y dejan un registro en `logs\instalacion-*.log`.
+
+> El instalador se auto-eleva a Administrador. Si rechazas el aviso de Windows, continúa sin la regla de firewall y lo advierte.
+
+### Errores que corrige solo
+
+- Contenedores de un intento anterior (conflicto de nombres) → los elimina y reintenta.
+- `.env` ausente, con BOM, con claves repetidas o con el secreto por defecto → lo reescribe conservando lo válido (deja `.env.bak`).
+- Contenedores con configuración vieja (`JWT_SECRET`) → los recrea para que lean el `.env` actual.
+- Contraseña de la base distinta a la del volumen → reutiliza la anterior **sin borrar datos**.
+- Puerto 80 ocupado → avisa y permite elegir otro (por ejemplo 8080).
+- Docker Desktop cerrado → intenta abrirlo y espera al motor.
+- IP local cambiada → actualiza `HOST_IP` para los QR.
+- Regla de firewall ausente → la vuelve a crear.
 
 ### Inicio Manual (si ya está configurado)
 
@@ -79,6 +100,7 @@ docker compose down
 | **Acceso** | URL local, URL de red para celulares, abrir el POS, copiar la URL y ver el QR |
 | **Acciones** | Iniciar · Detener (con confirmación) · Reiniciar · Abrir Docker Desktop si está cerrado |
 | **Respaldo** | Fecha del último respaldo y botón para generar uno en `backups/backup-*.sql` |
+| **Reparar** | Abre el instalador visual para diagnosticar y corregir problemas comunes |
 | **Diagnóstico** | Revisión completa del entorno, con botón para copiar el resultado |
 | **Registro** | Últimas 200 líneas de los contenedores, filtrables por servicio |
 

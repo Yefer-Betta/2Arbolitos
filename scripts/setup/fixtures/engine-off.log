@@ -1,0 +1,2 @@
+Cannot connect to the Docker daemon at npipe:////./pipe/dockerDesktopLinuxEngine. Is the docker daemon running?
+docker: error during connect: this error may indicate that the docker daemon is not running.

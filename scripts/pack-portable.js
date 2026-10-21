@@ -204,8 +204,16 @@ async function copyPanel(staging) {
   }
 
   await fsp.mkdir(to, { recursive: true });
-  for (const name of ['Ops.ps1', 'Panel.ps1']) {
+  for (const name of ['Panel.ps1']) {
     await fsp.copyFile(path.join(from, name), path.join(to, name));
+  }
+
+  // Ops.ps1 es compartido por el panel y el instalador: vive en scripts/lib.
+  const libFrom = path.join(ROOT, 'scripts', 'lib');
+  const libTo = path.join(staging, 'scripts', 'lib');
+  await fsp.mkdir(libTo, { recursive: true });
+  for (const name of ['Ops.ps1']) {
+    await fsp.copyFile(path.join(libFrom, name), path.join(libTo, name));
   }
 
   const bat = await fsp.readFile(path.join(ROOT, 'Panel.bat'), 'utf8');

@@ -1,10 +1,11 @@
 ﻿#requires -version 5.1
 <#
 .SYNOPSIS
-    Capa de operaciones del panel de control de 2Arbolitos POS.
+    Capa de operaciones de 2Arbolitos POS (panel e instalador).
 .DESCRIPTION
     Aqui vive todo lo que toca Docker, el sistema de archivos o la red.
-    La ventana (Panel.ps1) y cualquier otro lanzador pueden consumir estas funciones.
+    La ventana del panel (Panel.ps1), el instalador (Install.ps1) y cualquier
+    otro lanzador consumen estas funciones.
     No escribe por pantalla: devuelve objetos y lanza excepciones con mensajes
     pensados para el usuario final.
 .NOTES
@@ -167,6 +168,9 @@ function Invoke-Native {
     $psi.CreateNoWindow = $true
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
+    # docker y prisma escriben UTF-8: sin esto los acentos llegan rotos.
+    $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+    $psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8
     if ($WorkingDirectory) { $psi.WorkingDirectory = $WorkingDirectory }
 
     $proc = New-Object System.Diagnostics.Process
@@ -327,7 +331,7 @@ function Get-ComposePs {
     $map = @{}
     if (-not (Test-DockerCli)) { return $map }
 
-    $result = Invoke-DockerCompose -Tokens @('ps', '--format', 'json') -TimeoutSec 20
+    $result = Invoke-DockerCompose -Tokens @('ps', '-a', '--format', 'json') -TimeoutSec 20
     if ($result.ExitCode -eq 0) {
         $raw = ([string]$result.Out).Trim()
         if ($raw) {
@@ -351,7 +355,7 @@ function Get-ComposePs {
 
     # Respaldo para versiones antiguas de Compose que no aceptan --format json.
     $fallback = Invoke-Native -FileName 'docker' `
-        -Arguments 'ps --filter "name=2arbolitos-" --format "{{.Names}}|{{.State}}|{{.Status}}"' `
+        -Arguments 'ps -a --filter "name=2arbolitos-" --format "{{.Names}}|{{.State}}|{{.Status}}"' `
         -TimeoutSec 20
     if ($fallback.ExitCode -eq 0) {
         foreach ($line in (([string]$fallback.Out) -split "`r?`n")) {
@@ -679,8 +683,13 @@ function New-ArbolitosBackup {
         throw ("No se pudo crear el respaldo. " + $detail)
     }
 
-    $sizeMb = [math]::Round((Get-Item -LiteralPath $file).Length / 1MB, 1)
-    return "Respaldo creado: $(Split-Path -Leaf $file) ($sizeMb MB)"
+    $sizeBytes = (Get-Item -LiteralPath $file).Length
+    if ($sizeBytes -ge 1MB) {
+        $sizeText = '{0:N1} MB' -f ($sizeBytes / 1MB)
+    } else {
+        $sizeText = '{0:N0} KB' -f ($sizeBytes / 1KB)
+    }
+    return "Respaldo creado: $(Split-Path -Leaf $file) ($sizeText)"
 }
 
 # ---------------------------------------------------------------------------

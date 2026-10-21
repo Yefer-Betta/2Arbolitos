@@ -24,7 +24,7 @@ Hay dos formas soportadas de instalar. **Docker es la recomendada**; el paquete 
 | **1. Instalar** | Doble clic en `instalar.bat` → crea `.env`, abre firewall y levanta todo |
 | **2. Usar cada día** | Doble clic en `iniciar.ps1` → menú para Iniciar/Detener/Reiniciar/QR |
 
-- `instalar.bat` (solo instalación): auto‑eleva a admin, valida Docker, detecta IP LAN, genera secretos, `docker compose up -d --build`, espera respuesta y abre el navegador.
+- `instalar.bat` (solo instalación): abre el **instalador visual** (auto‑eleva a admin). Con `instalar.bat /consola` usa el modo texto. Valida Docker, detecta IP LAN, genera secretos, abre el firewall, construye, arranca, verifica y deja un acceso directo al POS en el escritorio.
 - `iniciar.ps1` (uso diario): solo `docker compose` — iniciar, detener, reiniciar, QR, estado. **No requiere Node.js.**
 - `npm start` / `npm run setup` quedan para developers (menú interactivo).
 
@@ -54,7 +54,7 @@ npm run build                           # Vite production build
 npm run pack:portable                   # ZIP portable para Windows (ver sección)
 ```
 
-On Windows, `instalar.bat` is the Docker installer: auto‑elevates to admin, validates Docker CLI + engine, detects LAN IP, generates secret `.env`, enables firewall port 80, runs `docker compose up -d --build`, waits for HTTP and opens the browser.
+On Windows, `instalar.bat` opens the **visual installer** (WPF): auto‑elevates to admin, validates Docker CLI + engine, detects LAN IP, generates secret `.env`, enables the firewall rule, builds and starts the containers, waits for HTTP, verifies login and creates a desktop shortcut to the POS. `instalar.bat /consola` runs the same logic in text mode (`SetupOps.ps1 -Action Install -Console`).
 
 Single‑PC production: `docker compose up -d` → `http://localhost`.
 
@@ -185,7 +185,7 @@ Shell scripts **must remain LF** or the Docker container will fail to execute th
 
 ## Deployment
 
-**Windows only** para los instaladores. Docker: `instalar.bat` auto‑elevates to admin, validates Docker, detects local IP, creates `.env`, opens firewall port 80, runs `docker compose up -d --build`, waits for HTTP and opens browser. Linux/Mac: `docker compose up -d --build` manual.
+**Windows only** para los instaladores. Docker: `instalar.bat` abre la ventana de instalación (auto‑eleva a admin), valida Docker, detecta la IP, crea `.env`, abre el firewall, construye, arranca, verifica y crea el acceso directo. `instalar.bat /consola` hace lo mismo en texto. Linux/Mac: `docker compose up -d --build` manual.
 
 Sin Docker: distribuir el ZIP portable y ejecutar `start.bat` (requiere MySQL/MariaDB local).
 
@@ -199,13 +199,14 @@ The project has no test framework. There is a single CI workflow (`.github/workf
 
 ## Panel de control (Windows)
 
-`Panel.bat` → `scripts/panel/Panel.ps1` (WPF) + `scripts/panel/Ops.ps1` (operaciones).
+`Panel.bat` → `scripts/panel/Panel.ps1` (WPF) + `scripts/lib/Ops.ps1` (operaciones compartidas con el instalador).
 
 - Sin dependencias: PowerShell 5.1 + .NET Framework 4.8 (vienen con Windows). No requiere Node ni npm.
 - Detecta el modo: **Docker** si existe `docker-compose.yml`, **Portable** si existen `node\node.exe` y `server\src\index.js`.
-- Estado, iniciar/detener/reiniciar, abrir POS, copiar URL, QR, respaldo (`mysqldump` vía `docker compose exec`), diagnóstico y logs.
+- Estado, iniciar/detener/reiniciar, abrir POS, copiar URL, QR, respaldo (`mysqldump` vía `docker compose exec`), diagnóstico, logs y botón **Reparar instalación** (abre `instalar.bat`).
 - El sondeo corre en un runspace aparte cada 4 s para no congelar la UI.
-- Se empaqueta también en el ZIP portable (`pack-portable.js` → `copyPanel`).
+- Se empaqueta también en el ZIP portable (`pack-portable.js` → `copyPanel`, que copia `Panel.ps1` y `scripts/lib/Ops.ps1`).
+- `Get-ComposePs` usa `docker compose ps -a` para distinguir "detenido" de "no creado".
 
 **Importante:** los `.ps1` deben guardarse en **UTF-8 con BOM**. PowerShell 5.1 lee sin BOM como ANSI y rompe los acentos. `Panel.bat` debe ir en **CRLF**.
 
@@ -214,3 +215,28 @@ Autotest sin abrir ventana:
 ```powershell
 powershell -NoProfile -STA -ExecutionPolicy Bypass -File scripts\panel\Panel.ps1 -SelfTest
 ```
+
+## Instalador visual (Windows)
+
+`instalar.bat` → `scripts/setup/Installer.ps1` (WPF) + `scripts/setup/SetupOps.ps1` (lógica).
+
+- **Instalar / Reparar / Desinstalar** en una sola ventana, con la misma paleta del panel.
+- La ventana es solo interfaz: cada acción se ejecuta como proceso hijo (`powershell -File SetupOps.ps1`) y el progreso llega por un archivo **JSON Lines** (`-ProgressFile`). Así la UI nunca se congela y un fallo de Docker no la tumba.
+- `instalar.bat /consola` ejecuta el mismo `SetupOps.ps1 -Action Install -Console` (respaldo si WPF falla).
+- Al instalar crea el acceso directo **2Arbolitos POS** en el escritorio (`%LOCALAPPDATA%\2Arbolitos\app.ico` generado desde `public/pwa-192x192.png`).
+- Registro de cada operación en `logs\instalacion-<fecha>.log`.
+
+### Catálogo de errores
+
+`Get-FailureInfo` clasifica la salida de Docker/Prisma en códigos: `ENV_STALE`, `DB_PASSWORD`, `NAME_CONFLICT`, `PORT_BUSY`, `ENGINE_OFF`, `WSL_DOWN`, `PULL_FAIL`, `MIGRATION`, `NO_SPACE`. Los casos reales viven como fixtures en `scripts/setup/fixtures/*.log` (el nombre del archivo es el código esperado).
+
+Reparaciones seguras (`Invoke-Repair`): `env`, `engine`, `start`, `recreate`, `restart`, `dbpass` (reutiliza la contraseña anterior leyéndola del contenedor `2arbolitos-db`), `firewall`, `orphans`. Borrar el volumen nunca es automático: exige `-RemoveVolume` y confirmación escrita en la UI.
+
+### Autotest
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup\SetupOps.ps1 -Action SelfTest
+powershell -NoProfile -STA -ExecutionPolicy Bypass -File scripts\setup\Installer.ps1 -SelfTest
+```
+
+El primero valida el catálogo contra los fixtures, la generación de `.env` y el estado; el segundo carga el XAML y comprueba que existan todos los controles y funciones.

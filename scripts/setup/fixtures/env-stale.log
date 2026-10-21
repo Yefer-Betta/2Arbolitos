@@ -1,0 +1,5 @@
+🚀 Iniciando servidor 2Arbolitos...
+✅ Base de datos conectada correctamente
+⚠️  JWT_SECRET está usando el valor por defecto. Cámbialo en server/.env
+Error: JWT_SECRET debe cambiarse del valor por defecto en producción
+    at startServer (file:///app/src/index.js:76:13)

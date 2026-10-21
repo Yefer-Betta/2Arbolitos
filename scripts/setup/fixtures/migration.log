@@ -1,0 +1,8 @@
+Aplicando migraciones (prisma migrate deploy)...
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": MySQL database "2arbolitos" at "db:3306"
+
+Error: P3018
+
+A migration failed to apply. New migrations cannot be applied before the error is recovered from.
+Migration name: 20240101000000_init

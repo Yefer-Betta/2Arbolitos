@@ -1,0 +1,5 @@
+[+] up 18/20
+ ✔ Image 2arbolitos-backend Built
+ - Container 2arbolitos-db Creating
+ ✘ service:db:1 Error response from daemon: Conflict. The container name "/2arbolitos-db" is already in use by container "5b321761e22a". You have to remove (or rename) that container to be able to reuse that name.
+Error response from daemon: Conflict. The container name "/2arbolitos-db" is already in use by container "5b321761e22a".
