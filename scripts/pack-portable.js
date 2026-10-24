@@ -193,6 +193,25 @@ async function copyDist(staging) {
 }
 
 /* ------------------------------------------------------------------ */
+/* 3a. Version visible para el panel (Get-AppVersion)                  */
+/* ------------------------------------------------------------------ */
+async function writeVersionFiles(staging) {
+  const manifest = {
+    name: pkg.name || '2arbolitos',
+    private: true,
+    version,
+    description: '2Arbolitos POS - paquete portable',
+  };
+  await fsp.writeFile(
+    path.join(staging, 'package.json'),
+    JSON.stringify(manifest, null, 2) + '\n',
+    'utf8'
+  );
+  await fsp.writeFile(path.join(staging, 'version.txt'), version + '\r\n', 'utf8');
+  log(`Version incluida: ${version}`);
+}
+
+/* ------------------------------------------------------------------ */
 /* 3b. Panel de control (PowerShell + WPF, sin dependencias)          */
 /* ------------------------------------------------------------------ */
 async function copyPanel(staging) {
@@ -627,6 +646,7 @@ async function main() {
   await copyDist(staging);
   await copyServer(staging);
   await copyPanel(staging);
+  await writeVersionFiles(staging);
   await writeExtras(staging);
 
   const outZip = path.join(RELEASE_DIR, `${PACKAGE_NAME}.zip`);

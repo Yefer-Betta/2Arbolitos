@@ -13,8 +13,8 @@ router.delete('/tables/state/:tableId', optionalAuth, tableController.deleteTabl
 // General table routes
 router.get('/tables', optionalAuth, tableController.getTables);
 router.get('/tables/:id', optionalAuth, tableController.getTable);
-router.post('/tables', authenticate, authorize('ADMIN'), tableController.createTable);
-router.put('/tables/:id', authenticate, authorize('ADMIN', 'CASHIER'), tableController.updateTable);
-router.delete('/tables/:id', authenticate, authorize('ADMIN'), tableController.deleteTable);
+router.post('/tables', authenticate, authorize('ADMIN', 'MANAGER'), tableController.createTable);
+router.put('/tables/:id', authenticate, authorize('ADMIN', 'MANAGER', 'CASHIER'), tableController.updateTable);
+router.delete('/tables/:id', authenticate, authorize('ADMIN', 'MANAGER'), tableController.deleteTable);
 
 export default router;

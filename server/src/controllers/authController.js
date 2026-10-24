@@ -104,7 +104,10 @@ export const authController = {
   }),
 
   getUsers: asyncHandler(async (req, res) => {
+    const includeInactive = req.query.includeInactive === 'true';
+
     const users = await prisma.user.findMany({
+      where: includeInactive ? {} : { active: true },
       select: {
         id: true,
         username: true,

@@ -1,6 +1,7 @@
 import React from 'react';
 import {
     ArrowRight,
+    Check,
     ChevronDown,
     CreditCard,
     Minus,
@@ -57,6 +58,15 @@ export function CartPanel({
     handleInitiateCheckout,
     setShowTransferModal,
     setShowSplitModal,
+    tableDisplayName,
+    editingTableName,
+    setEditingTableName,
+    tableNameInput,
+    setTableNameInput,
+    handleStartRenameTable,
+    handleSaveTableName,
+    savingTableName,
+    canRenameTable,
 }) {
     const isMesa = Boolean(tableId && tableId.startsWith('mesa-'));
     const isEmpty = cart.length === 0;
@@ -73,7 +83,58 @@ export function CartPanel({
                 <ShoppingCart className="h-4 w-4 shrink-0 opacity-80" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold leading-tight">Orden actual</p>
-                    <p className="truncate text-2xs text-white/65">{orderLabel(tableId)}</p>
+                    {editingTableName && isMesa ? (
+                        <div className="mt-0.5 flex items-center gap-1">
+                            <input
+                                autoFocus
+                                value={tableNameInput}
+                                onChange={(e) => setTableNameInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleSaveTableName?.();
+                                    }
+                                    if (e.key === 'Escape') {
+                                        e.preventDefault();
+                                        setEditingTableName(false);
+                                    }
+                                }}
+                                className="h-6 w-full rounded-md bg-white/10 px-1.5 text-2xs text-white placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-white/40"
+                                placeholder={orderLabel(tableId)}
+                                disabled={savingTableName}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleSaveTableName}
+                                disabled={savingTableName}
+                                className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-white/10 hover:bg-white/20 disabled:opacity-60"
+                                aria-label="Guardar nombre de mesa"
+                            >
+                                <Check className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setEditingTableName(false)}
+                                className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-white/10 hover:bg-white/20"
+                                aria-label="Cancelar cambio"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={canRenameTable ? handleStartRenameTable : undefined}
+                            className={cn(
+                                'group mt-0.5 flex max-w-full items-center gap-1 truncate text-2xs text-white/65',
+                                canRenameTable && 'cursor-pointer hover:text-white'
+                            )}
+                            title={canRenameTable ? 'Cambiar nombre de la mesa' : undefined}
+                        >
+                            <span className="truncate">{tableDisplayName || orderLabel(tableId)}</span>
+                            {canRenameTable && <Pencil className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />}
+                        </button>
+                    )}
                 </div>
                 <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-2xs font-semibold">
                     {itemCount} {itemCount === 1 ? 'ítem' : 'ítems'}

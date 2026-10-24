@@ -54,6 +54,8 @@ $Script:PollHandle = $null
 $Script:ActionRs = $null
 $Script:ActionPs = $null
 $Script:ActionHandle = $null
+$Script:UpdateCheckPs = $null
+$Script:UpdateCheckHandle = $null
 $Script:PollTimer = $null
 $Script:ActionTimer = $null
 
@@ -247,6 +249,10 @@ $xamlText = @'
                     Height="42" Margin="0,10,0,0"/>
             <Button x:Name="BtnRestart" Content="Reiniciar" Style="{StaticResource GhostButton}"
                     Height="42" Margin="0,10,0,0"/>
+            <Button x:Name="BtnUpdate" Content="Buscar actualizacion" Style="{StaticResource GhostButton}"
+                    Height="42" Margin="0,10,0,0" ToolTip="Comprueba si hay una version nueva en GitHub y la instala"/>
+            <TextBlock x:Name="TxtUpdateHint" Text="Actualiza el sistema desde GitHub con un clic."
+                       FontSize="10.5" Foreground="#9CA3AF" TextWrapping="Wrap" Margin="2,6,0,0"/>
             <Button x:Name="BtnDocker" Content="Abrir Docker Desktop" Style="{StaticResource LinkButton}"
                     Margin="0,8,0,0" Visibility="Collapsed"/>
 
@@ -475,6 +481,7 @@ function Update-Buttons {
     (Get-El 'BtnStart').IsEnabled = $enabled -and $modeOk -and (-not $running)
     (Get-El 'BtnStop').IsEnabled = $enabled -and $modeOk -and $engineOk -and $anythingRunning
     (Get-El 'BtnRestart').IsEnabled = $enabled -and $modeOk -and $engineOk -and $anythingRunning
+    (Get-El 'BtnUpdate').IsEnabled = $enabled -and $modeOk
     (Get-El 'BtnBackup').IsEnabled = $enabled -and ($snap.Mode -eq 'docker') -and $snap.Engine
     (Get-El 'BtnDiag').IsEnabled = $enabled
     (Get-El 'BtnOpen').IsEnabled = $running
@@ -684,6 +691,98 @@ function Invoke-PanelAction {
 }
 
 # ---------------------------------------------------------------------------
+# Actualizacion desde GitHub
+# ---------------------------------------------------------------------------
+
+function Start-UpdateCheck {
+    if ($Script:Busy) { return }
+
+    Set-Busy $true 'Buscando actualizaciones...'
+    (Get-El 'TxtUpdateHint').Text = 'Consultando GitHub...'
+
+    $ps = [powershell]::Create()
+    $ps.Runspace = $Script:ActionRs
+    [void]$ps.AddScript(@'
+$info = Get-UpdateInfo
+[pscustomobject]@{
+    CurrentVersion = $info.CurrentVersion
+    LatestVersion  = $info.LatestVersion
+    Available      = [bool]$info.Available
+    CanUpdate      = [bool]$info.CanUpdate
+    ReleaseUrl     = $info.ReleaseUrl
+    Message        = $info.Message
+} | ConvertTo-Json -Compress
+'@)
+    $Script:UpdateCheckPs = $ps
+    $Script:UpdateCheckHandle = $ps.BeginInvoke()
+}
+
+function Complete-UpdateCheck {
+    if (-not $Script:UpdateCheckHandle) { return $false }
+    if (-not $Script:UpdateCheckHandle.IsCompleted) { return $true }
+
+    $output = ''
+    $failed = $false
+
+    try {
+        $output = (($Script:UpdateCheckPs.EndInvoke($Script:UpdateCheckHandle) | Out-String).Trim())
+    } catch {
+        $failed = $true
+        $output = $_.Exception.Message
+    }
+
+    if (-not $failed -and $Script:UpdateCheckPs.Streams.Error.Count -gt 0) {
+        $failed = $true
+        $output = [string]$Script:UpdateCheckPs.Streams.Error[0]
+    }
+
+    $Script:UpdateCheckPs.Dispose()
+    $Script:UpdateCheckPs = $null
+    $Script:UpdateCheckHandle = $null
+
+    Set-Busy $false ''
+
+    if ($failed) {
+        (Get-El 'TxtUpdateHint').Text = 'No se pudo consultar GitHub.'
+        Show-Banner $false (Get-FriendlyError $output)
+        return $true
+    }
+
+    $info = $null
+    try { $info = $output | ConvertFrom-Json } catch { }
+
+    if (-not $info) {
+        (Get-El 'TxtUpdateHint').Text = 'Respuesta inesperada de GitHub.'
+        Show-Banner $false 'No se pudo comprobar si hay una version nueva.'
+        return $true
+    }
+
+    if (-not $info.Available) {
+        (Get-El 'TxtUpdateHint').Text = "Version instalada: v$($info.CurrentVersion)."
+        Show-Banner $true ($info.Message + '')
+        return $true
+    }
+
+    if (-not $info.CanUpdate) {
+        (Get-El 'TxtUpdateHint').Text = "Nueva version disponible: v$($info.LatestVersion)"
+        Show-Banner $false ($info.Message + '')
+        return $true
+    }
+
+    (Get-El 'TxtUpdateHint').Text = "Nueva version disponible: v$($info.LatestVersion)"
+
+    $answer = [System.Windows.MessageBox]::Show(
+        "Hay una version nueva disponible.`n`nInstalada: v$($info.CurrentVersion)`nNueva:     v$($info.LatestVersion)`n`nSe descargara la actualizacion y el sistema se reiniciara.`nLos datos de la base de datos se conservan.`n`nActualizar ahora?",
+        'Actualizar 2 Arbolitos',
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Question)
+    if ($answer -ne [System.Windows.MessageBoxResult]::Yes) { return $true }
+
+    Invoke-PanelAction -Label "Actualizando a v$($info.LatestVersion)..." -ScriptText 'Invoke-ArbolitosUpdate -Force'
+    return $true
+}
+
+# ---------------------------------------------------------------------------
 # Diagnostico
 # ---------------------------------------------------------------------------
 
@@ -857,6 +956,17 @@ if ($SelfTest) {
 
     Write-Host ''
     Write-Host ('XAML OK: ' + $Script:Window.Title + ' (' + $Script:Window.Width + 'x' + $Script:Window.Height + ')')
+
+    $missing = @()
+    foreach ($name in @('BtnStart', 'BtnStop', 'BtnRestart', 'BtnBackup', 'BtnUpdate', 'TxtUpdateHint', 'BtnDiag', 'BtnOpen', 'BtnQr', 'BtnRepair')) {
+        if (-not $Script:Window.FindName($name)) { $missing += $name }
+    }
+    if ($missing.Count -gt 0) {
+        Write-Host ('Controles faltantes: ' + ($missing -join ', ')) -ForegroundColor Red
+        exit 1
+    }
+    Write-Host 'Controles OK: botones y textos de la ventana presentes.'
+    Write-Host ('Actualizacion: ' + (Get-UpdateInfo -TimeoutSec 8).Message)
     return
 }
 
@@ -939,6 +1049,10 @@ $logCombo.Add_SelectionChanged({
     Invoke-PanelAction -Label 'Reiniciando el sistema...' -ScriptText 'Restart-ArbolitosSystem'
 })
 
+(Get-El 'BtnUpdate').Add_Click({
+    Start-UpdateCheck
+})
+
 (Get-El 'BtnBackup').Add_Click({
     Invoke-PanelAction -Label 'Generando el respaldo...' -ScriptText 'New-ArbolitosBackup'
 })
@@ -979,6 +1093,7 @@ $Script:PollTimer.Start()
 $Script:ActionTimer = New-Object System.Windows.Threading.DispatcherTimer
 $Script:ActionTimer.Interval = [TimeSpan]::FromMilliseconds(250)
 $Script:ActionTimer.Add_Tick({
+    if (Complete-UpdateCheck) { return }
     if (-not $Script:ActionHandle) { return }
     if (-not $Script:ActionHandle.IsCompleted) { return }
 
@@ -1015,6 +1130,9 @@ $Script:ActionTimer.Start()
 $window.Add_Closing({
     if ($Script:PollTimer) { $Script:PollTimer.Stop() }
     if ($Script:ActionTimer) { $Script:ActionTimer.Stop() }
+    if ($Script:UpdateCheckPs) {
+        try { $Script:UpdateCheckPs.Dispose() } catch { }
+    }
     if ($Script:PollRs) {
         try { $Script:PollRs.Dispose() } catch { }
     }

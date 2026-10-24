@@ -82,7 +82,20 @@ export const tableController = {
     });
 
     if (existingTable) {
-      throw new AppError('Ya existe una mesa con este número', 400);
+      if (existingTable.active) {
+        throw new AppError('Ya existe una mesa con este número', 400);
+      }
+
+      // Reutiliza el numero de una mesa desactivada en lugar de bloquear el alta.
+      const reactivated = await prisma.table.update({
+        where: { id: existingTable.id },
+        data: {
+          active: true,
+          name: name || existingTable.name,
+          capacity: capacity || existingTable.capacity,
+        },
+      });
+      return res.status(200).json(reactivated);
     }
 
     const table = await prisma.table.create({
@@ -207,7 +220,8 @@ export const tableController = {
 
   deleteTableState: asyncHandler(async (req, res) => {
     const { tableId } = req.params;
-    await prisma.tableState.delete({
+    // deleteMany tolera que el estado no exista (p. ej. si el pedido ya lo borró)
+    await prisma.tableState.deleteMany({
       where: { tableId },
     });
     notifySSEClients('table:cleared', { tableId });

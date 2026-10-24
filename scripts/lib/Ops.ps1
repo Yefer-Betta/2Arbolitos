@@ -60,10 +60,25 @@ function Get-EnvValue {
 }
 
 function Get-AppVersion {
-    $pkg = Join-Path (Get-ArbolitosRoot) 'package.json'
+    $root = Get-ArbolitosRoot
+    $pkg = Join-Path $root 'package.json'
     if (Test-Path -LiteralPath $pkg) {
         try {
             $json = Get-Content -LiteralPath $pkg -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($json.version) { return [string]$json.version }
+        } catch { }
+    }
+    $versionFile = Join-Path $root 'version.txt'
+    if (Test-Path -LiteralPath $versionFile) {
+        try {
+            $text = (Get-Content -LiteralPath $versionFile -First 1 -Encoding UTF8).Trim()
+            if ($text) { return $text }
+        } catch { }
+    }
+    $serverPkg = Join-Path $root 'server\package.json'
+    if (Test-Path -LiteralPath $serverPkg) {
+        try {
+            $json = Get-Content -LiteralPath $serverPkg -Raw -Encoding UTF8 | ConvertFrom-Json
             if ($json.version) { return [string]$json.version }
         } catch { }
     }
@@ -690,6 +705,286 @@ function New-ArbolitosBackup {
         $sizeText = '{0:N0} KB' -f ($sizeBytes / 1KB)
     }
     return "Respaldo creado: $(Split-Path -Leaf $file) ($sizeText)"
+}
+
+# ---------------------------------------------------------------------------
+# Actualizaciones
+# ---------------------------------------------------------------------------
+
+$Script:RepoSlug = 'Yefer-Betta/2Arbolitos'
+$Script:ReleasesApi = 'https://api.github.com/repos/Yefer-Betta/2Arbolitos/releases/latest'
+
+function Test-GitCli {
+    $cmd = Get-Command git -ErrorAction SilentlyContinue
+    return [bool]$cmd
+}
+
+function Test-GitRepository {
+    return (Test-Path -LiteralPath (Join-Path (Get-ArbolitosRoot) '.git'))
+}
+
+function ConvertTo-AppVersion {
+    param([string]$Text)
+    if (-not $Text) { return $null }
+    $clean = $Text.Trim() -replace '^[vV]', ''
+    $clean = ($clean -split '-')[0]
+    try {
+        return [version]$clean
+    } catch {
+        return $null
+    }
+}
+
+function Get-LatestRelease {
+    param([int]$TimeoutSec = 20)
+
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    } catch { }
+
+    $headers = @{
+        'User-Agent' = '2Arbolitos-Panel'
+        'Accept'     = 'application/vnd.github+json'
+    }
+
+    try {
+        $release = Invoke-RestMethod -Uri $Script:ReleasesApi -Headers $headers -TimeoutSec $TimeoutSec -UseBasicParsing
+    } catch {
+        throw ("No se pudo consultar GitHub. Revisa la conexion a internet. " + $_.Exception.Message)
+    }
+
+    $tag = [string]$release.tag_name
+    $assets = @()
+    if ($release.assets) {
+        $assets = @($release.assets | ForEach-Object {
+            [pscustomobject]@{
+                Name = [string]$_.name
+                Url  = [string]$_.browser_download_url
+                Size = [int64]$_.size
+            }
+        })
+    }
+
+    return [pscustomobject]@{
+        Tag       = $tag
+        Version   = ($tag -replace '^[vV]', '')
+        Url       = [string]$release.html_url
+        Notes     = [string]$release.body
+        Published = [string]$release.published_at
+        Assets    = $assets
+    }
+}
+
+function Get-UpdateInfo {
+    param([int]$TimeoutSec = 20)
+
+    $mode = Get-Mode
+    $current = Get-AppVersion
+    $currentVersion = ConvertTo-AppVersion -Text $current
+
+    $release = $null
+    $latestVersion = $null
+    try {
+        $release = Get-LatestRelease -TimeoutSec $TimeoutSec
+        $latestVersion = ConvertTo-AppVersion -Text $release.Tag
+    } catch {
+        return [pscustomobject]@{
+            Mode           = $mode
+            CurrentVersion = $current
+            LatestVersion  = ''
+            Available      = $false
+            CanUpdate      = $false
+            AssetUrl       = ''
+            ReleaseUrl     = ''
+            Notes          = ''
+            Message        = $_.Exception.Message
+        }
+    }
+
+    $available = $false
+    if ($currentVersion -and $latestVersion) {
+        $available = $latestVersion -gt $currentVersion
+    } elseif ($latestVersion) {
+        $available = $true
+    }
+
+    $assetUrl = ''
+    if ($mode -eq 'portable' -and $release) {
+        $portable = @($release.Assets | Where-Object { $_.Name -like '*Portable-Windows-x64*.zip' } | Select-Object -First 1)
+        if ($portable.Count -gt 0) { $assetUrl = $portable[0].Url }
+    }
+
+    $canUpdate = $true
+    if ($mode -eq 'portable' -and -not $assetUrl) {
+        $canUpdate = $false
+    }
+
+    $message = ''
+    if (-not $available) {
+        $message = "Ya tienes la ultima version (v$current)."
+    } elseif ($mode -eq 'portable' -and -not $assetUrl) {
+        $message = "Hay una version nueva (v$($release.Version)), pero el publicador no adjunto el ZIP portable. Descargalo desde $($release.Url)."
+    }
+
+    return [pscustomobject]@{
+        Mode           = $mode
+        CurrentVersion = $current
+        LatestVersion  = if ($release) { $release.Version } else { '' }
+        Tag            = if ($release) { $release.Tag } else { '' }
+        Available      = $available
+        CanUpdate      = $canUpdate
+        AssetUrl       = $assetUrl
+        ReleaseUrl     = if ($release) { $release.Url } else { '' }
+        Notes          = if ($release) { $release.Notes } else { '' }
+        Message        = $message
+    }
+}
+
+function Copy-UpdateTree {
+    param(
+        [Parameter(Mandatory = $true)][string]$Source,
+        [Parameter(Mandatory = $true)][string]$Destination,
+        [string[]]$ExcludeNames = @()
+    )
+
+    if (-not (Test-Path -LiteralPath $Destination)) {
+        New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+    }
+
+    foreach ($item in (Get-ChildItem -LiteralPath $Source -Force)) {
+        if ($ExcludeNames -contains $item.Name) { continue }
+
+        $target = Join-Path $Destination $item.Name
+        if ($item.PSIsContainer) {
+            Copy-UpdateTree -Source $item.FullName -Destination $target -ExcludeNames $ExcludeNames
+        } else {
+            Copy-Item -LiteralPath $item.FullName -Destination $target -Force
+        }
+    }
+}
+
+function Expand-UpdatePackage {
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$Destination
+    )
+
+    if (Test-Path -LiteralPath $Destination) {
+        Remove-Item -LiteralPath $Destination -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+
+    $zip = Join-Path $Destination 'paquete.zip'
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    } catch { }
+
+    try {
+        Invoke-WebRequest -Uri $Url -OutFile $zip -UseBasicParsing -TimeoutSec 600
+    } catch {
+        throw ("No se pudo descargar la actualizacion. " + $_.Exception.Message)
+    }
+
+    $extract = Join-Path $Destination 'contenido'
+    try {
+        Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+    } catch {
+        throw ("El paquete descargado esta danado. " + $_.Exception.Message)
+    }
+
+    Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue
+    return $extract
+}
+
+function Find-UpdateRoot {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (Test-Path -LiteralPath (Join-Path $Path 'start.bat')) { return $Path }
+    $marker = Get-ChildItem -LiteralPath $Path -Recurse -Filter 'start.bat' -File -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($marker) { return $marker.Directory.FullName }
+    $compose = Get-ChildItem -LiteralPath $Path -Recurse -Filter 'docker-compose.yml' -File -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($compose) { return $compose.Directory.FullName }
+    throw 'El paquete descargado no contiene una instalacion de 2Arbolitos.'
+}
+
+function Invoke-DockerRebuild {
+    $result = Invoke-DockerCompose -Tokens @('up', '-d', '--build') -TimeoutSec 1200
+    if ($result.ExitCode -ne 0) {
+        $detail = Get-FirstLine -Text $result.Err
+        if (-not $detail) { $detail = Get-FirstLine -Text $result.Out }
+        throw ("Se actualizaron los archivos, pero Docker no pudo reconstruir. " + $detail)
+    }
+
+    $healthUrl = (Get-AccessUrl) + '/api/health'
+    $deadline = (Get-Date).AddSeconds(180)
+    while ((Get-Date) -lt $deadline) {
+        if ((Test-HttpStatus -Url $healthUrl -TimeoutSec 5) -eq 200) { break }
+        Start-Sleep -Seconds 2
+    }
+}
+
+function Invoke-ArbolitosUpdate {
+    param([switch]$Force)
+
+    $mode = Get-Mode
+    if ($mode -eq 'missing') {
+        throw 'No se encontro una instalacion de 2Arbolitos en esta carpeta.'
+    }
+
+    $info = Get-UpdateInfo
+    if ($info.Message -and -not $info.Available) { return $info.Message }
+    if (-not $info.Available -and -not $Force) { return $info.Message }
+    if (-not $info.CanUpdate) { throw $info.Message }
+
+    $result = ''
+    if ($mode -eq 'docker') {
+        $root = Get-ArbolitosRoot
+
+        if ((Test-GitRepository) -and (Test-GitCli)) {
+            $pull = Invoke-Native -FileName 'git' -Arguments 'pull --ff-only' -TimeoutSec 180 -WorkingDirectory $root
+            if ($pull.ExitCode -ne 0) {
+                $detail = Get-FirstLine -Text $pull.Err
+                if (-not $detail) { $detail = Get-FirstLine -Text $pull.Out }
+                throw ("No se pudo actualizar el codigo con git. " + $detail)
+            }
+        } else {
+            $temp = Join-Path $env:TEMP ("2arbolitos-update-" + [guid]::NewGuid().ToString('N'))
+            $sourceZip = "https://github.com/$($Script:RepoSlug)/archive/refs/tags/$($info.Tag).zip"
+            $extract = Expand-UpdatePackage -Url $sourceZip -Destination $temp
+            $source = Find-UpdateRoot -Path $extract
+            try {
+                Copy-UpdateTree -Source $source -Destination $root -ExcludeNames @('.env', '.git', 'logs', 'backups', 'screenshots', 'release', 'server')
+                $serverSource = Join-Path $source 'server'
+                if (Test-Path -LiteralPath $serverSource) {
+                    Copy-UpdateTree -Source $serverSource -Destination (Join-Path $root 'server') -ExcludeNames @('.env', 'logs')
+                }
+            } finally {
+                Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        Invoke-DockerRebuild
+        $result = "Sistema actualizado a v$($info.LatestVersion)."
+    } else {
+        $temp = Join-Path $env:TEMP ("2arbolitos-update-" + [guid]::NewGuid().ToString('N'))
+        $extract = Expand-UpdatePackage -Url $info.AssetUrl -Destination $temp
+        $source = Find-UpdateRoot -Path $extract
+        $root = Get-ArbolitosRoot
+
+        try { [void](Stop-ArbolitosSystem) } catch { }
+
+        try {
+            Copy-UpdateTree -Source $source -Destination $root -ExcludeNames @('.env', '.git', 'logs', 'backups', 'screenshots', 'release')
+        } finally {
+            Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+        Start-Sleep -Seconds 1
+        [void](Start-ArbolitosSystem)
+        $result = "Sistema actualizado a v$($info.LatestVersion). El servidor se esta reiniciando."
+    }
+
+    return $result
 }
 
 # ---------------------------------------------------------------------------

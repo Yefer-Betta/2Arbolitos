@@ -332,10 +332,12 @@ export const orderController = {
     // Delete table state after transaction succeeds
     if (tableId) {
       try {
-        await prisma.tableState.delete({ where: { tableId } });
+        await prisma.tableState.deleteMany({ where: { tableId } });
       } catch {
         // Ignorar si el estado no existe
       }
+      // Avisar a las demás pantallas de que la mesa quedó libre
+      notifySSEClients('table:cleared', { tableId });
     }
 
     notifySSEClients('order:created', order);

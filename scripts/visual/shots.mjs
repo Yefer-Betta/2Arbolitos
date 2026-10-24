@@ -34,6 +34,7 @@ const VIEWPORTS = [
 const SCENARIOS = [
   { name: 'login', anonymous: true },
   { name: 'mesas', tab: 'pos' },
+  { name: 'mesas-gestion', tab: 'pos', click: 'Gestionar' },
   { name: 'mesas-oscuro', tab: 'pos', dark: true },
   {
     name: 'pedido',
@@ -65,6 +66,7 @@ const SCENARIOS = [
   { name: 'historial', tab: 'history' },
   { name: 'inventario', tab: 'inventory' },
   { name: 'menu', tab: 'menu' },
+  { name: 'menu-categorias', tab: 'menu', click: 'Categorías' },
   { name: 'contabilidad', tab: 'finance' },
   { name: 'contabilidad-ventas', tab: 'finance', click: 'Consultar ventas' },
   { name: 'ajustes', tab: 'settings' },

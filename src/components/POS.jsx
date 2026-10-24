@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useMenu } from '../context/MenuContext';
 import { useSettings } from '../context/SettingsContext';
 import { useOrders } from '../context/OrdersContext';
-import { apiGet } from '../lib/api.js';
+import { useUser } from '../context/UserContext';
+import { apiGet, apiPut } from '../lib/api.js';
 import { ShoppingCart, Utensils, ArrowRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { cleanAmount, formatAmount, amountToCop } from '../lib/amount';
@@ -28,6 +29,7 @@ export function POS({ tableId, onBack }) {
         limpiarMesa,
         transferTable,
     } = useOrders();
+    const { currentUser } = useUser();
 
     const cart = useMemo(() => activeTables[tableId]?.items || [], [activeTables, tableId]);
 
@@ -38,7 +40,19 @@ export function POS({ tableId, onBack }) {
 
     // Cargar datos de domicilio desde activeTables al montar
     const tableEntry = activeTables[tableId];
-    React.useEffect(() => {
+    const [tableDisplayName, setTableDisplayName] = useState(tableEntry?.name || null);
+    const [editingTableName, setEditingTableName] = useState(false);
+    const [tableNameInput, setTableNameInput] = useState('');
+    const [savingTableName, setSavingTableName] = useState(false);
+    const canRenameTable = tableId?.startsWith('mesa-') && ['ADMIN', 'MANAGER'].includes(String(currentUser?.role || '').toUpperCase());
+
+    useEffect(() => {
+        if (tableEntry?.name) {
+            setTableDisplayName(tableEntry.name);
+        }
+    }, [tableEntry?.name]);
+
+    useEffect(() => {
         if (tableId?.startsWith('domicilio') && tableEntry) {
             setDeliveryAddressInput(tableEntry.deliveryAddress || '');
             setDeliveryPhoneInput(tableEntry.deliveryPhone || '');
@@ -566,6 +580,15 @@ export function POS({ tableId, onBack }) {
                 handleInitiateCheckout={handleInitiateCheckout}
                 setShowTransferModal={setShowTransferModal}
                 setShowSplitModal={setShowSplitModal}
+                tableDisplayName={tableDisplayName}
+                editingTableName={editingTableName}
+                setEditingTableName={setEditingTableName}
+                tableNameInput={tableNameInput}
+                setTableNameInput={setTableNameInput}
+                handleStartRenameTable={handleStartRenameTable}
+                handleSaveTableName={handleSaveTableName}
+                savingTableName={savingTableName}
+                canRenameTable={canRenameTable}
             />
 
             <TransferModal

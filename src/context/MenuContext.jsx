@@ -25,7 +25,7 @@ export function MenuProvider({ children }) {
                         apiGet('/categories?active=true'),
                     ]);
 
-                    if (Array.isArray(serverProducts) && serverProducts.length > 0) {
+                    if (Array.isArray(serverProducts)) {
                         localProducts = serverProducts.map(p => ({
                             ...p,
                             category: p.category?.name || p.categoryId || '',
@@ -33,7 +33,7 @@ export function MenuProvider({ children }) {
                         }));
                         await setData('products', localProducts);
                     }
-                    if (Array.isArray(serverCategories) && serverCategories.length > 0) {
+                    if (Array.isArray(serverCategories)) {
                         localCategories = serverCategories;
                         await setData('categories', localCategories);
                     }
@@ -168,10 +168,14 @@ export function MenuProvider({ children }) {
     };
 
     const addCategory = async (category) => {
-        const newCategory = { 
-            ...category, 
-            id: generateId(), 
-            createdAt: new Date().toISOString() 
+        const tempId = generateId();
+        const newCategory = {
+            name: category.name,
+            order: category.order ?? categories.length,
+            active: true,
+            ...category,
+            id: tempId,
+            createdAt: new Date().toISOString(),
         };
         
         setCategories((prev) => {
@@ -182,9 +186,87 @@ export function MenuProvider({ children }) {
 
         if (syncManager.isOnline) {
             try {
-                await apiPost('/categories', category);
+                const created = await apiPost('/categories', {
+                    name: newCategory.name,
+                    order: newCategory.order,
+                });
+                if (created && !created.offline && created.id) {
+                    setCategories((prev) => {
+                        const next = prev.map(c => c.id === tempId ? { ...newCategory, ...created } : c);
+                        void setData('categories', next);
+                        return next;
+                    });
+                    // Los productos creados mientras la categoria tenia ID temporal deben apuntar al ID real.
+                    setProducts((prev) => {
+                        let changed = false;
+                        const next = prev.map(p => {
+                            if (p.categoryId === tempId) {
+                                changed = true;
+                                return { ...p, categoryId: created.id };
+                            }
+                            return p;
+                        });
+                        if (changed) void setData('products', next);
+                        return next;
+                    });
+                    return created;
+                }
             } catch (error) {
                 console.warn('Error al crear categoría:', error);
+            }
+        }
+
+        return newCategory;
+    };
+
+    const updateCategory = async (id, categoryData) => {
+        const cleanData = { name: categoryData.name };
+        if (categoryData.order !== undefined) cleanData.order = categoryData.order;
+        if (categoryData.active !== undefined) cleanData.active = categoryData.active;
+
+        setCategories((prev) => {
+            const next = prev.map(c => c.id === id ? { ...c, ...cleanData } : c);
+            void setData('categories', next);
+            return next;
+        });
+
+        if (cleanData.name) {
+            setProducts((prev) => {
+                const next = prev.map(p => p.categoryId === id ? { ...p, category: cleanData.name } : p);
+                void setData('products', next);
+                return next;
+            });
+        }
+
+        if (syncManager.isOnline) {
+            try {
+                const updated = await apiPut(`/categories/${id}`, cleanData);
+                if (updated && !updated.offline && updated.id) {
+                    setCategories((prev) => {
+                        const next = prev.map(c => c.id === id ? { ...c, ...updated } : c);
+                        void setData('categories', next);
+                        return next;
+                    });
+                }
+                return updated;
+            } catch (error) {
+                console.warn('Error al actualizar categoría:', error);
+            }
+        }
+    };
+
+    const deleteCategory = async (id) => {
+        setCategories((prev) => {
+            const next = prev.filter(c => c.id !== id);
+            void setData('categories', next);
+            return next;
+        });
+
+        if (syncManager.isOnline) {
+            try {
+                await apiDelete('/categories', id);
+            } catch (error) {
+                console.warn('Error al eliminar categoría:', error);
             }
         }
     };
@@ -200,6 +282,8 @@ export function MenuProvider({ children }) {
         updateProduct,
         deleteProduct,
         addCategory,
+        updateCategory,
+        deleteCategory,
         refreshMenu,
         loaded,
     };

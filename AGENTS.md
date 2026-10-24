@@ -221,6 +221,34 @@ npm run shots -- --tag despues --only pos,kitchen
 - Se empaqueta también en el ZIP portable (`pack-portable.js` → `copyPanel`, que copia `Panel.ps1` y `scripts/lib/Ops.ps1`).
 - `Get-ComposePs` usa `docker compose ps -a` para distinguir "detenido" de "no creado".
 
+### Actualización con un clic
+
+El botón **Buscar actualizacion** consulta la última *release* de GitHub y, si hay una versión mayor que la instalada, pide confirmación y la aplica sola.
+
+| Pieza | Dónde |
+|-------|-------|
+| Consulta de release | `Get-LatestRelease` / `Get-UpdateInfo` en `scripts/lib/Ops.ps1` (API pública, repo `$Script:RepoSlug`) |
+| Comparación de versiones | `ConvertTo-AppVersion` + `Get-AppVersion` (`package.json` → `version.txt` → `server/package.json`) |
+| Aplicar en Docker | `git pull --ff-only` si hay `.git`; si no, ZIP del tag (`/archive/refs/tags/<tag>.zip`) → `docker compose up -d --build` |
+| Aplicar en Portable | descarga el asset `*Portable-Windows-x64*.zip`, copia encima conservando `.env`, `logs`, `backups` y reinicia |
+| UI | `Panel.ps1`: `BtnUpdate` + `TxtUpdateHint`, `Start-UpdateCheck` / `Complete-UpdateCheck` en el runspace de acciones |
+
+Reglas al respecto:
+
+- El ZIP portable **debe** incluir `package.json` y `version.txt` en la raíz; sin ellos el panel no sabe qué versión corre (`pack-portable.js` → `writeVersionFiles`).
+- En modo Portable la actualización exige que la release tenga adjunto el ZIP portable; si falta, el panel avisa y enlaza a la release en vez de romper la instalación.
+- Los datos nunca se tocan: no se borra el volumen, ni `.env`, ni los respaldos.
+
+### Publicar una versión nueva
+
+1. Subir la versión en `package.json` y `server/package.json` (mismo número).
+2. `npm run build` y, si se publica el portable, `npm run pack:portable`.
+3. Commit + push a `main`, luego `git tag vX.Y.Z && git push origin vX.Y.Z`.
+4. Crear la release en GitHub con ese tag y adjuntar `release/2Arbolitos-Portable-Windows-x64-X.Y.Z.zip`.
+
+El workflow `docker-build.yml` se dispara con `main` y con tags `v*` (publica imágenes en GHCR). El panel solo ve versiones publicadas como *release*, no basta con el tag.
+
+
 **Importante:** los `.ps1` deben guardarse en **UTF-8 con BOM**. PowerShell 5.1 lee sin BOM como ANSI y rompe los acentos. `Panel.bat` debe ir en **CRLF**.
 
 Autotest sin abrir ventana:

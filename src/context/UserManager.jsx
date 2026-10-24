@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
-import { Plus, Pencil, Trash2, X, Check, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, Users, RotateCcw } from 'lucide-react';
 import { useConfirm, useToast } from '../components/ui/feedback-context';
 import { Panel, PanelHeader } from '../components/ui/Panel';
 import { Badge } from '../components/ui/Badge';
@@ -20,10 +20,11 @@ function roleOf(user) {
 }
 
 export function UserManager() {
-    const { users, addUser, updateUser, deleteUser } = useUser();
+    const { users, inactiveUsers, addUser, updateUser, deleteUser, loadInactiveUsers, reactivateUser } = useUser();
     const toast = useToast();
     const confirm = useConfirm();
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [showInactive, setShowInactive] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
@@ -78,13 +79,33 @@ export function UserManager() {
     const handleDelete = async (user) => {
         const ok = await confirm({
             title: `¿Eliminar a ${user.name}?`,
-            message: 'El usuario perderá el acceso al sistema.',
+            message: 'El usuario perderá el acceso al sistema. Podrás reactivarlo desde "Ver desactivados".',
             confirmLabel: 'Eliminar',
             danger: true,
         });
         if (!ok) return;
-        deleteUser(user.id);
-        toast.success('Usuario eliminado');
+        const result = await deleteUser(user.id);
+        if (result.success) {
+            toast.success('Usuario eliminado');
+            if (showInactive) loadInactiveUsers();
+        } else {
+            toast.error(result.error || 'No se pudo eliminar el usuario');
+        }
+    };
+
+    const handleReactivate = async (user) => {
+        const result = await reactivateUser(user.id);
+        if (result.success) {
+            toast.success(`${user.name} puede volver a iniciar sesión`);
+        } else {
+            toast.error(result.error || 'No se pudo reactivar el usuario');
+        }
+    };
+
+    const handleToggleInactive = () => {
+        const next = !showInactive;
+        setShowInactive(next);
+        if (next) loadInactiveUsers();
     };
 
     return (
@@ -139,12 +160,21 @@ export function UserManager() {
                     title="Usuarios"
                     subtitle={`${users.length} ${users.length === 1 ? 'cuenta' : 'cuentas'} con acceso al POS`}
                     actions={
-                        !isFormOpen ? (
-                            <button onClick={() => handleOpenForm()} className="btn-primary h-9 px-3.5 text-[13px]">
-                                <Plus className="h-4 w-4" aria-hidden="true" />
-                                Nuevo usuario
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button onClick={handleToggleInactive} className="btn-secondary h-9 px-3 text-[13px]">
+                                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                                {showInactive ? 'Ocultar desactivados' : 'Ver desactivados'}
+                                {!showInactive && inactiveUsers.length > 0 && (
+                                    <Badge tone="neutral" className="ml-1 rounded-md">{inactiveUsers.length}</Badge>
+                                )}
                             </button>
-                        ) : null
+                            {!isFormOpen && (
+                                <button onClick={() => handleOpenForm()} className="btn-primary h-9 px-3.5 text-[13px]">
+                                    <Plus className="h-4 w-4" aria-hidden="true" />
+                                    Nuevo usuario
+                                </button>
+                            )}
+                        </div>
                     }
                 />
 
@@ -227,6 +257,49 @@ export function UserManager() {
                     </>
                 )}
             </Panel>
+
+            {showInactive && (
+                <Panel>
+                    <PanelHeader
+                        title="Usuarios desactivados"
+                        subtitle="Conservan su historial de pedidos y asistencia. Reactívalos para devolverles el acceso."
+                    />
+                    {inactiveUsers.length === 0 ? (
+                        <EmptyState
+                            icon={RotateCcw}
+                            title="Sin usuarios desactivados"
+                            description="Los perfiles que elimines aparecerán aquí."
+                        />
+                    ) : (
+                        <ul className="divide-y divide-line-soft">
+                            {inactiveUsers.map(user => {
+                                const role = roleOf(user);
+                                return (
+                                    <li key={user.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                                        <div className="flex min-w-0 items-center gap-2.5">
+                                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface text-[13px] font-semibold text-ink-muted">
+                                                {user.name?.charAt(0)?.toUpperCase() || '?'}
+                                            </span>
+                                            <div className="min-w-0">
+                                                <p className="truncate text-[13px] font-semibold text-ink">{user.name}</p>
+                                                <p className="flex items-center gap-1.5 text-2xs text-ink-muted">
+                                                    <span className="truncate">{user.username}</span>
+                                                    <Badge tone={role.tone}>{role.label}</Badge>
+                                                    <Badge tone="neutral">Inactivo</Badge>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => handleReactivate(user)} className="btn-secondary h-8 shrink-0 px-2.5 text-[12px]">
+                                            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                                            Reactivar
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                </Panel>
+            )}
         </div>
     );
 }

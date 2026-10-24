@@ -17,6 +17,7 @@ export function UserProvider({ children }) {
         return null;
     });
     const [users, setUsers] = useState([]);
+    const [inactiveUsers, setInactiveUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const logout = async () => {
@@ -54,15 +55,27 @@ export function UserProvider({ children }) {
     const loadUsers = useCallback(async () => {
         try {
             const data = await apiGet('/auth/users');
-            if (data && Array.isArray(data)) {
-                setUsers(data);
-                await setData('users', data);
+            const activeUsers = Array.isArray(data) ? data.filter(u => u.active !== false) : [];
+            if (Array.isArray(data)) {
+                setUsers(activeUsers);
+                await setData('users', activeUsers);
             } else {
                 const local = await getData('users');
-                setUsers(Array.isArray(local) ? local : []);
+                setUsers(Array.isArray(local) ? local.filter(u => u.active !== false) : []);
             }
         } catch (error) {
             console.error('Error loading users:', error);
+        }
+    }, []);
+
+    const loadInactiveUsers = useCallback(async () => {
+        try {
+            const data = await apiGet('/auth/users?includeInactive=true');
+            if (Array.isArray(data)) {
+                setInactiveUsers(data.filter(u => u.active === false));
+            }
+        } catch (error) {
+            console.error('Error loading inactive users:', error);
         }
     }, []);
 
@@ -133,7 +146,11 @@ export function UserProvider({ children }) {
         try {
             if (syncManager.isOnline) {
                 const updatedUser = await apiPut(`/auth/users/${id}`, userData);
-                setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updatedUser } : u));
+                if (updatedUser?.active === false) {
+                    setUsers(prev => prev.filter(u => u.id !== id));
+                } else {
+                    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updatedUser } : u));
+                }
                 return { success: true };
             }
             return { success: false, error: 'No hay conexión' };
@@ -142,11 +159,21 @@ export function UserProvider({ children }) {
         }
     };
 
+    const reactivateUser = async (id) => {
+        const result = await updateUser(id, { active: true });
+        if (result.success) {
+            setInactiveUsers(prev => prev.filter(u => u.id !== id));
+            await loadUsers();
+        }
+        return result;
+    };
+
     const deleteUser = async (id) => {
         try {
             if (syncManager.isOnline) {
                 await apiDelete('/auth/users', id);
                 setUsers(prev => prev.filter(u => u.id !== id));
+                setInactiveUsers(prev => prev.filter(u => u.id !== id));
                 return { success: true };
             }
             return { success: false, error: 'No hay conexión' };
@@ -158,11 +185,14 @@ export function UserProvider({ children }) {
     const value = {
         currentUser,
         users,
+        inactiveUsers,
         login,
         logout,
         addUser,
         updateUser,
         deleteUser,
+        loadInactiveUsers,
+        reactivateUser,
         isAuthenticated: !!currentUser,
         isLoading,
     };

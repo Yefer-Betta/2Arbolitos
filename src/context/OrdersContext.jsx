@@ -13,7 +13,39 @@ export function OrdersProvider({ children }) {
   const activeTablesRef = useRef(activeTables);
   activeTablesRef.current = activeTables;
   const clearedTablesRef = useRef(new Set());
-  const syncTimeoutRef = useRef(null);
+  const syncTimersRef = useRef(new Map());
+  const clearTimersRef = useRef(new Map());
+
+  const cancelTableSync = useCallback((idMesa) => {
+    const timer = syncTimersRef.current.get(idMesa);
+    if (timer) {
+      clearTimeout(timer);
+      syncTimersRef.current.delete(idMesa);
+    }
+  }, []);
+
+  const markTableCleared = useCallback((idMesa) => {
+    cancelTableSync(idMesa);
+    clearedTablesRef.current.add(idMesa);
+
+    const previous = clearTimersRef.current.get(idMesa);
+    if (previous) clearTimeout(previous);
+
+    const timer = setTimeout(() => {
+      clearedTablesRef.current.delete(idMesa);
+      clearTimersRef.current.delete(idMesa);
+    }, 15000);
+    clearTimersRef.current.set(idMesa, timer);
+  }, [cancelTableSync]);
+
+  const releaseClearedGuard = useCallback((idMesa) => {
+    clearedTablesRef.current.delete(idMesa);
+    const timer = clearTimersRef.current.get(idMesa);
+    if (timer) {
+      clearTimeout(timer);
+      clearTimersRef.current.delete(idMesa);
+    }
+  }, []);
 
   const getApiBase = () => {
     if (typeof window === 'undefined') return '/api';
@@ -65,11 +97,18 @@ export function OrdersProvider({ children }) {
   };
 
   const debouncedSyncTable = useCallback((idMesa) => {
-    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    syncTimeoutRef.current = setTimeout(() => {
+    cancelTableSync(idMesa);
+    const timer = setTimeout(() => {
+      syncTimersRef.current.delete(idMesa);
+      if (clearedTablesRef.current.has(idMesa)) return;
       syncTableToServer(idMesa);
     }, 300);
-  }, []);
+    syncTimersRef.current.set(idMesa, timer);
+  }, [cancelTableSync]);
+
+  const hasPendingTableSync = (tableId) => (syncManager.pendingChanges || []).some(
+    (change) => change.endpoint === '/tables/state' && change.data?.tableId === tableId
+  );
 
   const loadData = useCallback(async () => {
     try {
@@ -79,50 +118,82 @@ export function OrdersProvider({ children }) {
       ]);
 
       let localOrders = Array.isArray(ordersData) ? ordersData : [];
-      let localTables = (tablesData && typeof tablesData === 'object') ? tablesData : {};
+      const localTables = (tablesData && typeof tablesData === 'object') ? tablesData : {};
 
       if (syncManager.isOnline) {
         try {
           const [serverOrders, tableStates] = await Promise.all([
             apiGet('/orders'),
-            syncManager.fetchFromAPI('/tables/state').catch(() => ({})),
+            syncManager.fetchFromAPI('/tables/state').catch(() => null),
           ]);
 
-          if (Array.isArray(serverOrders) && serverOrders.length > 0) {
+          if (Array.isArray(serverOrders)) {
             localOrders = serverOrders;
             await setData('orders', serverOrders);
           }
 
           if (tableStates && typeof tableStates === 'object') {
-            let hasChanges = false;
+            // El servidor es la autoridad: reconstruimos el mapa desde cero.
+            // Asi una mesa cobrada en otra caja (o en esta) no reaparece ocupada.
+            const nextTables = {};
 
             Object.entries(tableStates).forEach(([tableId, entry]) => {
-              if (clearedTablesRef.current.has(tableId)) {
-                if (localTables[tableId]) {
-                  delete localTables[tableId];
-                  hasChanges = true;
-                }
-                return;
-              }
-
-              if (!entry || !Array.isArray(entry.items)) return;
+              if (!entry || !Array.isArray(entry.items) || entry.items.length === 0) return;
+              if (clearedTablesRef.current.has(tableId)) return;
 
               const serverVersion = entry.version || 0;
               const localEntry = localTables[tableId];
               const localVersion = localEntry?.version || 0;
-              const localItems = localEntry?.items || [];
 
-              if (!localEntry || localItems.length === 0 || serverVersion > localVersion) {
-                localTables[tableId] = entry;
-                hasChanges = true;
-              } else if (localVersion > serverVersion && localItems.length > 0) {
+              // Mesa vaciada en este equipo: si el borrado no llego al servidor
+              // (sin conexion), se reintenta en vez de mostrar la cuenta otra vez.
+              const localCleared = localEntry &&
+                Array.isArray(localEntry.items) &&
+                localEntry.items.length === 0 &&
+                localVersion > serverVersion;
+
+              if (localCleared) {
+                markTableCleared(tableId);
+                syncManager.fetchFromAPI(`/tables/state/${tableId}`, { method: 'DELETE' }).catch(() => {});
+                return;
+              }
+
+              const hasLocalChanges = localEntry &&
+                Array.isArray(localEntry.items) &&
+                localEntry.items.length > 0 &&
+                localVersion > serverVersion;
+
+              if (hasLocalChanges) {
+                nextTables[tableId] = localEntry;
+                debouncedSyncTable(tableId);
+              } else {
+                nextTables[tableId] = entry;
+              }
+            });
+
+            // Los domicilios viven solo en el cliente.
+            Object.entries(localTables).forEach(([tableId, entry]) => {
+              if (nextTables[tableId]) return;
+              if (!tableId.startsWith('domicilio-')) return;
+              if (entry?.items?.length > 0) nextTables[tableId] = entry;
+            });
+
+            // Estados creados sin conexion y aun no subidos: se conservan.
+            Object.entries(localTables).forEach(([tableId, entry]) => {
+              if (nextTables[tableId]) return;
+              if (tableId.startsWith('domicilio-')) return;
+              if (clearedTablesRef.current.has(tableId)) return;
+              if (entry?.items?.length > 0 && hasPendingTableSync(tableId)) {
+                nextTables[tableId] = entry;
                 debouncedSyncTable(tableId);
               }
             });
 
-            if (hasChanges) {
-              await setData('activeTables', localTables);
-            }
+            await setData('activeTables', nextTables);
+            setOrders(localOrders);
+            setActiveTables(nextTables);
+            setLoaded(true);
+            return;
           }
         } catch {}
       }
@@ -133,7 +204,7 @@ export function OrdersProvider({ children }) {
     } catch {
       setLoaded(true);
     }
-  }, [debouncedSyncTable]);
+  }, [debouncedSyncTable, markTableCleared]);
 
   useEffect(() => {
     if (!loaded) {
@@ -309,6 +380,7 @@ export function OrdersProvider({ children }) {
         });
 
         if (order.tableId) {
+          markTableCleared(order.tableId);
           setActiveTables(prevTables => {
             const newTables = { ...prevTables };
             delete newTables[order.tableId];
@@ -351,6 +423,7 @@ export function OrdersProvider({ children }) {
   };
 
   const agregarPlatilloAMesa = (idMesa, platillo) => {
+    releaseClearedGuard(idMesa);
     setActiveTables(prevTables => {
       const currentItems = prevTables[idMesa]?.items || [];
       const currentVersion = prevTables[idMesa]?.version || 0;
@@ -367,7 +440,7 @@ export function OrdersProvider({ children }) {
         newItems = [...currentItems, { product: platillo, quantity: 1 }];
       }
 
-      const newEntry = { items: newItems, version: currentVersion };
+      const newEntry = { items: newItems, version: currentVersion + 1 };
       const newTables = { ...prevTables, [idMesa]: newEntry };
       setData('activeTables', newTables);
 
@@ -377,6 +450,7 @@ export function OrdersProvider({ children }) {
   };
 
   const actualizarCantidad = (idMesa, idPlatillo, cantidad) => {
+    if (cantidad > 0) releaseClearedGuard(idMesa);
     let willBeEmpty = false;
     setActiveTables(prevTables => {
       const currentItems = prevTables[idMesa]?.items || [];
@@ -394,7 +468,9 @@ export function OrdersProvider({ children }) {
       }
 
       willBeEmpty = newItems.length === 0;
-      const newEntry = { items: newItems, version: currentVersion };
+      // Al vaciar la mesa se sube la version para que el borrado sobreviva a
+      // una recarga aunque el DELETE no llegue al servidor.
+      const newEntry = { items: newItems, version: currentVersion + 1 };
       const newTables = { ...prevTables, [idMesa]: newEntry };
       setData('activeTables', newTables);
 
@@ -402,6 +478,7 @@ export function OrdersProvider({ children }) {
     });
 
     if (willBeEmpty) {
+      markTableCleared(idMesa);
       setTimeout(() => {
         syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' }).catch(() => {});
       }, 0);
@@ -426,23 +503,26 @@ export function OrdersProvider({ children }) {
   };
 
   const limpiarMesa = (idMesa) => {
-    clearedTablesRef.current.add(idMesa);
+    markTableCleared(idMesa);
 
     setActiveTables(prevTables => {
       const newTables = { ...prevTables };
-      delete newTables[idMesa];
+      if (idMesa.startsWith('domicilio-')) {
+        delete newTables[idMesa];
+      } else {
+        // Se guarda una marca vacia con version mayor: si el DELETE no llega
+        // (sin conexion), al reconectar se reintenta en vez de resucitar la mesa.
+        newTables[idMesa] = { items: [], version: (prevTables[idMesa]?.version || 0) + 1 };
+      }
       setData('activeTables', newTables);
       return newTables;
     });
-
-    setTimeout(() => {
-      clearedTablesRef.current.delete(idMesa);
-    }, 15000);
 
     syncManager.fetchFromAPI(`/tables/state/${idMesa}`, { method: 'DELETE' }).catch(() => {});
   };
 
   const transferTable = (fromId, toId) => {
+    releaseClearedGuard(toId);
     setActiveTables(prevTables => {
       const newTables = { ...prevTables };
       const items = newTables[fromId]?.items || [];
@@ -453,6 +533,7 @@ export function OrdersProvider({ children }) {
       setData('activeTables', newTables);
       return newTables;
     });
+    markTableCleared(fromId);
     syncManager.fetchFromAPI(`/tables/state/${fromId}`, { method: 'DELETE' }).catch(() => {});
   };
 
