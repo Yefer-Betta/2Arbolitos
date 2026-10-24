@@ -60,6 +60,66 @@ export function POS({ tableId, onBack }) {
         }
     }, [tableId, tableEntry?.deliveryAddress, tableEntry?.deliveryPhone, tableEntry?.deliveryCost]);
 
+    // Renombrar la mesa desde el encabezado del carrito
+    const handleStartRenameTable = () => {
+        if (!canRenameTable) return;
+        const fallback = tableId?.startsWith('mesa-') ? `Mesa ${tableId.replace('mesa-', '')}` : '';
+        setTableNameInput(tableDisplayName || fallback);
+        setEditingTableName(true);
+    };
+
+    const handleSaveTableName = async () => {
+        if (!tableId?.startsWith('mesa-')) {
+            setEditingTableName(false);
+            return;
+        }
+
+        const name = tableNameInput.trim();
+        if (!name) {
+            toast.error('Escribe un nombre para la mesa');
+            return;
+        }
+
+        setSavingTableName(true);
+        try {
+            const tables = await apiGet('/tables?active=true');
+            const current = Array.isArray(tables)
+                ? tables.find((table) => `mesa-${table.number}` === tableId)
+                : null;
+
+            if (!current?.id) {
+                toast.error('No se encontro la mesa en el sistema');
+                setEditingTableName(false);
+                return;
+            }
+
+            await apiPut(`/tables/${current.id}`, { name });
+            setTableDisplayName(name);
+            setEditingTableName(false);
+            toast.success('Nombre de mesa actualizado');
+        } catch (error) {
+            toast.error(error?.message || 'No se pudo renombrar la mesa');
+        } finally {
+            setSavingTableName(false);
+        }
+    };
+
+    // Cargar el nombre visible de la mesa al abrir el pedido
+    useEffect(() => {
+        if (!tableId?.startsWith('mesa-')) return undefined;
+
+        let cancelled = false;
+        apiGet('/tables?active=true')
+            .then((tables) => {
+                if (cancelled || !Array.isArray(tables)) return;
+                const current = tables.find((table) => `mesa-${table.number}` === tableId);
+                if (current?.name) setTableDisplayName(current.name);
+            })
+            .catch(() => {});
+
+        return () => { cancelled = true; };
+    }, [tableId]);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todos');
 
