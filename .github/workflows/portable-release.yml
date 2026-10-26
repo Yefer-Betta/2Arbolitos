@@ -1,0 +1,56 @@
+name: Portable Windows Zip
+
+# Empaqueta el ZIP portable y lo adjunta a la release del tag.
+# Se dispara solo al empujar un tag v* o a mano desde Actions.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag a empaquetar (ej. v1.1.1)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  portable:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout del tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Dependencias del frontend
+        run: npm ci
+
+      - name: Dependencias del backend (produccion)
+        run: npm ci --omit=dev --prefix server
+
+      - name: Generar Prisma Client
+        working-directory: server
+        run: npx prisma generate
+
+      - name: Compilar frontend
+        run: npm run build
+
+      - name: Empaquetar portable
+        run: node scripts/pack-portable.js --skip-build --system-node
+
+      - name: Adjuntar ZIP a la release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: release/2Arbolitos-Portable-Windows-x64-*.zip
+          fail_on_unmatched_files: true
+          overwrite_files: true
