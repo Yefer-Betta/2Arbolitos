@@ -242,9 +242,11 @@ Reglas al respecto:
 ### Publicar una versión nueva
 
 1. Subir la versión en `package.json` y `server/package.json` (mismo número).
-2. `npm run build` y, si se publica el portable, `npm run pack:portable`.
-3. Commit + push a `main`, luego `git tag vX.Y.Z && git push origin vX.Y.Z`.
-4. Crear la release en GitHub con ese tag y adjuntar `release/2Arbolitos-Portable-Windows-x64-X.Y.Z.zip`.
+2. Commit + push a `main`.
+3. `git tag vX.Y.Z && git push origin vX.Y.Z`.
+4. Esperar a los workflows. **No hay que subir el ZIP a mano**: `.github/workflows/portable-release.yml` corre en `windows-latest`, compila, empaqueta con `pack-portable.js --skip-build --system-node` y adjunta `2Arbolitos-Portable-Windows-x64-X.Y.Z.zip` a la release del tag (la crea si no existe).
+
+Si un tag salió sin asset, se puede regenerar sin tocar el código: **Actions → Portable Windows Zip → Run workflow** con el tag como entrada (o `gh workflow run portable-release.yml -f tag=vX.Y.Z`).
 
 El workflow `docker-build.yml` se dispara con `main` y con tags `v*` (publica imágenes en GHCR). El panel solo ve versiones publicadas como *release*, no basta con el tag.
 
