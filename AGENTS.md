@@ -188,7 +188,8 @@ Reglas:
 - `package.json` y `server/package.json` llevan `"license": "MIT"`; mantenerlos sincronizados con `LICENSE`.
 - Los documentos describen el software **real**: nada de telemetría, sin nube. Si se agrega analítica, fuentes o servicios externos, actualizar `PRIVACY.md` y `NOTICE.md` en el mismo PR.
 - La marca y el logo **no** están cubiertos por la MIT; el fork comercial debe rebautizarse y retirar los logos (ver `NOTICE.md`).
-- `Dockerfile` y `Dockerfile.frontend` copian `LICENSE`/`NOTICE.md` a la imagen; `.dockerignore` los excluye del resto de `.md` pero los vuelve a incluir con `!NOTICE.md`.
+- `Dockerfile` (imagen de CI/GHCR), `server/Dockerfile` (backend de compose) y `Dockerfile.frontend` copian `LICENSE`/`NOTICE.md` a la imagen. `.dockerignore` excluye el resto de `.md` pero vuelve a incluir `NOTICE.md` con `!NOTICE.md`.
+- El backend de `docker compose` compila con `context: .` y `dockerfile: server/Dockerfile` (antes `context: ./server`), para que el contexto incluya `LICENSE` y `NOTICE.md`.
 
 ## `.gitattributes` expectations
 

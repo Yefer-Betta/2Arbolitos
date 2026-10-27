@@ -2,15 +2,18 @@ FROM node:22-alpine
 RUN apk add --no-cache openssl ca-certificates netcat-openbsd
 WORKDIR /app
 
-COPY package*.json ./
+COPY server/package*.json ./
 RUN npm ci
 
-COPY prisma ./prisma
+COPY server/prisma ./prisma
 RUN npx prisma generate
 
-COPY src ./src
+COPY server/src ./src
 
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+# Avisos legales (la MIT exige incluir el copyright en las copias distribuidas).
+COPY LICENSE NOTICE.md ./
+
+COPY server/docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
 EXPOSE 3002

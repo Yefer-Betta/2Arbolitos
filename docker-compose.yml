@@ -27,8 +27,8 @@ services:
 
   backend:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/Dockerfile
     image: 2arbolitos-backend
     container_name: 2arbolitos-backend
     restart: unless-stopped
