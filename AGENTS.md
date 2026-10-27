@@ -171,6 +171,24 @@ npm run build && npm run pack:portable -- --skip-build   # reutiliza dist/ exist
 - Arranques siguientes: detecta datos existentes y no vuelve a tocar la base.
 - Requiere **MySQL 8 o MariaDB 10.4+** en la misma máquina (no lo empaqueta).
 - `--skip-build` reutiliza `dist/` si ya existe; si no existe, lanza `vite build`.
+- `copyLegal` incluye `LICENSE`, `NOTICE.md`, `TERMS.md`, `PRIVACY.md` y `SECURITY.md` en el ZIP: la licencia MIT obliga a distribuir el aviso de copyright con el software.
+
+## Documentos legales
+
+| Archivo | Contenido | Cuándo actualizarlo |
+|---------|-----------|---------------------|
+| `LICENSE` | MIT, © 2026 Yefer Betta | Al cambiar de licencia (requiere revisar `package.json` → `license`) |
+| `NOTICE.md` | Titularidad, marca, tipografía y licencias de dependencias | Al agregar/quitar dependencias de runtime o cambiar el logo |
+| `TERMS.md` | Términos de uso, responsabilidades del operador, soporte | Al cambiar el modelo de soporte o la jurisdicción |
+| `PRIVACY.md` | Datos tratados, dónde, cookies y terceros | Al agregar campos personales, servicios externos o telemetría |
+| `SECURITY.md` | Reporte de vulnerabilidades y hardening | Al cambiar el modelo de seguridad o los plazos |
+
+Reglas:
+
+- `package.json` y `server/package.json` llevan `"license": "MIT"`; mantenerlos sincronizados con `LICENSE`.
+- Los documentos describen el software **real**: nada de telemetría, sin nube. Si se agrega analítica, fuentes o servicios externos, actualizar `PRIVACY.md` y `NOTICE.md` en el mismo PR.
+- La marca y el logo **no** están cubiertos por la MIT; el fork comercial debe rebautizarse y retirar los logos (ver `NOTICE.md`).
+- `Dockerfile` y `Dockerfile.frontend` copian `LICENSE`/`NOTICE.md` a la imagen; `.dockerignore` los excluye del resto de `.md` pero los vuelve a incluir con `!NOTICE.md`.
 
 ## `.gitattributes` expectations
 

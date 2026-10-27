@@ -11,5 +11,6 @@ error_log.txt
 release/
 build/
 *.md
+!NOTICE.md
 .DS_Store
 Thumbs.db

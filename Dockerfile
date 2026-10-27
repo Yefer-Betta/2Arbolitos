@@ -20,6 +20,9 @@ COPY server/src ./server/src
 
 COPY --from=frontend-builder /app/dist ./dist
 
+# Avisos legales: la MIT exige incluir el copyright en las copias distribuidas.
+COPY LICENSE NOTICE.md ./
+
 RUN cd server && npx prisma generate
 
 COPY server/docker-entrypoint.sh /usr/local/bin/

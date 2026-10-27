@@ -2,7 +2,7 @@
 
 ### Sistema de Punto de Venta y Gestión Integral para Restaurantes
 
-[![Versión](https://img.shields.io/badge/versión-1.1.1-1A4D2E?style=flat-square)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
+[![Versión](https://img.shields.io/badge/versión-1.1.2-1A4D2E?style=flat-square)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
 [![Release](https://img.shields.io/github/v/release/Yefer-Betta/2Arbolitos?style=flat-square&color=1A4D2E&label=release)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-D4A373?style=flat-square)](#-licencia)
 [![Docker / Portable](https://img.shields.io/badge/Docker%20%2F%20Portable-compatible-2496ED?style=flat-square&logo=docker&logoColor=white)]()
@@ -15,9 +15,9 @@ Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra g
 | Modo | Requisito único | Cómo empezar |
 |:-----|:----------------|:-------------|
 | 🐳 **Docker** (recomendado) | Docker Desktop | Descarga el [código](https://github.com/Yefer-Betta/2Arbolitos/archive/refs/heads/main.zip) (o clona el repo) y abre `instalar.bat` |
-| 💻 **Portable Windows x64** | MySQL 8 / MariaDB 10.4+ | Descarga el [ZIP portable](https://github.com/Yefer-Betta/2Arbolitos/releases/download/v1.1.1/2Arbolitos-Portable-Windows-x64-1.1.1.zip), descomprime y abre `start.bat` |
+| 💻 **Portable Windows x64** | MySQL 8 / MariaDB 10.4+ | Descarga el [ZIP portable](https://github.com/Yefer-Betta/2Arbolitos/releases/download/v1.1.2/2Arbolitos-Portable-Windows-x64-1.1.2.zip), descomprime y abre `start.bat` |
 
-**Última versión: [v1.1.1](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)** · [Todas las versiones](https://github.com/Yefer-Betta/2Arbolitos/releases) · [`AGENTS.md`](./AGENTS.md) para desarrolladores
+**Última versión: [v1.1.2](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)** · [Todas las versiones](https://github.com/Yefer-Betta/2Arbolitos/releases) · [`AGENTS.md`](./AGENTS.md) para desarrolladores
 
 ---
 
@@ -202,6 +202,9 @@ docker compose exec db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arboli
 ├── instalar.bat                 # Instalación única (auto-eleva a admin)
 ├── iniciar.ps1                  # Uso diario (iniciar/detener/QR)
 ├── Panel.bat                    # Panel de control (estado, respaldo, actualizar)
+├── LICENSE                      # Licencia MIT
+├── NOTICE.md                    # Marca y licencias de terceros
+├── TERMS.md · PRIVACY.md · SECURITY.md   # Términos, privacidad y seguridad
 ├── .env.example.docker          # Plantilla de variables de entorno
 └── .gitignore
 ```
@@ -210,7 +213,13 @@ docker compose exec db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arboli
 
 ## 🆕 Novedades
 
-### v1.1.1 — última
+### v1.1.2 — última
+
+- **Documentos legales:** [licencia MIT](./LICENSE) con titularidad explícita, [términos de uso](./TERMS.md), [política de privacidad](./PRIVACY.md), [avisos de terceros](./NOTICE.md) y [política de seguridad](./SECURITY.md).
+- El ZIP portable y las imágenes Docker ahora incluyen `LICENSE` y `NOTICE.md` (la MIT exige conservar el aviso en las copias distribuidas).
+- Sin cambios de comportamiento ni de base de datos: actualizar no toca tus datos.
+
+### v1.1.1
 
 - **Pedidos:** corregido el `ReferenceError` que dejaba en blanco la pantalla del pedido al abrir una mesa.
 - **Mesas:** el nombre personalizado se muestra también dentro del pedido y se puede editar desde el carrito (doble clic en el nombre o el lápiz).
@@ -230,6 +239,8 @@ docker compose exec db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arboli
 ## 📄 Documentación
 
 La documentación de referencia del desarrollador está en [`AGENTS.md`](./AGENTS.md) (arquitectura, comandos Docker, base de datos y despliegue).
+
+Los documentos legales están enlazados en la sección [Licencia y documentos legales](#️-licencia-y-documentos-legales).
 
 ---
 
@@ -291,9 +302,19 @@ La documentación de referencia del desarrollador está en [`AGENTS.md`](./AGENT
 
 ---
 
-## 📄 Licencia
+## ⚖️ Licencia y documentos legales
 
-**MIT** — puedes usar, modificar y distribuir el proyecto conservando el aviso de autoría.
+**Código bajo licencia MIT** — puedes usar, modificar y distribuir el proyecto conservando el aviso de autoría. La **marca, el logotipo y los íconos no** están cubiertos por la licencia.
+
+| Documento | Contenido |
+|:----------|:----------|
+| [`LICENSE`](./LICENSE) | Texto completo de la licencia MIT |
+| [`NOTICE.md`](./NOTICE.md) | Titularidad, marca, tipografía y licencias de las dependencias |
+| [`TERMS.md`](./TERMS.md) | Términos de uso, responsabilidades del operador, soporte y garantías |
+| [`PRIVACY.md`](./PRIVACY.md) | Qué datos guarda el sistema, dónde, para qué y por cuánto tiempo |
+| [`SECURITY.md`](./SECURITY.md) | Cómo reportar vulnerabilidades y lista de verificación de seguridad |
+
+> Los documentos legales son una base lista para adaptar a la normativa de cada país; no sustituyen la revisión de un abogado.
 
 ---
 

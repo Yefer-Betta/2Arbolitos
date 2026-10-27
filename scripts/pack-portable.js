@@ -12,6 +12,9 @@
  *   node\node.exe              Node.js LTS x64 portable (sin prerrequisitos)
  *   dist\                      Frontend compilado (servido por Express)
  *   server\                    Backend Express + Prisma (src, prisma, deps prod)
+ *   LICENSE, NOTICE.md,        Avisos legales (MIT exige incluir el aviso
+ *   TERMS.md, PRIVACY.md,      de copyright en las copias distribuidas)
+ *   SECURITY.md
  *
  * MySQL 8 sigue siendo un requisito (arquitectura actual del proyecto).
  *
@@ -212,7 +215,26 @@ async function writeVersionFiles(staging) {
 }
 
 /* ------------------------------------------------------------------ */
-/* 3b. Panel de control (PowerShell + WPF, sin dependencias)          */
+/* 3b. Avisos legales (MIT exige incluir el aviso en las copias)      */
+/* ------------------------------------------------------------------ */
+async function copyLegal(staging) {
+  const files = ['LICENSE', 'NOTICE.md', 'TERMS.md', 'PRIVACY.md', 'SECURITY.md'];
+  let copied = 0;
+  for (const name of files) {
+    const from = path.join(ROOT, name);
+    if (!fs.existsSync(from)) continue;
+    await fsp.copyFile(from, path.join(staging, name));
+    copied++;
+  }
+  if (copied === 0) {
+    warn('No se encontro LICENSE; el ZIP saldra sin avisos legales.');
+    return;
+  }
+  log(`Avisos legales incluidos (${copied} archivos).`);
+}
+
+/* ------------------------------------------------------------------ */
+/* 3c. Panel de control (PowerShell + WPF, sin dependencias)          */
 /* ------------------------------------------------------------------ */
 async function copyPanel(staging) {
   const from = path.join(ROOT, 'scripts', 'panel');
@@ -475,6 +497,11 @@ CONTENIDO
   node\\node.exe        Node.js LTS x64 portable (no requiere instalar)
   dist\\               Frontend compilado
   server\\             Backend Express + Prisma y sus dependencias
+  LICENSE              Licencia MIT del sistema
+  NOTICE.md            Titularidad, marca y licencias de terceros
+  TERMS.md             Terminos de uso
+  PRIVACY.md           Politica de privacidad y datos
+  SECURITY.md          Seguridad y reporte de vulnerabilidades
 
 
 COMO ARRANCAR
@@ -547,6 +574,17 @@ SEGURIDAD
 - No compartas server\\.env: contiene la clave de la base de datos.
 - Recomendado: crea un usuario MySQL dedicado para la app en lugar de
   usar root.
+
+
+LICENCIA Y AVISOS LEGALES
+-------------------------
+El codigo se distribuye bajo licencia MIT (ver LICENSE). La marca y el
+logotipo NO estan cubiertos por la licencia. Los terminos de uso, la
+politica de privacidad, los avisos de terceros y la politica de
+seguridad estan en TERMS.md, PRIVACY.md, NOTICE.md y SECURITY.md.
+
+Los datos del restaurante viven solo en esta maquina: el autor del
+software no tiene acceso a la base ni a los respaldos.
 
 
 RESPALDO
@@ -646,6 +684,7 @@ async function main() {
   await copyDist(staging);
   await copyServer(staging);
   await copyPanel(staging);
+  await copyLegal(staging);
   await writeVersionFiles(staging);
   await writeExtras(staging);
 
