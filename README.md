@@ -4,7 +4,7 @@
 
 [![Versión](https://img.shields.io/badge/versión-1.1.2-1A4D2E?style=flat-square)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
 [![Release](https://img.shields.io/github/v/release/Yefer-Betta/2Arbolitos?style=flat-square&color=1A4D2E&label=release)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
-[![Licencia](https://img.shields.io/badge/licencia-MIT-D4A373?style=flat-square)](#-licencia)
+[![Licencia](https://img.shields.io/badge/licencia-MIT-D4A373?style=flat-square)](#licencia-y-documentos-legales)
 [![Docker / Portable](https://img.shields.io/badge/Docker%20%2F%20Portable-compatible-2496ED?style=flat-square&logo=docker&logoColor=white)]()
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)]()
 
@@ -240,7 +240,7 @@ docker compose exec db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arboli
 
 La documentación de referencia del desarrollador está en [`AGENTS.md`](./AGENTS.md) (arquitectura, comandos Docker, base de datos y despliegue).
 
-Los documentos legales están enlazados en la sección [Licencia y documentos legales](#️-licencia-y-documentos-legales).
+Los documentos legales están enlazados en la sección [Licencia y documentos legales](#licencia-y-documentos-legales).
 
 ---
 
@@ -302,7 +302,7 @@ Los documentos legales están enlazados en la sección [Licencia y documentos le
 
 ---
 
-## ⚖️ Licencia y documentos legales
+## Licencia y documentos legales
 
 **Código bajo licencia MIT** — puedes usar, modificar y distribuir el proyecto conservando el aviso de autoría. La **marca, el logotipo y los íconos no** están cubiertos por la licencia.
 
