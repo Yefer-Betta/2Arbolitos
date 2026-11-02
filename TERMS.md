@@ -1,8 +1,8 @@
 # Términos de uso
 
-**Última actualización:** 26 de octubre de 2026
+**Última actualización:** 2 de noviembre de 2026
 
-> **Nota importante.** Este documento es una base redactada para el proyecto y **no constituye asesoría legal**. Antes de venderlo, distribuirlo comercialmente o usarlo en un negocio con obligaciones fiscales, revísalo con un abogado de tu jurisdicción y completa los espacios marcados.
+> **Nota importante.** Este documento está redactado para **Colombia** y es una base lista para usar, pero **no constituye asesoría legal**. Antes de venderlo o firmar con un restaurante, hazlo revisar por un abogado colombiano.
 
 ---
 
@@ -11,6 +11,8 @@
 Al instalar, ejecutar o usar **2Arbolitos POS** (el «Sistema») aceptas estos términos. Si no estás de acuerdo, no uses el Sistema.
 
 Si instalas el Sistema para un restaurante, aceptas estos términos **en nombre de ese negocio** y declaras tener facultades para hacerlo.
+
+El titular del software es **Yefer Betta**, persona natural colombiana, que actúa en nombre propio (no como sociedad).
 
 ## 2. Relación con la licencia del código
 
@@ -30,6 +32,8 @@ El Sistema es una aplicación de punto de venta para restaurantes: mesas, pedido
 - Un mecanismo de cumplimiento normativo automático (protección de datos, salubridad, laboral, etc.).
 
 Cumplir con las obligaciones fiscales, contables, sanitarias y de protección de datos del restaurante es responsabilidad exclusiva del operador.
+
+En Colombia eso incluye, entre otras: la **facturación electrónica ante la DIAN** cuando sea exigible (el Sistema no la emite), la declaración de impuestos y la conservación de los comprobantes conforme al Estatuto Tributario.
 
 ## 4. Requisitos
 
@@ -92,7 +96,9 @@ No se garantiza que el Sistema sea ininterrumpido, esté libre de errores o sea 
 
 En la máxima medida permitida por la ley, el autor no será responsable por daños directos, indirectos, incidentales, especiales, consecuentes o punitivos, ni por lucro cesante, pérdida de datos, pérdida de ingresos, errores de cobro, sanciones fiscales o interrupciones del negocio derivados del uso o de la imposibilidad de usar el Sistema.
 
-Nada en estos términos excluye responsabilidades que no puedan excluirse legalmente (por ejemplo, dolo o culpa grave, o derechos del consumidor cuando apliquen).
+Nada en estos términos excluye responsabilidades que no puedan excluirse legalmente (por ejemplo, dolo o culpa grave).
+
+Si el adquirente es **consumidor** en los términos de la **Ley 1480 de 2011** (Estatuto del Consumidor), conserva todos los derechos que esa norma le reconoce con carácter irrenunciable; nada de lo aquí pactado los limita.
 
 ## 13. Cambios en los términos
 
@@ -104,12 +110,15 @@ Puedes dejar de usar el Sistema en cualquier momento desinstalándolo. La licenc
 
 ## 15. Legislación aplicable y conflictos
 
-Estos términos se rigen por las leyes de **[PAÍS / JURISDICCIÓN — completar]**. Cualquier controversia se someterá a los tribunales de **[CIUDAD — completar]**, salvo norma imperativa en contrario.
+Estos términos se rigen por las leyes de la **República de Colombia**.
+
+Cualquier controversia se someterá a los **jueces y tribunales competentes de Colombia**, según las reglas de competencia del Código General del Proceso, salvo norma imperativa en contrario (por ejemplo, fuero del consumidor).
 
 Antes de acudir a la justicia, las partes se comprometen a intentar una solución directa por escrito durante al menos **30 días**.
 
 ## 16. Contacto
 
+- Titular: **Yefer Betta** (persona natural, Colombia).
 - Repositorio y soporte: <https://github.com/Yefer-Betta/2Arbolitos>
 - Reportes de seguridad: ver [`SECURITY.md`](./SECURITY.md) (no uses issues públicos).
 

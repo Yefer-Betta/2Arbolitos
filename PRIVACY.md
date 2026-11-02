@@ -1,8 +1,8 @@
 # Política de privacidad y tratamiento de datos
 
-**Última actualización:** 26 de octubre de 2026
+**Última actualización:** 2 de noviembre de 2026
 
-> **Nota importante.** Este documento describe cómo funciona el software y es una base lista para adaptar. **No es asesoría legal.** Cada restaurante es el responsable del tratamiento de los datos de sus clientes y debe revisar este texto con un abogado y ajustarlo a la normativa de su país (por ejemplo, Ley 1581 de 2012 en Colombia, Ley 8968 en Costa Rica, LFPDPPP en México o RGPD si opera en la Unión Europea) antes de usarlo con público real.
+> **Nota importante.** Este documento está redactado para **Colombia** (Ley 1581 de 2012, Decreto 1377 de 2013 y normas que los modifican), describe cómo funciona el software y es una base lista para usar. **No es asesoría legal.** Cada restaurante es el responsable del tratamiento de los datos de sus clientes y debe hacer revisar este texto con un abogado antes de usarlo con público real. Si opera en otro país, adáptelo a su normativa (por ejemplo, Ley 8968 en Costa Rica, LFPDPPP en México o RGPD en la Unión Europea).
 
 ---
 
@@ -10,8 +10,10 @@
 
 **2Arbolitos POS** es un sistema que se instala y opera **en la infraestructura del propio restaurante**. No existe una cuenta en la nube del desarrollador, ni un servidor central que reciba información.
 
-- **Responsable del tratamiento:** el restaurante (persona natural o jurídica) que instala y opera el sistema. Es quien define para qué se usan los datos y atiende los derechos de los titulares.
-- **Desarrollador del software:** no tiene acceso a la base de datos, a los respaldos ni a la información de clientes o empleados. Su papel se limita a distribuir el código.
+- **Responsable del tratamiento:** el restaurante (persona natural o jurídica) que instala y opera el sistema. Es quien define para qué se usan los datos y atiende los derechos de los titulares. Si el restaurante es un negocio de una sola persona (persona natural), esa persona es el responsable y no necesita NIT para cumplir este papel.
+- **Desarrollador del software:** **Yefer Betta**, persona natural en Colombia. No tiene acceso a la base de datos, a los respaldos ni a la información de clientes o empleados. Su papel se limita a distribuir el código y, si se contrata, prestar soporte.
+
+> **Registro Nacional de Bases de Datos (RNBD).** En Colombia, la inscripción de bases de datos ante la Superintendencia de Industria y Comercio (SIC) solo es obligatoria para quienes superan los umbrales de la norma (patrimonio superior a 100.000 UVT, entre otros). Un restaurante pequeño normalmente no está obligado; confírmalo con tu contador o abogado.
 
 ## 2. Qué datos se guardan
 
@@ -91,7 +93,9 @@ Recomendaciones para el restaurante:
 
 ## 9. Derechos de las personas
 
-Los clientes, empleados y proveedores pueden solicitar **acceso, actualización, rectificación, supresión, oposición y revocación** del consentimiento sobre sus datos. Esas solicitudes se atienden **ante el restaurante** (responsable), no ante el desarrollador, que no tiene acceso a la información.
+Los clientes, empleados y proveedores pueden solicitar **acceso, actualización, rectificación, supresión, oposición y revocación** del consentimiento sobre sus datos, y presentar **quejas ante la Superintendencia de Industria y Comercio (SIC)**. Esas solicitudes se atienden **ante el restaurante** (responsable), no ante el desarrollador, que no tiene acceso a la información.
+
+Plazos orientativos de la Ley 1581 de 2012: consultas en **10 días hábiles** (prorrogables a 5) y reclamos en **15 días hábiles** (prorrogables a 8).
 
 Para ejercerlos, el restaurante puede usar las funciones del sistema:
 
@@ -108,8 +112,9 @@ Esta política puede actualizarse junto con el software. La fecha de la última 
 
 ## 12. Contacto
 
+- **Titular del software:** Yefer Betta (persona natural, Colombia). No ejerce como sociedad ni cuenta con NIT; por eso este documento no publica datos tributarios.
 - **Sobre el software:** abre un issue en <https://github.com/Yefer-Betta/2Arbolitos/issues>.
-- **Sobre tus datos personales:** dirígete al restaurante donde diste tus datos.
+- **Sobre tus datos personales:** dirígete al restaurante donde diste tus datos; es el único que puede acceder a ellos.
 
 ---
 

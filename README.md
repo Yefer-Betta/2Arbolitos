@@ -2,7 +2,7 @@
 
 ### Sistema de Punto de Venta y Gestión Integral para Restaurantes
 
-[![Versión](https://img.shields.io/badge/versión-1.1.2-1A4D2E?style=flat-square)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
+[![Versión](https://img.shields.io/badge/versión-1.1.3-1A4D2E?style=flat-square)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
 [![Release](https://img.shields.io/github/v/release/Yefer-Betta/2Arbolitos?style=flat-square&color=1A4D2E&label=release)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-D4A373?style=flat-square)](#licencia-y-documentos-legales)
 [![Docker / Portable](https://img.shields.io/badge/Docker%20%2F%20Portable-compatible-2496ED?style=flat-square&logo=docker&logoColor=white)]()
@@ -15,9 +15,9 @@ Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra g
 | Modo | Requisito único | Cómo empezar |
 |:-----|:----------------|:-------------|
 | 🐳 **Docker** (recomendado) | Docker Desktop | Descarga el [código](https://github.com/Yefer-Betta/2Arbolitos/archive/refs/heads/main.zip) (o clona el repo) y abre `instalar.bat` |
-| 💻 **Portable Windows x64** | MySQL 8 / MariaDB 10.4+ | Descarga el [ZIP portable](https://github.com/Yefer-Betta/2Arbolitos/releases/download/v1.1.2/2Arbolitos-Portable-Windows-x64-1.1.2.zip), descomprime y abre `start.bat` |
+| 💻 **Portable Windows x64** | MySQL 8 / MariaDB 10.4+ | Descarga el [ZIP portable](https://github.com/Yefer-Betta/2Arbolitos/releases/download/v1.1.3/2Arbolitos-Portable-Windows-x64-1.1.3.zip), descomprime y abre `start.bat` |
 
-**Última versión: [v1.1.2](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)** · [Todas las versiones](https://github.com/Yefer-Betta/2Arbolitos/releases) · [`AGENTS.md`](./AGENTS.md) para desarrolladores
+**Última versión: [v1.1.3](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)** · [Todas las versiones](https://github.com/Yefer-Betta/2Arbolitos/releases) · [`AGENTS.md`](./AGENTS.md) para desarrolladores
 
 ---
 
@@ -213,7 +213,12 @@ docker compose exec db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arboli
 
 ## 🆕 Novedades
 
-### v1.1.2 — última
+### v1.1.3 — última
+
+- **Documentos legales completados para Colombia:** [términos de uso](./TERMS.md) con legislación colombiana, obligaciones ante la DIAN y derechos irrenunciables de la Ley 1480 de 2011; [política de privacidad](./PRIVACY.md) con plazos y quejas ante la SIC (Ley 1581 de 2012); titular identificado como **persona natural**, sin datos tributarios.
+- Sin cambios de comportamiento, de código ni de base de datos.
+
+### v1.1.2
 
 - **Documentos legales:** [licencia MIT](./LICENSE) con titularidad explícita, [términos de uso](./TERMS.md), [política de privacidad](./PRIVACY.md), [avisos de terceros](./NOTICE.md) y [política de seguridad](./SECURITY.md).
 - El ZIP portable y las imágenes Docker ahora incluyen `LICENSE` y `NOTICE.md` (la MIT exige conservar el aviso en las copias distribuidas).
@@ -314,7 +319,7 @@ Los documentos legales están enlazados en la sección [Licencia y documentos le
 | [`PRIVACY.md`](./PRIVACY.md) | Qué datos guarda el sistema, dónde, para qué y por cuánto tiempo |
 | [`SECURITY.md`](./SECURITY.md) | Cómo reportar vulnerabilidades y lista de verificación de seguridad |
 
-> Los documentos legales son una base lista para adaptar a la normativa de cada país; no sustituyen la revisión de un abogado.
+> Los documentos legales están redactados para **Colombia** (Ley 1581 de 2012 y Ley 1480 de 2011) y son una base lista para usar; no sustituyen la revisión de un abogado.
 
 ---
 
