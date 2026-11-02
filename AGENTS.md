@@ -228,6 +228,17 @@ npm run shots -- --tag despues --only pos,kitchen
 - Guarda `screenshots/<tag>-<viewport>-<pantalla>.png` en 1440×900, 1024×768 y 390×844. La carpeta está en `.gitignore`.
 - Escenarios: `login`, `mesas`, `pedido` (Mesa 1 + 3 ítems), `carrito`, `cocina`, `historial`, `inventario`, y variantes `mesas-oscuro` / `pedido-oscuro`.
 - `pedido`/`carrito` limpian la mesa al terminar (`DELETE /tables/state/mesa-1`) para no dejar cuentas abiertas.
+- `SHOT_BASE` permite apuntar a otra URL (por ejemplo `SHOT_BASE=http://localhost` contra el Docker de producción).
+
+### Assets del README (`docs/`)
+
+Las imágenes que ve GitHub viven en `docs/` y sí se versionan (a diferencia de `screenshots/`):
+
+- `docs/banner-light.png` y `docs/banner-dark.png` — banner 1600×500 (2×) con `<picture>` y `prefers-color-scheme`.
+- `docs/social-preview.png` — 1280×640 para *Settings → Social preview* (GitHub no lo cambia por API).
+- `docs/screenshots/01..06-*.png` — capturas reales del POS para la galería del README.
+
+Para regenerarlas: levanta el POS (`docker compose up -d`) y ejecuta `SHOT_BASE=http://localhost npm run shots -- --tag gh --only mesas,cocina,pedido,menu,contabilidad`, copia las imágenes a `docs/screenshots/` y reconstruye el banner si cambió la marca. Los banners se generan como HTML + captura de Edge para tener control total de tipografía, logo y recortes.
 
 ## Panel de control (Windows)
 

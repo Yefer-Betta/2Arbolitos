@@ -1,55 +1,65 @@
-# 🌳 2Arbolitos POS
+<div align="center">
 
-### Sistema de Punto de Venta y Gestión Integral para Restaurantes
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/banner-dark.png">
+  <img src="./docs/banner-light.png" alt="2Arbolitos POS — punto de venta para restaurantes" width="100%">
+</picture>
+
+**Punto de venta para restaurantes que funciona en tu red local, sin internet obligatorio.**
+Mesas, cocina (KDS), caja y multi-moneda en un solo sistema.
+
+[![Descargar portable](https://img.shields.io/badge/descargar-portable%20Windows%20x64-D4A373?style=for-the-badge&logo=windows&logoColor=white)](#portable-windows-x64)
+[![Instalar con Docker](https://img.shields.io/badge/instalar-Docker-1A4D2E?style=for-the-badge&logo=docker&logoColor=white)](#docker-recomendado)
 
 [![Versión](https://img.shields.io/badge/versión-1.1.4-1A4D2E?style=flat-square)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
-[![Release](https://img.shields.io/github/v/release/Yefer-Betta/2Arbolitos?style=flat-square&color=1A4D2E&label=release)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-D4A373?style=flat-square)](#licencia-y-documentos-legales)
-[![Docker / Portable](https://img.shields.io/badge/Docker%20%2F%20Portable-compatible-2496ED?style=flat-square&logo=docker&logoColor=white)]()
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)]()
+[![Release](https://img.shields.io/github/v/release/Yefer-Betta/2Arbolitos?style=flat-square&color=1A4D2E&label=release)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com)
 
-Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra gestión de mesas, cocina en tiempo real, ventas multi-moneda (COP/USD/Bs.) y caja. Se accede desde el navegador de cualquier dispositivo en la red. Se despliega con **Docker** (recomendado) o como **paquete portable para Windows** sin Docker.
-
-### 📥 Instalar
-
-| Modo | Requisito único | Cómo empezar |
-|:-----|:----------------|:-------------|
-| 🐳 **Docker** (recomendado) | Docker Desktop | Descarga el [código](https://github.com/Yefer-Betta/2Arbolitos/archive/refs/heads/main.zip) (o clona el repo) y abre `instalar.bat` |
-| 💻 **Portable Windows x64** | MySQL 8 / MariaDB 10.4+ | Descarga el [ZIP portable](https://github.com/Yefer-Betta/2Arbolitos/releases/download/v1.1.4/2Arbolitos-Portable-Windows-x64-1.1.4.zip), descomprime y abre `start.bat` |
-
-**Última versión: [v1.1.4](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)** · [Todas las versiones](https://github.com/Yefer-Betta/2Arbolitos/releases) · [`AGENTS.md`](./AGENTS.md) para desarrolladores
+</div>
 
 ---
 
-## ✨ Características Principales
+## Capturas
+
+<table>
+  <tr>
+    <td width="50%"><img src="./docs/screenshots/01-pedidos.png" alt="Vista de pedidos con mesas libres y ocupadas"><br><sub><b>Pedidos</b> — mesas en vivo, totales por cuenta</sub></td>
+    <td width="50%"><img src="./docs/screenshots/02-cocina.png" alt="Pantalla de cocina con pedidos pendientes"><br><sub><b>Cocina</b> — tablero con pendientes, en curso y listos</sub></td>
+  </tr>
+  <tr>
+    <td><img src="./docs/screenshots/03-pedido.png" alt="Pedido con productos, carrito y cobro"><br><sub><b>Pedido</b> — catálogo, carrito y cobro en una pantalla</sub></td>
+    <td><img src="./docs/screenshots/04-menu.png" alt="Menú con productos, categorías y precios"><br><sub><b>Menú</b> — productos, categorías y precios en COP/USD</sub></td>
+  </tr>
+  <tr>
+    <td><img src="./docs/screenshots/05-contabilidad.png" alt="Resumen de ventas y gastos del turno"><br><sub><b>Caja</b> — ventas por método de pago, gastos y cierre</sub></td>
+    <td><img src="./docs/screenshots/06-movil.png" alt="Vista móvil del POS" width="42%"><br><sub><b>Móvil</b> — desde el celular, por QR y sin instalar nada</sub></td>
+  </tr>
+</table>
+
+---
+
+## Lo esencial
 
 | | |
-|:-|:--|
-| 🛒 **Punto de Venta táctil** | Interfaz optimizada para tablets y celulares |
-| 🪑 **Vista de Mesas en tiempo real** | Mapa visual con estados Libre / Ocupada / Tiempo de atención |
-| ✏️ **Mesas gestionables** | Crear, renombrar y desactivar desde **Gestionar**; el nombre también se edita desde el carrito del pedido |
-| 🧑‍🍳 **Kitchen Display System (KDS)** | Tablero Kanban para cocina |
-| 🗂️ **Menú y categorías** | Pestaña **Categorías** con crear, editar y eliminar; los productos se agrupan por tipo |
-| 💵 **Multi-moneda COP/USD/Bs.** | Cálculo de vueltos con tasas configurables |
-| 🔄 **Sincronización en tiempo real** | Server-Sent Events con versionado optimista |
-| 📡 **Funciona sin internet** | Operación offline en la red local del restaurante |
-| 🐳 **Docker o portable** | Un comando con Docker, o un ZIP autocontenido en Windows |
-| ⬆️ **Actualización con un clic** | El panel consulta la última release y la instala sin tocar tus datos |
-| 📱 **Acceso desde móviles por QR** | Escaneas y se abre la app, sin instalar nada |
-| 🔒 **Autenticación JWT** | Cookie httpOnly · Roles: Admin, Gerente, Cajero, Mesero, Cocina |
-| 👥 **Perfiles con baja reversible** | Solo se listan los activos; los desactivados se pueden ver y reactivar |
-| 📊 **Finanzas** | Cierre de caja Z, gastos operativos, historial |
-| 💾 **Backup/Restore** | `npm run backup` para respaldar/restaurar la base de datos |
+|:--|:--|
+| **Mesas en tiempo real** | Estados libre/ocupada, tiempo de atención y total por mesa. Se crean, renombran y desactivan sin tocar la base. |
+| **Cocina sin papeles** | Tablero KDS con columnas *Pendiente → Preparando → Listo* que se actualiza solo. |
+| **Caja y cierre Z** | Ventas por método de pago, gastos del turno, arqueo y cierre de caja. |
+| **Multi-moneda** | COP, USD y bolívares con tasa configurable y vuelto calculado. |
+| **Menú y categorías** | Productos, modificadores, precios en USD opcionales y agrupación por categoría. |
+| **Sin internet** | Opera en la red local; la PWA guarda una copia de trabajo y sincroniza al volver. |
+| **Roles y permisos** | Admin, Gerente, Cajero, Mesero y Cocina, con permisos por rol y baja reversible. |
+| **Actualización con un clic** | El panel de Windows consulta la última release y la instala sin tocar tus datos. |
 
 ---
 
-## 🚀 Inicio Rápido (Docker)
+## Instalar
 
-### Requisitos
-- Windows 10/11, macOS o Linux
-- **Docker Desktop** instalado y corriendo
+### Docker (recomendado)
 
-### Instalación visual (recomendada)
+Requisito: **Docker Desktop** en Windows, macOS o Linux.
 
 ```batch
 git clone https://github.com/Yefer-Betta/2Arbolitos.git
@@ -57,259 +67,136 @@ cd 2Arbolitos
 instalar.bat
 ```
 
-`instalar.bat` abre una ventana (PowerShell 5.1 + WPF, sin dependencias nuevas) con tres flujos:
+`instalar.bat` abre un instalador visual (PowerShell + WPF, sin dependencias extra) que valida Docker, detecta la IP de la red, genera los secretos, abre el puerto en el firewall, construye las imágenes, arranca los contenedores y verifica el login. Al terminar deja un acceso directo **2Arbolitos POS** en el escritorio.
 
-| Acción | Qué hace |
-|--------|----------|
-| **Instalar o reinstalar** | Genera `.env` con secretos aleatorios, abre el puerto en el firewall, construye las imágenes y arranca los contenedores, mostrando el progreso en vivo. |
-| **Revisar y reparar** | Analiza Docker, `.env`, contenedores, puerto y firewall, y ofrece una corrección por cada problema encontrado. |
-| **Desinstalar** | Detiene y elimina los contenedores. La base de datos y los respaldos se conservan salvo que marques la casilla y escribas `BORRAR`. |
-
-Al terminar deja un acceso directo **2Arbolitos POS** en el escritorio que abre el sistema (`http://localhost`).
-
-Si la ventana no abre o prefieres texto, el mismo instalador funciona en consola:
+Si la ventana no abre, el mismo instalador corre en consola:
 
 ```batch
 instalar.bat /consola
 ```
 
-Ambos caminos comparten la lógica (`scripts\setup\SetupOps.ps1`) y dejan un registro en `logs\instalacion-*.log`.
+**Uso diario:** `iniciar.ps1` para iniciar, detener, reiniciar, ver el QR o el estado. **Estado y respaldos:** `Panel.bat`.
 
-> El instalador se auto-eleva a Administrador. Si rechazas el aviso de Windows, continúa sin la regla de firewall y lo advierte.
+<details>
+<summary><b>Problemas que el instalador corrige solo</b></summary>
 
-### Errores que corrige solo
-
-- Contenedores de un intento anterior (conflicto de nombres) → los elimina y reintenta.
-- `.env` ausente, con BOM, con claves repetidas o con el secreto por defecto → lo reescribe conservando lo válido (deja `.env.bak`).
-- Contenedores con configuración vieja (`JWT_SECRET`) → los recrea para que lean el `.env` actual.
+- Contenedores de un intento anterior → los elimina y reintenta.
+- `.env` ausente, con BOM, claves repetidas o secreto por defecto → lo reescribe conservando lo válido (deja `.env.bak`).
+- Contenedores con configuración vieja → los recrea para que lean el `.env` actual.
 - Contraseña de la base distinta a la del volumen → reutiliza la anterior **sin borrar datos**.
-- Puerto 80 ocupado → avisa y permite elegir otro (por ejemplo 8080).
+- Puerto 80 ocupado → avisa y permite elegir otro.
 - Docker Desktop cerrado → intenta abrirlo y espera al motor.
 - IP local cambiada → actualiza `HOST_IP` para los QR.
 - Regla de firewall ausente → la vuelve a crear.
 
-### Inicio Manual (si ya está configurado)
+</details>
+
+Si ya está configurado, basta con:
 
 ```bash
-docker compose up -d
+docker compose up -d      # iniciar
+docker compose down       # detener
 ```
 
-Para uso diario, también puedes usar `iniciar.ps1` (clic derecho → Ejecutar con PowerShell), que ofrece menú para Iniciar, Detener, Reiniciar, QR y Estado, sin requerir Node.js.
+### Portable Windows x64
 
-### Detener
+Sin Docker. Requisito único: **MySQL 8 o MariaDB 10.4+** en la misma máquina.
 
-```bash
-docker compose down
-```
+1. Descarga el [ZIP de la última release](https://github.com/Yefer-Betta/2Arbolitos/releases/download/v1.1.4/2Arbolitos-Portable-Windows-x64-1.1.4.zip).
+2. Descomprime y abre `start.bat`.
+3. La primera vez pide los datos de MySQL, crea la base, corre el seed y abre el navegador en `http://localhost:3002`.
+
+El paquete incluye Node.js embebido, el frontend compilado y el backend con sus dependencias: no hay que instalar Node ni compilar nada. En arranques siguientes detecta los datos y no vuelve a tocar la base.
+
+> El ZIP lo genera GitHub Actions al publicar un tag `v*`. Para generarlo tú mismo: `npm run pack:portable`.
 
 ---
 
-## 🖥️ Panel de control (Windows)
+## Panel de control (Windows)
 
-`Panel.bat` abre una ventana con el estado del sistema y las acciones del día a día. No requiere Node.js ni instalar nada: usa PowerShell 5.1 y WPF, incluidos en Windows 10/11. Funciona tanto con Docker como con el paquete portable.
+`Panel.bat` abre una ventana con el estado del sistema y las tareas del día a día. Usa PowerShell 5.1 y WPF (incluidos en Windows), así que no requiere Node.js. Funciona en Docker y en portable.
 
-| Sección | Qué muestra / hace |
-|---------|--------------------|
-| **Estado** | Motor Docker, contenedores `db` / `backend` / `frontend`, `/api/health` y base de datos |
+| Sección | Qué hace |
+|:--------|:---------|
+| **Estado** | Motor Docker, contenedores, `/api/health` y base de datos |
 | **Acceso** | URL local, URL de red para celulares, abrir el POS, copiar la URL y ver el QR |
-| **Acciones** | Iniciar · Detener (con confirmación) · Reiniciar · Abrir Docker Desktop si está cerrado |
-| **Actualizar** | **Buscar actualizacion**: consulta la última release publicada y, si hay una más nueva, la aplica con confirmación (Docker: `git pull` + rebuild; portable: descarga el ZIP conservando `.env`, `logs`, `backups` y la base de datos) |
-| **Respaldo** | Fecha del último respaldo y botón para generar uno en `backups/backup-*.sql` |
-| **Reparar** | Abre el instalador visual para diagnosticar y corregir problemas comunes |
+| **Acciones** | Iniciar, detener (con confirmación), reiniciar, abrir Docker Desktop |
+| **Actualizar** | Consulta la última release y la aplica con confirmación, conservando `.env`, `logs`, `backups` y datos |
+| **Respaldo** | Genera `backups/backup-*.sql` (solo en Docker) |
+| **Reparar** | Abre el instalador para diagnosticar y corregir |
 | **Diagnóstico** | Revisión completa del entorno, con botón para copiar el resultado |
 | **Registro** | Últimas 200 líneas de los contenedores, filtrables por servicio |
 
-Doble clic en `Panel.bat`. En el paquete portable queda junto a `start.bat`.
-
-> **Actualizar es seguro:** el panel nunca borra el volumen de la base de datos, ni el `.env`, ni los respaldos. Si la versión nueva no trae ZIP portable, avisa y enlaza a la release en vez de romper la instalación.
-
-> El respaldo desde el panel solo está disponible en modo Docker (`mysqldump` dentro del contenedor). En modo portable el botón aparece deshabilitado.
+> **Actualizar es seguro:** el panel nunca borra el volumen de la base, el `.env` ni los respaldos. Si la versión nueva no trae ZIP portable, avisa y enlaza a la release en lugar de romper la instalación.
 
 ---
 
-## 📦 Paquete Portable para Windows (sin Docker)
+## Cómo funciona
 
-Cada release incluye un ZIP autocontenido con **Node.js embebido**, el frontend compilado y el backend listo para correr. Ideal para equipos donde no se puede o no se quiere instalar Docker.
-
-Descárgalo desde [la última release](https://github.com/Yefer-Betta/2Arbolitos/releases/latest) (`2Arbolitos-Portable-Windows-x64-<versión>.zip`), descomprime y abre `start.bat`. La primera ejecución pide los datos de MySQL, crea la base, corre el seed y abre el navegador.
-
-Para generarlo tú mismo desde el código:
-
-```bash
-npm run pack:portable          # genera release/2Arbolitos-Portable-Windows-x64-<versión>.zip
-npm run build && npm run pack:portable -- --skip-build   # reutiliza el build actual
+```text
+Celular / tablet / PC  ──►  Nginx (solo Docker)  ──►  Express + Prisma  ──►  MySQL 8
+        ▲                          │                        │
+        └────── SSE (tiempo real) ─┘                        └── SSE
 ```
 
-El paquete se crea en `release/` e incluye `start.bat` (lanza todo con doble clic), `Panel.bat`, `node/node.exe`, `dist/`, `server/` con sus dependencias y `version.txt` (para que el panel sepa qué versión corre).
-
-> **Requisito único:** MySQL 8 (o MariaDB 10.4+) corriendo en la máquina.
-> El backend Express sirve también el frontend, así que **no necesita Nginx**: todo corre en un solo proceso.
-
-> El ZIP publicado no se sube a mano: lo genera y adjunta GitHub Actions (`.github/workflows/portable-release.yml`) al empujar un tag `v*`.
+- **Frontend:** React 19 + Vite 7 + Tailwind CSS 4, instalable como PWA.
+- **Backend:** Express (ESM) con autenticación JWT en cookie `httpOnly`, rate limiting y Helmet.
+- **Tiempo real:** Server-Sent Events; la UI aplica versionado optimista para evitar conflictos entre meseros.
+- **Offline:** `syncManager` encola cambios en IndexedDB, reintenta con backoff y sirve catálogo desde caché.
+- **Base de datos:** MySQL 8 / MariaDB, 24 modelos Prisma con `utf8mb4`.
 
 ---
 
-## 🔐 Usuarios Iniciales
+## Usuarios iniciales
 
 | Rol | Usuario | Contraseña |
 |:----|:--------|:-----------|
-| 👑 Administrador | `admin` | `admin123` |
-| 🧭 Gerente | `gerente` | `waiter123` |
-| 🛒 Cajero | `cajero` | `waiter123` |
-| 🛒 Mesero | `mesero` | `waiter123` |
-| 🧑‍🍳 Cocina | `cocina` | `cook123` |
+| Administrador | `admin` | `admin123` |
+| Gerente | `gerente` | `waiter123` |
+| Cajero | `cajero` | `waiter123` |
+| Mesero | `mesero` | `waiter123` |
+| Cocina | `cocina` | `cook123` |
 
-> ⚠️ **Cambiar las contraseñas inmediatamente en producción.**
-
----
-
-## 💾 Backup
-
-```bash
-npm run backup                              # Genera respaldo SQL de la base de datos en backups/
-docker compose exec db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arbolitos' > restore.sql   # manual
-```
+> Cambia estas contraseñas el primer día y crea un usuario por empleado.
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura
 
-```
+```text
 2Arbolitos/
-├── server/                      # ⚙️ Backend Node.js + Prisma
-│   ├── prisma/
-│   │   ├── schema.prisma        # Modelos de datos
-│   │   └── seed.js              # Datos iniciales
-│   ├── src/
-│   │   ├── index.js             # Servidor Express
-│   │   ├── sse.js               # Server-Sent Events
-│   │   ├── controllers/         # Lógica de negocio
-│   │   ├── middleware/          # JWT
-│   │   └── routes/              # Endpoints REST
-│   └── docker-entrypoint.sh     # Inicialización automática
-├── src/                         # 🎨 Frontend React
-│   ├── components/              # POS, KDS, Mesas, Menú, Finanzas, etc.
-│   ├── context/                 # Estado global
-│   └── lib/                     # API, sync, utilidades
-├── scripts/                     # Utilidades (backup, cli, empaquetador portable)
-│   ├── panel/                   # Panel de control Windows (WPF)
-│   └── setup/                   # Instalador visual y catálogo de errores
-├── .github/workflows/           # CI: imágenes Docker y ZIP portable
-├── docker-compose.yml           # Orquestación de servicios
-├── Dockerfile                   # Build backend
-├── Dockerfile.frontend          # Frontend con Nginx
-├── nginx.conf                   # Proxy reverso
-├── instalar.bat                 # Instalación única (auto-eleva a admin)
-├── iniciar.ps1                  # Uso diario (iniciar/detener/QR)
-├── Panel.bat                    # Panel de control (estado, respaldo, actualizar)
-├── LICENSE                      # Licencia MIT
-├── NOTICE.md                    # Marca y licencias de terceros
-├── TERMS.md · PRIVACY.md · SECURITY.md   # Términos, privacidad y seguridad
-├── .env.example.docker          # Plantilla de variables de entorno
-└── .gitignore
+├── src/                         Frontend React (POS, KDS, mesas, menú, caja)
+├── server/                      Backend Express + Prisma
+│   ├── prisma/                  Esquema, migraciones y seed
+│   └── src/                     Rutas, controladores, SSE y middleware
+├── scripts/                     CLI, respaldos, panel e instalador
+│   ├── panel/                   Panel de control (WPF)
+│   └── setup/                   Instalador visual y catálogo de errores
+├── docs/                        Banner y capturas del README
+├── docker-compose.yml           db + backend + frontend
+├── instalar.bat                 Instalación única (auto-eleva a admin)
+├── iniciar.ps1                  Uso diario (iniciar/detener/QR)
+├── Panel.bat                    Panel de control
+└── LICENSE · NOTICE.md · TERMS.md · PRIVACY.md · SECURITY.md
 ```
+
+La documentación técnica para desarrolladores está en [`AGENTS.md`](./AGENTS.md): arquitectura, comandos, base de datos, empaquetado y despliegue.
 
 ---
 
-## 🆕 Novedades
+## Novedades
 
 ### v1.1.4 — última
 
-- **Titularidad corregida:** los documentos identifican al titular como **persona natural de nacionalidad venezolana residente legalmente en Colombia**, en nombre propio y sin NIT.
-- Aclara que el soporte comercial, si se contrata, se documenta según la situación tributaria del titular; el Sistema no emite facturación electrónica.
-- Sin cambios de comportamiento, de código ni de base de datos.
+- Titularidad corregida en los documentos legales: persona natural de nacionalidad venezolana residente legalmente en Colombia, sin NIT.
+- Aclara cómo se documenta el soporte comercial; el Sistema no emite facturación electrónica.
+- Sin cambios de código ni de base de datos: actualizar no toca tus datos.
 
 ### v1.1.3
 
-- **Documentos legales completados para Colombia:** [términos de uso](./TERMS.md) con legislación colombiana, obligaciones ante la DIAN y derechos irrenunciables de la Ley 1480 de 2011; [política de privacidad](./PRIVACY.md) con plazos y quejas ante la SIC (Ley 1581 de 2012); titular identificado como **persona natural**, sin datos tributarios.
-- Sin cambios de comportamiento, de código ni de base de datos.
-
-### v1.1.2
-
-- **Documentos legales:** [licencia MIT](./LICENSE) con titularidad explícita, [términos de uso](./TERMS.md), [política de privacidad](./PRIVACY.md), [avisos de terceros](./NOTICE.md) y [política de seguridad](./SECURITY.md).
-- El ZIP portable y las imágenes Docker ahora incluyen `LICENSE` y `NOTICE.md` (la MIT exige conservar el aviso en las copias distribuidas).
-- Sin cambios de comportamiento ni de base de datos: actualizar no toca tus datos.
-
-### v1.1.1
-
-- **Pedidos:** corregido el `ReferenceError` que dejaba en blanco la pantalla del pedido al abrir una mesa.
-- **Mesas:** el nombre personalizado se muestra también dentro del pedido y se puede editar desde el carrito (doble clic en el nombre o el lápiz).
-- **Estabilidad:** liberar una mesa (cobrar o anular) ya no deja cuentas fantasma al sincronizar.
-
-### v1.1.0
-
-- **Mesas:** crear, renombrar y desactivar desde **Gestionar**; crear una mesa con un número desactivado la reactiva.
-- **Menú:** nueva pestaña **Categorías** con crear, editar y eliminar.
-- **Perfiles:** solo se muestran los activos, con vista y reactivación de desactivados (baja reversible).
-- **Panel:** botón **Buscar actualizacion** para actualizar el sistema con un clic.
+- Documentos legales completados para Colombia: Ley 1581 de 2012, Ley 1480 de 2011, plazos y quejas ante la SIC, obligaciones ante la DIAN.
 
 👉 Historial completo en [Releases](https://github.com/Yefer-Betta/2Arbolitos/releases).
-
----
-
-## 📄 Documentación
-
-La documentación de referencia del desarrollador está en [`AGENTS.md`](./AGENTS.md) (arquitectura, comandos Docker, base de datos y despliegue).
-
-Los documentos legales están enlazados en la sección [Licencia y documentos legales](#licencia-y-documentos-legales).
-
----
-
-## 🌐 Acceso a la App
-
-| Desde | URL |
-|:------|:----|
-| Mismo equipo servidor (Docker) | `http://localhost` |
-| Celular/tablet en LAN | `http://<IP-del-servidor>` |
-| Paquete portable (Windows) | `http://localhost:3002` |
-| QR automático | Se muestra al ejecutar `instalar.bat` |
-
----
-
-## 🛠️ Stack Tecnológico
-
-| Capa | Tecnología |
-|:-----|:-----------|
-| Frontend | React 19 + Vite 7 + Tailwind CSS 4 |
-| Backend | Node.js + Express |
-| Base de datos | MySQL 8 / MariaDB 10.4+ |
-| ORM | Prisma 5 |
-| Proxy | Nginx (solo en Docker) |
-| Tiempo real | Server-Sent Events (SSE) |
-| Despliegue | Docker Compose · Paquete portable (Node embebido) |
-
----
-
-## 🎨 Branding
-
-- **Verde bosque profundo** `#1A4D2E` — Primary
-- **Dorado ocre terroso** `#D4A373` — Secondary
-- **Crema suave** `#F9F7F2` — Background
-- **Tipografía**: Outfit
-
----
-
-## 📊 Métricas del Proyecto
-
-| Métrica | Valor |
-|:--------|:------|
-| Componentes React | 50 |
-| Endpoints API | 91 |
-| Modelos de datos | 24 |
-| Líneas de código | ~11,000 |
-| Documentación técnica | `AGENTS.md` + `README.md` |
-| Latencia sync | < 500 ms |
-
----
-
-## 🧪 Estado del Proyecto
-
-- ✅ Funcionalidad core completa (POS, KDS, Mesas, Menú, Finanzas)
-- ✅ Multi-moneda (COP, USD, Bs.)
-- ✅ Sincronización en tiempo real y operación offline
-- ✅ Despliegue Docker automático y paquete portable
-- ✅ Actualización con un clic desde el panel de Windows
-- ⚠️ Facturación electrónica (roadmap v1.2)
 
 ---
 
@@ -323,17 +210,16 @@ Los documentos legales están enlazados en la sección [Licencia y documentos le
 | [`NOTICE.md`](./NOTICE.md) | Titularidad, marca, tipografía y licencias de las dependencias |
 | [`TERMS.md`](./TERMS.md) | Términos de uso, responsabilidades del operador, soporte y garantías |
 | [`PRIVACY.md`](./PRIVACY.md) | Qué datos guarda el sistema, dónde, para qué y por cuánto tiempo |
-| [`SECURITY.md`](./SECURITY.md) | Cómo reportar vulnerabilidades y lista de verificación de seguridad |
+| [`SECURITY.md`](./SECURITY.md) | Cómo reportar vulnerabilidades y lista de verificación |
 
-> Los documentos legales están redactados para **Colombia** (Ley 1581 de 2012 y Ley 1480 de 2011) y son una base lista para usar; no sustituyen la revisión de un abogado.
-
----
-
-## 👤 Autor
-
-**Yefer Betta**
-- GitHub: [github.com/Yefer-Betta/2Arbolitos](https://github.com/Yefer-Betta/2Arbolitos)
+> Redactados para **Colombia** (Ley 1581 de 2012 y Ley 1480 de 2011). Son una base lista para usar y no sustituyen la revisión de un abogado.
 
 ---
 
-> 🌳 _Construido con React, Node.js, Prisma, MySQL, Docker y mucho café._
+<div align="center">
+
+**Hecho en Colombia. Funciona sin internet.**
+
+[Releases](https://github.com/Yefer-Betta/2Arbolitos/releases) · [Issues](https://github.com/Yefer-Betta/2Arbolitos/issues) · [Seguridad](./SECURITY.md) · [Autor](https://github.com/Yefer-Betta)
+
+</div>
