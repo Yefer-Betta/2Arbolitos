@@ -12,7 +12,7 @@ Al instalar, ejecutar o usar **2Arbolitos POS** (el «Sistema») aceptas estos t
 
 Si instalas el Sistema para un restaurante, aceptas estos términos **en nombre de ese negocio** y declaras tener facultades para hacerlo.
 
-El titular del software es **Yefer Betta**, persona natural colombiana, que actúa en nombre propio (no como sociedad).
+El titular del software es **Yefer Betta**, persona natural de **nacionalidad venezolana residente legalmente en Colombia**, que actúa en nombre propio (no como sociedad) y cuenta con autorización migratoria vigente para trabajar y contratar en el país.
 
 ## 2. Relación con la licencia del código
 
@@ -74,6 +74,7 @@ Al usar el Sistema te comprometes a:
 
 - El canal oficial es el repositorio: <https://github.com/Yefer-Betta/2Arbolitos/issues>.
 - El soporte comunitario se ofrece **según disponibilidad y sin garantía de tiempos**. No existe un SLA (acuerdo de nivel de servicio) salvo que se acuerde por escrito aparte.
+- El soporte comercial, si se contrata, se documenta y cobra según la situación tributaria del titular como persona natural en Colombia. El Sistema **no** es un servicio de facturación electrónica y el titular no actúa como agente de retención.
 - No se ofrece soporte para: equipos con el Sistema modificado, instalaciones sobre sistemas operativos sin soporte, problemas de red o hardware ajenos al Sistema, ni para el uso de MySQL/MariaDB/Docker en sí.
 
 ## 9. Propiedad intelectual y marca
@@ -118,7 +119,7 @@ Antes de acudir a la justicia, las partes se comprometen a intentar una solució
 
 ## 16. Contacto
 
-- Titular: **Yefer Betta** (persona natural, Colombia).
+- Titular: **Yefer Betta** (persona natural de nacionalidad venezolana, residente legal en Colombia).
 - Repositorio y soporte: <https://github.com/Yefer-Betta/2Arbolitos>
 - Reportes de seguridad: ver [`SECURITY.md`](./SECURITY.md) (no uses issues públicos).
 

@@ -11,7 +11,7 @@
 **2Arbolitos POS** es un sistema que se instala y opera **en la infraestructura del propio restaurante**. No existe una cuenta en la nube del desarrollador, ni un servidor central que reciba información.
 
 - **Responsable del tratamiento:** el restaurante (persona natural o jurídica) que instala y opera el sistema. Es quien define para qué se usan los datos y atiende los derechos de los titulares. Si el restaurante es un negocio de una sola persona (persona natural), esa persona es el responsable y no necesita NIT para cumplir este papel.
-- **Desarrollador del software:** **Yefer Betta**, persona natural en Colombia. No tiene acceso a la base de datos, a los respaldos ni a la información de clientes o empleados. Su papel se limita a distribuir el código y, si se contrata, prestar soporte.
+- **Desarrollador del software:** **Yefer Betta**, persona natural de nacionalidad venezolana residente legalmente en Colombia. No tiene acceso a la base de datos, a los respaldos ni a la información de clientes o empleados. Su papel se limita a distribuir el código y, si se contrata, prestar soporte.
 
 > **Registro Nacional de Bases de Datos (RNBD).** En Colombia, la inscripción de bases de datos ante la Superintendencia de Industria y Comercio (SIC) solo es obligatoria para quienes superan los umbrales de la norma (patrimonio superior a 100.000 UVT, entre otros). Un restaurante pequeño normalmente no está obligado; confírmalo con tu contador o abogado.
 
@@ -112,7 +112,7 @@ Esta política puede actualizarse junto con el software. La fecha de la última 
 
 ## 12. Contacto
 
-- **Titular del software:** Yefer Betta (persona natural, Colombia). No ejerce como sociedad ni cuenta con NIT; por eso este documento no publica datos tributarios.
+- **Titular del software:** Yefer Betta (persona natural de nacionalidad venezolana, residente legal en Colombia). No ejerce como sociedad ni cuenta con NIT; por eso este documento no publica datos tributarios.
 - **Sobre el software:** abre un issue en <https://github.com/Yefer-Betta/2Arbolitos/issues>.
 - **Sobre tus datos personales:** dirígete al restaurante donde diste tus datos; es el único que puede acceder a ellos.
 

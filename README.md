@@ -2,7 +2,7 @@
 
 ### Sistema de Punto de Venta y Gestión Integral para Restaurantes
 
-[![Versión](https://img.shields.io/badge/versión-1.1.3-1A4D2E?style=flat-square)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
+[![Versión](https://img.shields.io/badge/versión-1.1.4-1A4D2E?style=flat-square)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
 [![Release](https://img.shields.io/github/v/release/Yefer-Betta/2Arbolitos?style=flat-square&color=1A4D2E&label=release)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-D4A373?style=flat-square)](#licencia-y-documentos-legales)
 [![Docker / Portable](https://img.shields.io/badge/Docker%20%2F%20Portable-compatible-2496ED?style=flat-square&logo=docker&logoColor=white)]()
@@ -15,9 +15,9 @@ Sistema POS que opera en **red local (LAN) sin internet obligatorio**, integra g
 | Modo | Requisito único | Cómo empezar |
 |:-----|:----------------|:-------------|
 | 🐳 **Docker** (recomendado) | Docker Desktop | Descarga el [código](https://github.com/Yefer-Betta/2Arbolitos/archive/refs/heads/main.zip) (o clona el repo) y abre `instalar.bat` |
-| 💻 **Portable Windows x64** | MySQL 8 / MariaDB 10.4+ | Descarga el [ZIP portable](https://github.com/Yefer-Betta/2Arbolitos/releases/download/v1.1.3/2Arbolitos-Portable-Windows-x64-1.1.3.zip), descomprime y abre `start.bat` |
+| 💻 **Portable Windows x64** | MySQL 8 / MariaDB 10.4+ | Descarga el [ZIP portable](https://github.com/Yefer-Betta/2Arbolitos/releases/download/v1.1.4/2Arbolitos-Portable-Windows-x64-1.1.4.zip), descomprime y abre `start.bat` |
 
-**Última versión: [v1.1.3](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)** · [Todas las versiones](https://github.com/Yefer-Betta/2Arbolitos/releases) · [`AGENTS.md`](./AGENTS.md) para desarrolladores
+**Última versión: [v1.1.4](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)** · [Todas las versiones](https://github.com/Yefer-Betta/2Arbolitos/releases) · [`AGENTS.md`](./AGENTS.md) para desarrolladores
 
 ---
 
@@ -213,7 +213,13 @@ docker compose exec db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arboli
 
 ## 🆕 Novedades
 
-### v1.1.3 — última
+### v1.1.4 — última
+
+- **Titularidad corregida:** los documentos identifican al titular como **persona natural de nacionalidad venezolana residente legalmente en Colombia**, en nombre propio y sin NIT.
+- Aclara que el soporte comercial, si se contrata, se documenta según la situación tributaria del titular; el Sistema no emite facturación electrónica.
+- Sin cambios de comportamiento, de código ni de base de datos.
+
+### v1.1.3
 
 - **Documentos legales completados para Colombia:** [términos de uso](./TERMS.md) con legislación colombiana, obligaciones ante la DIAN y derechos irrenunciables de la Ley 1480 de 2011; [política de privacidad](./PRIVACY.md) con plazos y quejas ante la SIC (Ley 1581 de 2012); titular identificado como **persona natural**, sin datos tributarios.
 - Sin cambios de comportamiento, de código ni de base de datos.

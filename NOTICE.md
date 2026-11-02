@@ -6,7 +6,7 @@ Este archivo acompaña a la licencia [`LICENSE`](./LICENSE) y cubre tres cosas: 
 
 ## 1. Titularidad
 
-**2Arbolitos POS** — Copyright © 2026 **Yefer Betta** (persona natural, Colombia).
+**2Arbolitos POS** — Copyright © 2026 **Yefer Betta** (persona natural de nacionalidad venezolana, residente legal en Colombia).
 
 El código fuente se distribuye bajo licencia **MIT** (ver [`LICENSE`](./LICENSE)).
 
