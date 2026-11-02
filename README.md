@@ -25,16 +25,16 @@ Mesas, cocina (KDS), caja y multi-moneda en un solo sistema.
 
 <table>
   <tr>
-    <td width="50%"><img src="./docs/screenshots/01-pedidos.png" alt="Vista de pedidos con mesas libres y ocupadas"><br><sub><b>Pedidos</b> — mesas en vivo, totales por cuenta</sub></td>
-    <td width="50%"><img src="./docs/screenshots/02-cocina.png" alt="Pantalla de cocina con pedidos pendientes"><br><sub><b>Cocina</b> — tablero con pendientes, en curso y listos</sub></td>
+    <td width="50%"><img src="./docs/capturas/01-pedidos.png" alt="Vista de pedidos con mesas libres y ocupadas"><br><sub><b>Pedidos</b> — mesas en vivo, totales por cuenta</sub></td>
+    <td width="50%"><img src="./docs/capturas/02-cocina.png" alt="Pantalla de cocina con pedidos pendientes"><br><sub><b>Cocina</b> — tablero con pendientes, en curso y listos</sub></td>
   </tr>
   <tr>
-    <td><img src="./docs/screenshots/03-pedido.png" alt="Pedido con productos, carrito y cobro"><br><sub><b>Pedido</b> — catálogo, carrito y cobro en una pantalla</sub></td>
-    <td><img src="./docs/screenshots/04-menu.png" alt="Menú con productos, categorías y precios"><br><sub><b>Menú</b> — productos, categorías y precios en COP/USD</sub></td>
+    <td><img src="./docs/capturas/03-pedido.png" alt="Pedido con productos, carrito y cobro"><br><sub><b>Pedido</b> — catálogo, carrito y cobro en una pantalla</sub></td>
+    <td><img src="./docs/capturas/04-menu.png" alt="Menú con productos, categorías y precios"><br><sub><b>Menú</b> — productos, categorías y precios en COP/USD</sub></td>
   </tr>
   <tr>
-    <td><img src="./docs/screenshots/05-contabilidad.png" alt="Resumen de ventas y gastos del turno"><br><sub><b>Caja</b> — ventas por método de pago, gastos y cierre</sub></td>
-    <td><img src="./docs/screenshots/06-movil.png" alt="Vista móvil del POS" width="42%"><br><sub><b>Móvil</b> — desde el celular, por QR y sin instalar nada</sub></td>
+    <td><img src="./docs/capturas/05-contabilidad.png" alt="Resumen de ventas y gastos del turno"><br><sub><b>Caja</b> — ventas por método de pago, gastos y cierre</sub></td>
+    <td><img src="./docs/capturas/06-movil.png" alt="Vista móvil del POS" width="42%"><br><sub><b>Móvil</b> — desde el celular, por QR y sin instalar nada</sub></td>
   </tr>
 </table>
 
