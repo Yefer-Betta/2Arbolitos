@@ -9,6 +9,7 @@ COPY server/prisma ./prisma
 RUN npx prisma generate
 
 COPY server/src ./src
+COPY server/scripts ./scripts
 
 # Avisos legales (la MIT exige incluir el copyright en las copias distribuidas).
 COPY LICENSE NOTICE.md ./
@@ -19,7 +20,7 @@ RUN chmod +x /app/docker-entrypoint.sh
 EXPOSE 3002
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD node -e "require('net').connect(3002, 'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))" || exit 1
+  CMD node -e "fetch('http://127.0.0.1:3002/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["node", "src/index.js"]

@@ -6,7 +6,7 @@
  *
  * Contenido del paquete:
  *   start.bat                  Lanzador (valida entorno, crea server\.env,
- *                              hace prisma db push, seed inicial y arranca)
+ *                              aplica migraciones, seed inicial y arranca)
  *   Panel.bat                  Panel de control (PowerShell + WPF)
  *   README-PORTABLE.txt        Instrucciones de uso
  *   node\node.exe              Node.js LTS x64 portable (sin prerrequisitos)
@@ -154,6 +154,7 @@ async function preparePortableNode(staging) {
 /* ------------------------------------------------------------------ */
 const SERVER_FILES = [
   'src',
+  'scripts',
   'prisma',
   'package.json',
   'package-lock.json',
@@ -266,9 +267,10 @@ async function copyPanel(staging) {
 /* 4. Escribir helpers, start.bat y README                            */
 /* ------------------------------------------------------------------ */
 const PTool = `#!/usr/bin/env node
-/* Helper de arranque portable: check / count-users / gen-secret */
+/* Helper de arranque portable: check / migrate / count-users / gen-secret */
 const path = require('path');
 const crypto = require('crypto');
+const { spawnSync } = require('child_process');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const cmd = process.argv[2];
@@ -294,13 +296,64 @@ function parseDatabaseUrl(url) {
     if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL no esta definido en server/.env');
     const mysql = require('mysql2/promise');
     const cfg = parseDatabaseUrl(process.env.DATABASE_URL);
-    // La base puede no existir todavia: 'prisma db push' la crea.
+    // La base puede no existir todavia: 'migrate' la crea.
     // Validamos el servidor y las credenciales sin seleccionar esquema.
     delete cfg.database;
     const conn = await mysql.createConnection(cfg);
     await conn.query('SELECT 1');
     await conn.end();
     console.log('DB_OK');
+    return;
+  }
+
+  if (cmd === 'migrate') {
+    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL no esta definido en server/.env');
+
+    const mysql = require('mysql2/promise');
+    const cfg = parseDatabaseUrl(process.env.DATABASE_URL);
+    const dbName = cfg.database;
+    if (!/^[A-Za-z0-9_]+$/.test(dbName)) {
+      throw new Error('Nombre de base invalido en DATABASE_URL: ' + dbName);
+    }
+
+    delete cfg.database;
+    const conn = await mysql.createConnection(cfg);
+    await conn.query(
+      'CREATE DATABASE IF NOT EXISTS \`' + dbName + '\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+    );
+    await conn.end();
+    console.log('Base de datos lista: ' + dbName);
+
+    const rootDir = path.join(__dirname, '..');
+    const prismaCli = path.join(rootDir, 'node_modules', 'prisma', 'build', 'index.js');
+
+    function prisma(args) {
+      const res = spawnSync(process.execPath, [prismaCli].concat(args), {
+        cwd: rootDir,
+        encoding: 'utf8',
+      });
+      if (res.stdout) process.stdout.write(res.stdout);
+      if (res.stderr) process.stderr.write(res.stderr);
+      return res;
+    }
+
+    let res = prisma(['migrate', 'deploy']);
+    const output = (res.stdout || '') + (res.stderr || '');
+    if (res.status !== 0 && /P3005|schema is not empty|not empty/i.test(output)) {
+      console.log('BD existente sin historial de migraciones; baselinando 20240101000000_init ...');
+      prisma(['migrate', 'resolve', '--applied', '20240101000000_init']);
+      res = prisma(['migrate', 'deploy']);
+    }
+    if (res.status !== 0) throw new Error('prisma migrate deploy fallo');
+
+    const flag = spawnSync(process.execPath, [path.join(__dirname, 'flag-default-passwords.js')], {
+      cwd: rootDir,
+      encoding: 'utf8',
+    });
+    if (flag.stdout) process.stdout.write(flag.stdout);
+    if (flag.stderr) process.stderr.write(flag.stderr);
+
+    console.log('MIGRATE_OK');
     return;
   }
 
@@ -316,7 +369,7 @@ function parseDatabaseUrl(url) {
     return;
   }
 
-  console.error('Uso: ptool.cjs check|count-users|gen-secret');
+  console.error('Uso: ptool.cjs check|migrate|count-users|gen-secret');
   process.exit(2);
 })().catch((e) => {
   console.error((e && e.message) ? e.message : e);
@@ -381,13 +434,14 @@ function startBat() {
     ')',
     'echo       OK - conectado.',
     '',
-    'echo [2/4] Preparando esquema de la base de datos (prisma db push) ...',
+    'echo [2/4] Preparando esquema de la base de datos (migraciones) ...',
     'pushd "%SERVER_DIR%"',
-    '"%NODE_EXE%" node_modules\\prisma\\build\\index.js db push --accept-data-loss --skip-generate',
+    '"%NODE_EXE%" scripts\\ptool.cjs migrate',
     'set "RC=%ERRORLEVEL%"',
     'popd',
     'if not "%RC%"=="0" (',
-    '  echo [ERROR] Fallo prisma db push. Revisa server\\.env.',
+    '  echo [ERROR] Fallaron las migraciones de la base de datos.',
+    '  echo         Revisa server\\.env y los mensajes de arriba.',
     '  goto :fail',
     ')',
     '',
@@ -454,6 +508,7 @@ function startBat() {
     '  echo DATABASE_URL="mysql://!DB_USER!:!DB_PASS!@!DB_HOST!:!DB_PORT!/!DB_NAME!?schema=public"',
     '  echo JWT_SECRET=!JWT!',
     '  echo JWT_EXPIRES_IN=7d',
+    '  echo TRUST_PROXY=false',
     '  echo FRONTEND_URL=http://localhost:!PORT_IN!',
     ') > "%SERVER_DIR%\\.env"',
     '',
@@ -537,13 +592,16 @@ cero, borra server\\.env.
 
 USUARIOS INICIALES (creados por el seed)
 ----------------------------------------
-  admin    / admin123    (ADMIN)
-  gerente  / waiter123   (MANAGER)
-  cajero   / waiter123   (CASHIER)
-  mesero   / waiter123   (WAITER)
-  cocina   / cook123     (COOK)
+El seed genera una contrasena aleatoria por usuario y la muestra UNA sola vez
+al final de la primera ejecucion. Anotala antes de cerrar la ventana.
 
-IMPORTANTE: cambia las claves de los usuarios desde la aplicacion.
+  admin    (ADMIN)
+  gerente  (MANAGER)
+  cajero   (CASHIER)
+  mesero   (WAITER)
+  cocina   (COOK)
+
+En el primer inicio de sesion la aplicacion exige cambiar la contrasena.
 
 
 ACCESO DESDE OTROS DISPOSITIVOS (meseros, cocina, tablets)
@@ -616,9 +674,9 @@ SOLUCION DE PROBLEMAS
 
 NOTAS TECNICAS
 --------------
-- Backend: Express + Prisma (MySQL 8, utf8mb4). Esquema via "prisma db push".
+- Backend: Express + Prisma (MySQL 8, utf8mb4). Esquema via "prisma migrate deploy".
 - El seed SOLO se ejecuta si la base esta vacia; nunca borra datos existentes.
-- Los cambios de esquema futuros usan "prisma db push --accept-data-loss".
+- Los cambios de esquema futuros se aplican con migraciones versionadas.
 - Compatible con Windows 10/11 x64.
 `;
 }
@@ -626,11 +684,13 @@ NOTAS TECNICAS
 const ENV_EXAMPLE = `# Servidor
 PORT=3002
 NODE_ENV=production
+# false en portable (sin proxy delante); 1 si hay Nginx u otro proxy
+TRUST_PROXY=false
 
 # Base de datos MySQL
 DATABASE_URL="mysql://root:TU_CLAVE@localhost:3306/2arbolitos?schema=public"
 
-# JWT
+# JWT (minimo 32 caracteres; start.bat genera uno aleatorio)
 JWT_SECRET=cambia_este_secreto_por_uno_seguro
 JWT_EXPIRES_IN=7d
 

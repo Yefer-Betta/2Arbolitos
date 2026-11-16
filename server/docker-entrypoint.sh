@@ -66,7 +66,10 @@ if [ "$MIGRATION_STATE" = "legacy" ]; then
 fi
 
 echo "Aplicando migraciones (prisma migrate deploy)..."
-npx prisma migrate deploy 2>&1 || echo "⚠️  prisma migrate deploy falló"
+npx prisma migrate deploy
+
+echo "Revisando contraseñas por defecto conocidas..."
+node scripts/flag-default-passwords.js || echo "⚠️  no se pudieron revisar las contraseñas por defecto"
 
 echo "Verificando si ya hay datos en la base de datos..."
 ALREADY_SEEDED=$(node --input-type=module -e "

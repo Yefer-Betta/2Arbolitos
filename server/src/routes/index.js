@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import prisma from '../config/database.js';
 import authRoutes from './auth.js';
 import productRoutes from './products.js';
 import orderRoutes from './orders.js';
@@ -35,8 +36,13 @@ router.use('/', modifierRoutes);
 router.use('/', supplierRoutes);
 router.use('/', attendanceRoutes);
 
-router.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+router.get('/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', db: 'ok', timestamp: new Date().toISOString() });
+  } catch {
+    res.status(503).json({ status: 'error', db: 'down', timestamp: new Date().toISOString() });
+  }
 });
 
 export default router;
