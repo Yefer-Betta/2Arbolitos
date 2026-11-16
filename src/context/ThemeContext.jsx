@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- provider y hook viven juntos por convención del proyecto */
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
 const ThemeContext = createContext();

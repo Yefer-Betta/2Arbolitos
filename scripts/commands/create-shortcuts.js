@@ -88,7 +88,9 @@ Categories=Office;
     writeFileSync(join(targetDir, '2Arbolitos-POS.desktop'), desktopContent, 'utf8');
     try {
       execSync(`chmod +x "${join(targetDir, '2Arbolitos-POS.desktop')}"`);
-    } catch {}
+    } catch {
+      // chmod puede fallar en sistemas de archivos sin permisos POSIX
+    }
     log('Acceso directo creado: "2Arbolitos-POS.desktop"', 'success');
 
     const adminDesktop = `[Desktop Entry]
@@ -103,7 +105,9 @@ Categories=System;
     writeFileSync(join(targetDir, '2Arbolitos-Admin.desktop'), adminDesktop, 'utf8');
     try {
       execSync(`chmod +x "${join(targetDir, '2Arbolitos-Admin.desktop')}"`);
-    } catch {}
+    } catch {
+      // chmod puede fallar en sistemas de archivos sin permisos POSIX
+    }
     log('Acceso directo creado: "2Arbolitos-Admin.desktop"', 'success');
   }
 

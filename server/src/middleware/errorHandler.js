@@ -9,7 +9,7 @@ export class AppError extends Error {
 export const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
-export function errorHandler(err, req, res, next) {
+export function errorHandler(err, req, res, _next) {
   if (err.statusCode >= 500 || !err.isOperational) {
     console.error(`[ERROR] ${req.method} ${req.originalUrl}:`, err.message);
   }

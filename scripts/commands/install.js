@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'url';
 import { dirname, resolve, join } from 'path';
-import { existsSync, writeFileSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { execSync, spawn } from 'child_process';
 import { randomBytes } from 'crypto';
 import readline from 'readline';
@@ -36,20 +36,6 @@ function run(cmd, opts = {}) {
 
 function runCapture(cmd, opts = {}) {
   return execSync(cmd, { cwd: ROOT, encoding: 'utf8', ...opts }).trim();
-}
-
-const INIT_MIGRATION = '20240101000000_init';
-
-function deployMigrations(cwd) {
-  try {
-    run('npx prisma migrate deploy', { cwd });
-  } catch {
-    log('BD existente sin historial de migraciones; baselinando esquema inicial...', 'warn');
-    try {
-      run(`npx prisma migrate resolve --applied ${INIT_MIGRATION}`, { cwd });
-    } catch { /* ya estaba baselinada */ }
-    run('npx prisma migrate deploy', { cwd });
-  }
 }
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });

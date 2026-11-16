@@ -1,9 +1,8 @@
 import React from 'react';
 import { formatCurrency } from '../lib/utils';
 
-export function ClosureTicket({ closure, business, exchangeRate }) {
+export function ClosureTicket({ closure, business }) {
   if (!closure) return null;
-  const rate = exchangeRate > 0 ? exchangeRate : 4000;
 
   return (
     <div className="bg-white p-6 rounded-lg w-full max-w-sm font-mono text-sm border border-gray-200 shadow-sm mx-auto">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { Smartphone, QrCode, RefreshCw, Download } from 'lucide-react';
 import { useToast } from './ui/feedback-context';
@@ -9,17 +9,20 @@ export function SettingsMovil() {
     const toast = useToast();
     const [qrSvg, setQrSvg] = useState('');
     const [qrLoading, setQrLoading] = useState(false);
+    const qrLoadingRef = useRef(false);
 
-    const loadQr = async () => {
-        if (qrLoading) return;
+    const loadQr = useCallback(async () => {
+        if (qrLoadingRef.current) return;
+        qrLoadingRef.current = true;
         setQrLoading(true);
         try {
             const res = await fetch('/api/settings/qr');
             const data = await res.json();
             setQrSvg(data.qrSvg);
         } catch { /* sin conexion */ }
+        qrLoadingRef.current = false;
         setQrLoading(false);
-    };
+    }, []);
 
     const downloadQr = () => {
         if (!qrSvg) return;
@@ -63,7 +66,7 @@ export function SettingsMovil() {
 
     // Carga asincrona del QR: el setState ocurre tras el fetch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    useEffect(() => { loadQr(); }, []);
+    useEffect(() => { loadQr(); }, [loadQr]);
 
     return (
         <Panel>

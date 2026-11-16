@@ -96,6 +96,8 @@ if (syncManager.isOnline) {
     }, []);
 
     useEffect(() => {
+        // La carga inicial es asíncrona: el setState ocurre tras el await de los fetch.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadSettings();
         
         const syncInterval = setInterval(() => {

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { apiGet, apiPost, apiPut, setData, getData, syncManager } from '../lib/api.js';
 import { generateId } from '../lib/utils.js';
 
@@ -11,7 +11,10 @@ export function OrdersProvider({ children }) {
   const [loaded, setLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const activeTablesRef = useRef(activeTables);
-  activeTablesRef.current = activeTables;
+  // El ref se sincroniza después del render para no escribirlo durante el render.
+  useLayoutEffect(() => {
+    activeTablesRef.current = activeTables;
+  }, [activeTables]);
   const clearedTablesRef = useRef(new Set());
   const syncTimersRef = useRef(new Map());
   const clearTimersRef = useRef(new Map());
@@ -93,7 +96,9 @@ export function OrdersProvider({ children }) {
           return newTables;
         });
       }
-    } catch {}
+    } catch {
+      // sin conexión: seguimos con el estado local y el próximo sync lo reintenta
+    }
   };
 
   const debouncedSyncTable = useCallback((idMesa) => {
@@ -195,7 +200,9 @@ export function OrdersProvider({ children }) {
             setLoaded(true);
             return;
           }
-        } catch {}
+        } catch {
+          // sin conexión: seguimos con el estado local y el próximo sync lo reintenta
+        }
       }
 
       setOrders(localOrders);
@@ -208,6 +215,8 @@ export function OrdersProvider({ children }) {
 
   useEffect(() => {
     if (!loaded) {
+      // La carga inicial es asíncrona: el setState ocurre tras el await de los fetch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadData();
     }
   }, [loaded, loadData]);
@@ -236,7 +245,9 @@ export function OrdersProvider({ children }) {
           setData('orders', next);
           return next;
         });
-      } catch {}
+      } catch {
+      // sin conexión: seguimos con el estado local y el próximo sync lo reintenta
+    }
     });
 
     eventSource.addEventListener('order:updated', (e) => {
@@ -247,7 +258,9 @@ export function OrdersProvider({ children }) {
           setData('orders', next);
           return next;
         });
-      } catch {}
+      } catch {
+      // sin conexión: seguimos con el estado local y el próximo sync lo reintenta
+    }
     });
 
     eventSource.addEventListener('table:updated', () => {
@@ -307,7 +320,9 @@ export function OrdersProvider({ children }) {
           setData('activeTables', newTables);
           return newTables;
         });
-      } catch {}
+      } catch {
+      // sin conexión: seguimos con el estado local y el próximo sync lo reintenta
+    }
     });
 
     eventSource.onerror = () => {

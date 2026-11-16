@@ -80,6 +80,9 @@ export function UserProvider({ children }) {
     }, []);
 
     useEffect(() => {
+        // La verificación de sesión y la carga de usuarios son asíncronas:
+        // el setState ocurre tras el await, no durante el commit del efecto.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         checkAuth();
         loadUsers();
 

@@ -54,7 +54,7 @@ export const orderService = {
         return totals;
     },
 
-    calculateChange(received, total, currency) {
+    calculateChange(received, total) {
         return received - total;
     },
 };

@@ -25,7 +25,7 @@ async function main() {
   const waiterPassword = await bcrypt.hash('waiter123', 10);
   const cookPassword = await bcrypt.hash('cook123', 10);
 
-  const admin = await prisma.user.create({
+  await prisma.user.create({
     data: {
       username: 'admin',
       password: adminPassword,
@@ -34,7 +34,7 @@ async function main() {
     },
   });
 
-  const manager = await prisma.user.create({
+  await prisma.user.create({
     data: {
       username: 'gerente',
       password: waiterPassword,
@@ -43,7 +43,7 @@ async function main() {
     },
   });
 
-  const cashier = await prisma.user.create({
+  await prisma.user.create({
     data: {
       username: 'cajero',
       password: waiterPassword,
@@ -52,7 +52,7 @@ async function main() {
     },
   });
 
-  const waiter = await prisma.user.create({
+  await prisma.user.create({
     data: {
       username: 'mesero',
       password: waiterPassword,
@@ -61,7 +61,7 @@ async function main() {
     },
   });
 
-  const cook = await prisma.user.create({
+  await prisma.user.create({
     data: {
       username: 'cocina',
       password: cookPassword,
@@ -144,7 +144,7 @@ async function main() {
 
   console.log('✅ Categories created');
 
-  const products = await Promise.all([
+  await Promise.all([
     prisma.product.create({
       data: {
         name: 'Gaseosa',

@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 import readline from 'readline';
-import { execSync, spawn, spawnSync } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import os from 'os';
-import { readFileSync, existsSync } from 'fs';
-import { resolve, join } from 'path';
+import { resolve } from 'path';
 import installSystem from './commands/install.js';
 import startDev from './commands/start-dev.js';
 import startProd from './commands/start-prod.js';
@@ -83,7 +82,9 @@ function openBrowser(url) {
     : `xdg-open "${url}"`;
   try {
     spawn(cmd, [], { shell: true, stdio: 'ignore' }).unref();
-  } catch {}
+  } catch {
+    // el navegador no se pudo abrir; la URL ya se imprimió en consola
+  }
 }
 
 function showMenu() {

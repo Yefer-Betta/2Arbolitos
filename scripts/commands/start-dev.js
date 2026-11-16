@@ -28,7 +28,9 @@ function openBrowser(url) {
     : `xdg-open "${url}"`;
   try {
     spawn(cmd, [], { shell: true, stdio: 'ignore' }).unref();
-  } catch {}
+  } catch {
+    // el navegador no se pudo abrir; la URL ya se imprimió en consola
+  }
 }
 
 function getLocalIP() {

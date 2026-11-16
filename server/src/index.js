@@ -12,7 +12,7 @@ import { connectDB } from './config/database.js';
 import { PrismaClient } from '@prisma/client';
 import routes from './routes/index.js';
 import QRCode from 'qrcode';
-import { addSSEClient, removeSSEClient, notifySSEClients } from './sse.js';
+import { addSSEClient, removeSSEClient } from './sse.js';
 import { initScheduler } from './scheduler.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { parseCookies, TOKEN_COOKIE } from './config/cookies.js';
@@ -46,7 +46,7 @@ export function getLocalIP() {
 }
 
 function findFreePort(startPort) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const server = net.createServer();
     server.listen(startPort, '127.0.0.1', () => {
       const port = server.address().port;
@@ -236,7 +236,9 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
           port: PORT,
           txt: { url: serverUrl },
         });
-      } catch {}
+      } catch {
+        // mDNS es opcional: si falla, el POS sigue accesible por IP
+      }
 
       initScheduler();
 
@@ -254,7 +256,9 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
       try {
         const qr = await QRCode.toString(serverUrl, { type: 'terminal', small: true });
         console.log(qr);
-      } catch {}
+      } catch {
+        // el QR de terminal es solo una ayuda visual
+      }
 
       if (process.env.DOCKER !== 'true') {
         try {
@@ -267,9 +271,13 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
                 platform === 'win32' ? 'npx pm2-startup install' : 'npx pm2 startup',
                 { stdio: 'pipe', timeout: 15000 }
               );
-            } catch {}
+            } catch {
+              // pm2 es opcional; si no está instalado no debe impedir el arranque
+            }
           }
-        } catch {}
+        } catch {
+          // el setting autoStart puede no existir todavía
+        }
       }
 
       resolve(PORT);

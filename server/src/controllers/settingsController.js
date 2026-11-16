@@ -31,8 +31,8 @@ export const settingsController = {
       } else if (setting.type === 'object') {
         try {
           value = JSON.parse(setting.value);
-        } catch (e) {
-          // Keep as string if parse fails
+        } catch {
+          // Si no es JSON válido se deja el string original.
         }
       }
 
@@ -63,8 +63,8 @@ export const settingsController = {
     } else if (setting.type === 'object') {
       try {
         value = JSON.parse(setting.value);
-      } catch (e) {
-        // Keep as string
+      } catch {
+        // Si no es JSON válido se deja el string original.
       }
     }
 

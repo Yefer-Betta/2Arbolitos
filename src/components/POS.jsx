@@ -58,8 +58,7 @@ export function POS({ tableId, onBack }) {
             setDeliveryPhoneInput(tableEntry.deliveryPhone || '');
             setDeliveryCostInput(tableEntry.deliveryCost ? String(tableEntry.deliveryCost) : '');
         }
-    }, [tableId, tableEntry?.deliveryAddress, tableEntry?.deliveryPhone, tableEntry?.deliveryCost]);
-
+    }, [tableId, tableEntry]);
     // Renombrar la mesa desde el encabezado del carrito
     const handleStartRenameTable = () => {
         if (!canRenameTable) return;

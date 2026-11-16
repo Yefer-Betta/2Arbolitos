@@ -33,7 +33,9 @@ export async function auditLog(entity, entityId, action, before, after, userId) 
     await prisma.auditLog.create({
       data: { entity, entityId, action, before: before || undefined, after: after || undefined, userId },
     });
-  } catch (_) {}
+  } catch {
+    // la auditoría no debe romper la operación principal
+  }
 }
 
 export function auditAction(req, res, next) {
@@ -58,7 +60,9 @@ export function auditAction(req, res, next) {
     if (modelName) {
       try {
         after = await prisma[modelName].findUnique({ where: { id: entityId } });
-      } catch (_) {}
+      } catch {
+        // el registro pudo borrarse; la auditoría no debe fallar por eso
+      }
     }
     const action = ACTION_MAP[method] || method;
     await auditLog(entity, entityId, action, before, after, userId);

@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'url';
-import { dirname, resolve, join } from 'path';
+import { dirname, resolve } from 'path';
 import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);

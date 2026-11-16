@@ -4,12 +4,22 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default [
-  { ignores: ['dist'] },
+  {
+    ignores: [
+      'dist',
+      'release',
+      'screenshots',
+      'backups',
+      'logs',
+      'server/node_modules',
+      'node_modules',
+    ],
+  },
   js.configs.recommended,
   reactHooks.configs.flat.recommended,
   reactRefresh.configs.vite,
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['src/**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 'latest',
       globals: globals.browser,
@@ -19,15 +29,45 @@ export default [
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': [
+        'error',
+        { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' },
+      ],
     },
   },
   {
-    files: ['scripts/**/*.{js,mjs}'],
+    files: ['server/**/*.{js,mjs}'],
     languageOptions: {
       ecmaVersion: 'latest',
       globals: globals.node,
-      parserOptions: { sourceType: 'module' },
+      parserOptions: {
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': [
+        'error',
+        { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' },
+      ],
+    },
+  },
+  {
+    files: [
+      'scripts/**/*.{js,mjs,cjs}',
+      'vite.config.js',
+      'postcss.config.js',
+      'tailwind.config.js',
+      'eslint.config.js',
+    ],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      globals: globals.node,
+      parserOptions: {
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
 ];
