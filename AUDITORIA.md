@@ -50,30 +50,30 @@ Estados: **CONFIRMADO** (se verificó en el código), **PARCIAL** (existe pero i
 
 | # | Hallazgo | Severidad | Estado | Archivo:línea | Arreglo propuesto |
 |---|---|---|---|---|---|
-| A1 | `PUT` y `DELETE /api/tables/state` usan `optionalAuth`: cualquiera en la LAN puede crear, pisar o borrar el carrito de cualquier mesa sin sesión | **Crítica** | CONFIRMADO | `server/src/routes/tables.js:10-11` | `authenticate` + `authorize('ADMIN','MANAGER','CASHIER','WAITER')`. El carrito es dato operativo, no público. |
-| A2 | `GET /api/products` y `/products/:id` son públicos y devuelven `inventoryItems` completo, con `unitCost` y `quantity` | **Alta** | CONFIRMADO | `server/src/routes/products.js:7,9`; `server/src/controllers/productController.js:34-43,49-55` | Proyección pública explícita (`select`) sin costos ni stock cuando no hay sesión; el detalle completo solo con `authenticate`. |
-| A3 | `GET /api/settings` y `/settings/:key` son públicos y devuelven **todos** los settings, incluido `business` (NIT, teléfono, dirección) y tasas | **Alta** | CONFIRMADO | `server/src/routes/settings.js:7-8`; `server/src/controllers/settingsController.js:21-43,46-71` | Lista blanca pública (`business` solo nombre/logo/moneda, `exchangeRate`, `exchangeRateBs`) y el resto solo autenticado. |
-| A4 | `GET /api/tables`, `/tables/:id` y `/tables/state` son públicos y exponen pedidos activos con ítems y carritos completos | **Media** | CONFIRMADO | `server/src/routes/tables.js:8-9,14-15`; `server/src/controllers/tableController.js:14-37,142-171` | `authenticate` para estado de mesas y carritos. Solo `GET /tables` (número y ocupado) podría quedar público si algún día hay menú QR. |
-| A5 | No existe menú público por QR: sin sesión, `App.jsx` muestra `LoginScreen`. Todo el `optionalAuth` es superficie de ataque sin uso | **Media** | CONFIRMADO | `src/App.jsx:25-26`; `server/src/routes/products.js:7,9,14`; `settings.js:7-8`; `tables.js:8-9,14-15` | Cerrar las rutas públicas ahora. Si más adelante se quiere menú QR, se abre una ruta dedicada con proyección mínima. |
-| A6 | `app.set('trust proxy', 1)` existe, pero está fijo. En Docker detrás de Nginx es correcto; en portable (sin proxy) confía en el primer `X-Forwarded-For` que mande el cliente y permite saltarse el rate limit | **Media** | PARCIAL | `server/src/index.js:69` | `TRUST_PROXY` por variable de entorno: `1` por defecto en Docker, `false` en portable, valor numérico o de subred admitido. |
-| A7 | `JWT_SECRET` se valida al arrancar, pero la lista negra no incluye el fallback del portable (`2arbolitos_cambia_este_secreto`) ni el de `server/.env.example` | **Alta** | PARCIAL | `server/src/index.js:73-78`; `scripts/pack-portable.js:448`; `server/.env.example:9` | Lista central de secretos prohibidos + longitud mínima (32). Eliminar el fallback de `start.bat` (mejor fallar que arrancar inseguro). Comparación también en minúsculas/trim. |
+| A1 | `PUT` y `DELETE /api/tables/state` usan `optionalAuth`: cualquiera en la LAN puede crear, pisar o borrar el carrito de cualquier mesa sin sesión | **Crítica** | CORREGIDO `2b83c6b` | `server/src/routes/tables.js:10-11` | `authenticate` + `authorize('ADMIN','MANAGER','CASHIER','WAITER')`. El carrito es dato operativo, no público. |
+| A2 | `GET /api/products` y `/products/:id` son públicos y devuelven `inventoryItems` completo, con `unitCost` y `quantity` | **Alta** | CORREGIDO `2b83c6b` | `server/src/routes/products.js:7,9`; `server/src/controllers/productController.js:34-43,49-55` | Proyección pública explícita (`select`) sin costos ni stock cuando no hay sesión; el detalle completo solo con `authenticate`. |
+| A3 | `GET /api/settings` y `/settings/:key` son públicos y devuelven **todos** los settings, incluido `business` (NIT, teléfono, dirección) y tasas | **Alta** | CORREGIDO `2b83c6b` | `server/src/routes/settings.js:7-8`; `server/src/controllers/settingsController.js:21-43,46-71` | Lista blanca pública (`business` solo nombre/logo/moneda, `exchangeRate`, `exchangeRateBs`) y el resto solo autenticado. |
+| A4 | `GET /api/tables`, `/tables/:id` y `/tables/state` son públicos y exponen pedidos activos con ítems y carritos completos | **Media** | CORREGIDO `2b83c6b` | `server/src/routes/tables.js:8-9,14-15`; `server/src/controllers/tableController.js:14-37,142-171` | `authenticate` para estado de mesas y carritos. Solo `GET /tables` (número y ocupado) podría quedar público si algún día hay menú QR. |
+| A5 | No existe menú público por QR: sin sesión, `App.jsx` muestra `LoginScreen`. Todo el `optionalAuth` es superficie de ataque sin uso | **Media** | CORREGIDO `2b83c6b` | `src/App.jsx:25-26`; `server/src/routes/products.js:7,9,14`; `settings.js:7-8`; `tables.js:8-9,14-15` | Cerrar las rutas públicas ahora. Si más adelante se quiere menú QR, se abre una ruta dedicada con proyección mínima. |
+| A6 | `app.set('trust proxy', 1)` existe, pero está fijo. En Docker detrás de Nginx es correcto; en portable (sin proxy) confía en el primer `X-Forwarded-For` que mande el cliente y permite saltarse el rate limit | **Media** | CORREGIDO `bb243a0` | `server/src/index.js:69` | `TRUST_PROXY` por variable de entorno: `1` por defecto en Docker, `false` en portable, valor numérico o de subred admitido. |
+| A7 | `JWT_SECRET` se valida al arrancar, pero la lista negra no incluye el fallback del portable (`2arbolitos_cambia_este_secreto`) ni el de `server/.env.example` | **Alta** | CORREGIDO `bb243a0` | `server/src/index.js:73-78`; `scripts/pack-portable.js:448`; `server/.env.example:9` | Lista central de secretos prohibidos + longitud mínima (32). Eliminar el fallback de `start.bat` (mejor fallar que arrancar inseguro). Comparación también en minúsculas/trim. |
 | A8 | `POST /api/auth/logout` no exige sesión | **Baja** | FALSO | `server/src/routes/auth.js:10` | No requiere cambio: solo borra la cookie del que llama; no toca datos ni sesiones ajenas. |
 | A9 | Helmet con `contentSecurityPolicy: false` | **Baja** | CONFIRMADO | `server/src/index.js:106-109` | Evaluar CSP en Fase 2 con `script-src 'self'`; requiere probar Vite/PWA y estilos inline del ticket. |
 | A10 | CORS permite `localhost`, `127.0.0.1`, `192.168.x` y `10.x`, pero no `172.16/12` (rango típico de Docker/WSL y de algunas LAN) | **Baja** | CONFIRMADO | `server/src/index.js:94-100` | Añadir `172.16-31.x` o, mejor, permitir `ALLOWED_ORIGINS` y mismo origen. |
 | A11 | Cualquier `/api/*` desconocido cae en el catch-all y devuelve `index.html` con 200 en vez de 404 JSON | **Baja** | CONFIRMADO | `server/src/index.js:222-224` | `app.use('/api', (req,res) => res.status(404).json(...))` antes del catch-all del SPA. |
-| A12 | `/api/health` existe pero no comprueba la base de datos: responde `ok` con MySQL caído | **Media** | CONFIRMADO | `server/src/routes/index.js:38-40` | Health real: `SELECT 1` con timeout corto; 503 si falla. |
+| A12 | `/api/health` existe pero no comprueba la base de datos: responde `ok` con MySQL caído | **Media** | CORREGIDO `bb243a0` | `server/src/routes/index.js:38-40` | Health real: `SELECT 1` con timeout corto; 503 si falla. |
 | A13 | Solo `auth` y `orders` usan zod. El resto de endpoints con body no valida nada | **Media** | CONFIRMADO | `server/src/routes/*.js`; `server/src/middleware/validate.js` | Zod en los endpoints de escritura de mayor riesgo: expenses, closures, customers, reservations, suppliers, inventory, inventory-movements, settings, products, tables, attendance. |
-| A14 | El rol `COOK` recibe 403 en `PUT /orders/:id/status`, pero `KitchenView` lo usa para avanzar PENDING → PREPARING → READY | **Alta** | CONFIRMADO | `server/src/routes/orders.js:14`; `src/components/KitchenView.jsx:47-50` | Incluir `COOK` en el `authorize` y restringir las transiciones permitidas por rol en el controlador. |
+| A14 | El rol `COOK` recibe 403 en `PUT /orders/:id/status`, pero `KitchenView` lo usa para avanzar PENDING → PREPARING → READY | **Alta** | CORREGIDO `198146f` | `server/src/routes/orders.js:14`; `src/components/KitchenView.jsx:47-50` | Incluir `COOK` en el `authorize` y restringir las transiciones permitidas por rol en el controlador. |
 
 ### 2.2 Datos, migraciones y arranque
 
 | # | Hallazgo | Severidad | Estado | Archivo:línea | Arreglo propuesto |
 |---|---|---|---|---|---|
-| B1 | El portable actualiza con `prisma db push --accept-data-loss` | **Crítica** | CONFIRMADO | `scripts/pack-portable.js:386` (también doc en `:9,297,619-621`) | `prisma migrate deploy` con baseline, igual que `docker-entrypoint.sh`. Nunca `--accept-data-loss` en una instalación con datos. |
-| B2 | El seed borra todas las tablas sin pedir confirmación | **Crítica** | CONFIRMADO | `server/prisma/seed.js:10-22` | Exigir `--force` o `ALLOW_SEED_WIPE=1`; si hay usuarios y no hay flag, abortar con mensaje claro. |
-| B3 | El seed no borra `customers`, `reservations`, `suppliers` ni `attendance`: no falla por FK (las relaciones son opcionales y Prisma hace `SetNull`), pero deja una base a medias —clientes y proveedores viejos, asistencias y reservas con referencias en `null`— | **Media** | CONFIRMADO | `server/prisma/seed.js:10-22`; `server/prisma/schema.prisma:341-358,379-390` | Con la protección de B2 el caso normal desaparece. Si se corre con `--force`, hacer un borrado completo y ordenado, o respaldar antes y avisar de que la base queda como nueva. |
-| B4 | `docker-entrypoint.sh` ignora el fallo de `prisma migrate deploy` y arranca igual | **Alta** | CONFIRMADO | `server/docker-entrypoint.sh:68-69` | Fallar el arranque (exit 1) si la migración falla. Arrancar con esquema viejo es peor que no arrancar. |
-| B5 | Usuarios del seed con contraseñas fijas (`admin123`, `waiter123`, `cook123`) y sin obligación de cambiarlas | **Alta** | CONFIRMADO | `server/prisma/seed.js:24-26,28-70` | `mustChangePassword` (aditivo, default `false`) + contraseña inicial aleatoria mostrada una vez por el instalador. Cambio de esquema seguro. |
+| B1 | El portable actualiza con `prisma db push --accept-data-loss` | **Crítica** | CORREGIDO `bb243a0` | `scripts/pack-portable.js:386` (también doc en `:9,297,619-621`) | `prisma migrate deploy` con baseline, igual que `docker-entrypoint.sh`. Nunca `--accept-data-loss` en una instalación con datos. |
+| B2 | El seed borra todas las tablas sin pedir confirmación | **Crítica** | CORREGIDO `d9ec4cc` | `server/prisma/seed.js:10-22` | Exigir `--force` o `ALLOW_SEED_WIPE=1`; si hay usuarios y no hay flag, abortar con mensaje claro. |
+| B3 | El seed no borra `customers`, `reservations`, `suppliers` ni `attendance`: no falla por FK (las relaciones son opcionales y Prisma hace `SetNull`), pero deja una base a medias —clientes y proveedores viejos, asistencias y reservas con referencias en `null`— | **Media** | CORREGIDO `d9ec4cc` | `server/prisma/seed.js:10-22`; `server/prisma/schema.prisma:341-358,379-390` | Con la protección de B2 el caso normal desaparece. Si se corre con `--force`, hacer un borrado completo y ordenado, o respaldar antes y avisar de que la base queda como nueva. |
+| B4 | `docker-entrypoint.sh` ignora el fallo de `prisma migrate deploy` y arranca igual | **Alta** | CORREGIDO `bb243a0` | `server/docker-entrypoint.sh:68-69` | Fallar el arranque (exit 1) si la migración falla. Arrancar con esquema viejo es peor que no arrancar. |
+| B5 | Usuarios del seed con contraseñas fijas (`admin123`, `waiter123`, `cook123`) y sin obligación de cambiarlas | **Alta** | CORREGIDO `d9ec4cc` | `server/prisma/seed.js:24-26,28-70` | `mustChangePassword` (aditivo, default `false`) + contraseña inicial aleatoria mostrada una vez por el instalador. Cambio de esquema seguro. |
 | B6 | El CLI de Prisma no está declarado como dependencia de runtime; entra al ZIP por ser peer opcional de `@prisma/client` | **Media** | CONFIRMADO | `server/package.json:18-34`; `server/package-lock.json` (`node_modules/prisma` sin `dev`) | Declararlo explícitamente (o fijar el flujo `--system-node` y verificar el binario en el ZIP). Evita que un cambio de npm rompa el instalador. |
 
 ### 2.3 Dinero
@@ -104,14 +104,14 @@ Estados: **CONFIRMADO** (se verificó en el código), **PARCIAL** (existe pero i
 | E2 | En la LAN por IP y HTTP el service worker no se registra (contexto no seguro), así que no hay offline ni instalación PWA en celulares | **Informativa** | CONFIRMADO | `dist/registerSW.js`; `vite.config.js:62-99` | Documentarlo en README. Para tener PWA real haría falta HTTPS (certificado local) o usar la app como web normal. |
 | E3 | ¿Falta `@config` en Tailwind 4 y por eso no se generan los colores? | — | **FALSO** | `src/index.css:2` | Presente. Verificado en el CSS compilado: existen `bg-primary`, `text-ink-muted`, `border-line` y `bg-ok-soft`. |
 | E4 | `autoprefixer` es redundante con Tailwind 4 (Lightning CSS ya prefija) | **Baja** | CONFIRMADO | `postcss.config.js:4` | Quitarlo y comprobar el CSS compilado. |
-| E5 | ESLint lintea `server/` con `globals.browser` | **Alta** (bloquea CI) | CONFIRMADO | `eslint.config.js:12-20` | Bloque separado para `server/**` y `scripts/**` con `globals.node`; arreglar después los errores reales que queden. |
+| E5 | ESLint lintea `server/` con `globals.browser` | **Alta** (bloquea CI) | CORREGIDO `7b3259f` | `eslint.config.js:12-20` | Bloque separado para `server/**` y `scripts/**` con `globals.node`; arreglar después los errores reales que queden. |
 | E6 | No hay CI de lint/build/tests; solo build de imágenes y ZIP portable | **Media** | CONFIRMADO | `.github/workflows/` (solo `docker-build.yml` y `portable-release.yml`) | `ci.yml` con `npm ci`, `npm run lint`, `npm run build` y `npm test`. |
 
 ### 2.6 Infraestructura y operación
 
 | # | Hallazgo | Severidad | Estado | Archivo:línea | Arreglo propuesto |
 |---|---|---|---|---|---|
-| F1 | El healthcheck del backend es TCP, no HTTP | **Media** | CONFIRMADO | `server/Dockerfile:21-22` | `wget`/`node fetch` contra `http://127.0.0.1:3002/api/health`, con el health ya validando la DB (A12). |
+| F1 | El healthcheck del backend es TCP, no HTTP | **Media** | CORREGIDO `bb243a0` | `server/Dockerfile:21-22` | `wget`/`node fetch` contra `http://127.0.0.1:3002/api/health`, con el health ya validando la DB (A12). |
 | F2 | Los respaldos no funcionan en Docker ni en portable: `mysqldump` no está en la imagen y `scheduler.js` busca `scripts/backup.js`, que no se copia | **Alta** | CONFIRMADO | `scripts/backup.js:13`; `server/src/scheduler.js:20-24`; `server/Dockerfile:1-11` | Respaldo dentro del contenedor con cliente MySQL o `mysqldump` instalado; en portable, ruta al `mysqldump` del sistema/MariaDB embebida. |
 | F3 | El actualizador del panel descarga y aplica el ZIP sin verificar SHA256 | **Alta** | CONFIRMADO | `scripts/lib/Ops.ps1:883-890` | Publicar `.sha256` en la release y verificarlo antes de `Expand-Archive`. |
 | F4 | `findFreePort` cambia el puerto en silencio si 3002 está ocupado; el healthcheck y el QR siguen asumiendo 3002 | **Media** | CONFIRMADO | `server/src/index.js:48-58,66` | En producción, fallar con mensaje claro si el puerto está ocupado (o fijar `STRICT_PORT=1`). |
@@ -352,3 +352,67 @@ que documentarlo en `NOTICE.md`. Queda para la Fase 3, con tu confirmación.
 
 Con eso empiezo por `eslint.config.js` (para que el lint sea una señal real), luego seguridad,
 luego datos, luego dinero, y cierro con tests y CI. No haré push ni tags.
+
+---
+
+## 9. Estado de la Fase 2
+
+### 9.1 Bloque (a) — Lint (cerrado)
+
+| Comprobación | Resultado |
+|---|---|
+| `npm run lint` | PASA, 0 errores y 0 warnings |
+| `npm run build` | PASA (bundle 539 kB; el aviso de tamaño es F6, pendiente) |
+
+Commit `7b3259f`: globals de Node para `server/**`, `scripts/**` y `vite.config.js`; corrección de
+`no-unused-vars`, `no-empty`, `react-hooks/refs` y `set-state-in-effect` sin silenciar reglas, salvo
+dos excepciones justificadas con comentario (carga asíncrona en providers y QR en `SettingsMovil`).
+
+### 9.2 Bloque (b) — Seguridad y datos (cerrado, pendiente de OK)
+
+| Hallazgo | Commit | Qué cambió |
+|---|---|---|
+| A1, A4 | `2b83c6b` | `/tables/state` y `/tables` con `authenticate`; escritura del carrito limitada a ADMIN/MANAGER/CASHIER/WAITER |
+| A2, A3, A5 | `2b83c6b` | `/products`, `/categories`, `/settings` cerrados con `authenticate`; `optionalAuth` eliminado del middleware y de todas las rutas |
+| A6 | `bb243a0` | `TRUST_PROXY` configurable: `1` si `DOCKER=true`, `false` en portable/dev, admite número o subred |
+| A7 | `bb243a0` | Lista negra central de secretos (incluye fallbacks del portable y de los `.env.example`), comparación en minúsculas/trim y mínimo 32 caracteres; en producción el arranque falla. `start.bat` ya no cae a un secreto fijo y `docker-compose.yml` exige `JWT_SECRET` |
+| A12 | `bb243a0` | `/api/health` hace `SELECT 1` y responde 503 si la base no responde |
+| A14 | `198146f` | `COOK` puede avanzar PENDING → PREPARING → READY y cancelar; el controlador limita sus transiciones |
+| B1 | `bb243a0` | Portable usa `ptool.cjs migrate`: crea la base, aplica `migrate deploy` con baseline de `20240101000000_init` y ejecuta el marcado de claves por defecto. Se eliminó `db push --accept-data-loss` |
+| B2, B3 | `d9ec4cc` | Seed exige `--force`/`ALLOW_SEED_WIPE=1` si hay usuarios, pedidos o gastos; con `--force` borra en orden todas las tablas, incluidas customers, suppliers, reservations, attendance, closures, expenses y modificadores |
+| B4 | `bb243a0` | `docker-entrypoint.sh` corta el arranque si `migrate deploy` falla (`set -e`) |
+| B5 | `d9ec4cc` | Migración aditiva `mustChangePassword BOOLEAN NOT NULL DEFAULT false`; seed con contraseña aleatoria mostrada una vez y `mustChangePassword=true`; `PUT /api/auth/password`; guard 403 en `authenticate`; pantalla obligatoria de cambio; `server/scripts/flag-default-passwords.js` marca solo cuentas que aún usan `admin123`, `waiter123` o `cook123` |
+| E5 | `7b3259f` | ESLint separado por entorno (ver 9.1) |
+| F1 | `bb243a0` | Healthcheck del contenedor por HTTP contra `/api/health` |
+
+Notas de implementación del bloque (b):
+
+- La migración `20261116000000_must_change_password` no toca filas existentes. El marcado de
+  contraseñas conocidas corre al arrancar (Docker y portable) y no cambia ninguna clave.
+- El frontend monta `Settings/Menu/Orders/Finance` solo con sesión activa y sin cambio de contraseña
+  pendiente (`src/Root.jsx`), así que no hay llamadas protegidas antes del login.
+- `docker compose up` ahora exige `JWT_SECRET` en `.env` (`${JWT_SECRET:?...}`). Es intencional:
+  mejor un error claro que arrancar con un secreto público.
+
+### 9.3 Pendientes acordados
+
+| Bloque | Hallazgos |
+|---|---|
+| (c) Dinero | C1, C2, C3, C4, C5, C6 + Vitest |
+| (d) Tooling y PWA | E1, E2, E4, E6, F3, F4, NOTICE/PRIVACY |
+| Extras aprobados | A10, A11, A13, D1, D3, F2 |
+| Solo actualización de dependencias | zod ≥ 4.6.6; revisar `proxy-addr`/`body-parser` con parche menor de express |
+| No por ahora | A9 (CSP), F5 (resto de dependencias), F6 (code-splitting) |
+| Fase 3 | Instalador `.exe` sin Docker ni MySQL externo (recomendación: MariaDB portable como servicio) |
+
+### 9.4 Verificación del bloque (b)
+
+| Comprobación | Resultado |
+|---|---|
+| `npm run lint` | PASA, 0 errores y 0 warnings |
+| `npm run build` | PASA (539.36 kB, aviso de F6) |
+| `npx prisma validate` | PASA |
+| `npx prisma generate` | Cliente regenerado con `mustChangePassword` |
+| `node --check` en `seed.js`, `flag-default-passwords.js`, `orderController.js` | PASA |
+| Tests | No hay framework todavía; Vitest entra en el bloque (c) |
+| Prueba HTTP en vivo | No ejecutada: Docker Desktop estaba apagado |
