@@ -15,6 +15,12 @@ function getToken(req) {
   return cookies[TOKEN_COOKIE] || null;
 }
 
+const PASSWORD_CHANGE_ALLOWED_PATHS = new Set([
+  '/api/auth/password',
+  '/api/auth/logout',
+  '/api/auth/verify',
+]);
+
 export const authenticate = (req, res, next) => {
   try {
     const token = getToken(req);
@@ -26,6 +32,14 @@ export const authenticate = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = decoded;
+
+    const path = req.originalUrl.split('?')[0];
+    if (decoded.mustChangePassword && !PASSWORD_CHANGE_ALLOWED_PATHS.has(path)) {
+      return res.status(403).json({
+        error: 'Debes cambiar la contraseña antes de continuar',
+        code: 'MUST_CHANGE_PASSWORD',
+      });
+    }
 
     next();
   } catch (error) {
@@ -48,19 +62,4 @@ export const authorize = (...roles) => {
 
     next();
   };
-};
-
-export const optionalAuth = (req, res, next) => {
-  try {
-    const token = getToken(req);
-
-    if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded;
-    }
-  } catch {
-    // Token inválido pero es opcional
-  }
-
-  next();
 };

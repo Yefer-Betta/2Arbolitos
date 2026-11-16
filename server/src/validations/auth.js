@@ -11,3 +11,8 @@ export const registerSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   role: z.enum(['ADMIN', 'MANAGER', 'CASHIER', 'WAITER', 'COOK']).optional(),
 });
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Contraseña actual requerida'),
+  newPassword: z.string().min(8, 'La nueva contraseña debe tener al menos 8 caracteres'),
+});

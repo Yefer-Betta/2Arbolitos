@@ -27,7 +27,7 @@ export const authController = {
     }
 
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, role: user.role, mustChangePassword: user.mustChangePassword },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -43,6 +43,7 @@ export const authController = {
         name: user.name,
         role: user.role,
         permissions,
+        mustChangePassword: user.mustChangePassword,
       },
     });
   }),
@@ -91,7 +92,7 @@ export const authController = {
   verifyToken: asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, username: true, name: true, role: true },
+      select: { id: true, username: true, name: true, role: true, mustChangePassword: true },
     });
 
     if (!user) {
@@ -101,6 +102,49 @@ export const authController = {
     const permissions = await getUserPermissions(user.role);
 
     res.json({ user: { ...user, permissions } });
+  }),
+
+  changePassword: asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) {
+      throw new AppError('Usuario no encontrado', 404);
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      throw new AppError('La contraseña actual no es correcta', 400);
+    }
+    if (currentPassword === newPassword) {
+      throw new AppError('La nueva contraseña debe ser distinta a la actual', 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword, mustChangePassword: false },
+    });
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, mustChangePassword: false },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+    res.cookie(TOKEN_COOKIE, token, cookieOptions());
+
+    const permissions = await getUserPermissions(user.role);
+
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        permissions,
+        mustChangePassword: false,
+      },
+    });
   }),
 
   getUsers: asyncHandler(async (req, res) => {
@@ -130,6 +174,7 @@ export const authController = {
 
     if (password) {
       data.password = await bcrypt.hash(password, 10);
+      data.mustChangePassword = true;
     }
 
     const user = await prisma.user.update({

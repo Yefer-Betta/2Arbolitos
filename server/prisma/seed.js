@@ -1,12 +1,47 @@
 import 'dotenv/config';
+import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+function randomPassword() {
+  return crypto.randomBytes(9).toString('base64url');
+}
+
+async function assertCanWipe() {
+  const [users, orders, expenses] = await Promise.all([
+    prisma.user.count(),
+    prisma.order.count(),
+    prisma.expense.count(),
+  ]);
+
+  if (users === 0 && orders === 0 && expenses === 0) return;
+
+  const forced = process.argv.includes('--force') || process.env.ALLOW_SEED_WIPE === '1';
+  if (!forced) {
+    console.error('\n❌ El seed borra TODOS los datos y la base no está vacía.');
+    console.error(`   Usuarios: ${users} · Pedidos: ${orders} · Gastos: ${expenses}`);
+    console.error('   Si de verdad quieres empezar de cero:');
+    console.error('     npm run db:seed -- --force');
+    console.error('   o define ALLOW_SEED_WIPE=1 en el entorno.\n');
+    process.exit(1);
+  }
+
+  console.warn(`\n⚠️  ALLOW_SEED_WIPE/--force activo: se borrarán ${users} usuarios, ${orders} pedidos y ${expenses} gastos.\n`);
+}
+
 async function main() {
   console.log('🌱 Starting seed...');
+  await assertCanWipe();
 
+  await prisma.attendance.deleteMany();
+  await prisma.purchaseOrder.deleteMany();
+  await prisma.reservation.deleteMany();
+  await prisma.customer.deleteMany();
+  await prisma.supplier.deleteMany();
+  await prisma.closure.deleteMany();
+  await prisma.expense.deleteMany();
   await prisma.inventoryMovement.deleteMany();
   await prisma.inventoryItem.deleteMany();
   await prisma.auditLog.deleteMany();
@@ -15,60 +50,43 @@ async function main() {
   await prisma.payment.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
+  await prisma.tableState.deleteMany();
+  await prisma.productModifierGroup.deleteMany();
+  await prisma.modifier.deleteMany();
+  await prisma.modifierGroup.deleteMany();
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();
   await prisma.table.deleteMany();
   await prisma.user.deleteMany();
   await prisma.settings.deleteMany();
 
-  const adminPassword = await bcrypt.hash('admin123', 10);
-  const waiterPassword = await bcrypt.hash('waiter123', 10);
-  const cookPassword = await bcrypt.hash('cook123', 10);
+  const initialUsers = [
+    { username: 'admin', name: 'Administrador', role: 'ADMIN' },
+    { username: 'gerente', name: 'Gerente', role: 'MANAGER' },
+    { username: 'cajero', name: 'Cajero', role: 'CASHIER' },
+    { username: 'mesero', name: 'Mesero', role: 'WAITER' },
+    { username: 'cocina', name: 'Cocinero', role: 'COOK' },
+  ];
 
-  await prisma.user.create({
-    data: {
-      username: 'admin',
-      password: adminPassword,
-      name: 'Administrador',
-      role: 'ADMIN',
-    },
-  });
+  const credentials = [];
+  for (const user of initialUsers) {
+    const password = user.role === 'ADMIN' && process.env.SEED_ADMIN_PASSWORD
+      ? process.env.SEED_ADMIN_PASSWORD
+      : randomPassword();
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  await prisma.user.create({
-    data: {
-      username: 'gerente',
-      password: waiterPassword,
-      name: 'Gerente',
-      role: 'MANAGER',
-    },
-  });
+    await prisma.user.create({
+      data: {
+        username: user.username,
+        password: hashedPassword,
+        name: user.name,
+        role: user.role,
+        mustChangePassword: true,
+      },
+    });
 
-  await prisma.user.create({
-    data: {
-      username: 'cajero',
-      password: waiterPassword,
-      name: 'Cajero',
-      role: 'CASHIER',
-    },
-  });
-
-  await prisma.user.create({
-    data: {
-      username: 'mesero',
-      password: waiterPassword,
-      name: 'Mesero',
-      role: 'WAITER',
-    },
-  });
-
-  await prisma.user.create({
-    data: {
-      username: 'cocina',
-      password: cookPassword,
-      name: 'Cocinero',
-      role: 'COOK',
-    },
-  });
+    credentials.push({ ...user, password });
+  }
 
   console.log('✅ Users created');
 
@@ -272,16 +290,18 @@ async function main() {
 
   console.log('✅ Settings created');
 
+  const credentialLines = credentials
+    .map(c => `║  - ${c.username.padEnd(10)} / ${c.password.padEnd(16)} (${c.role})`)
+    .join('\n');
+
   console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                    SEED COMPLETO                      ║
 ╠═══════════════════════════════════════════════════════╣
-║  USUARIOS CREADOS:                                    ║
-║  - admin / admin123 (ADMIN)                           ║
-║  - gerente / waiter123 (MANAGER)                      ║
-║  - cajero / waiter123 (CASHIER)                       ║
-║  - mesero / waiter123 (WAITER)                        ║
-║  - cocina / cook123 (COOK)                            ║
+║  CONTRASEÑAS INICIALES (se muestran UNA sola vez):    ║
+${credentialLines}
+║                                                       ║
+║  Debes cambiarlas en el primer inicio de sesión.       ║
 ╚═══════════════════════════════════════════════════════╝
   `);
 }

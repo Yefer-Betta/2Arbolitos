@@ -80,10 +80,17 @@ export function UserProvider({ children }) {
     }, []);
 
     useEffect(() => {
-        // La verificación de sesión y la carga de usuarios son asíncronas:
-        // el setState ocurre tras el await, no durante el commit del efecto.
+        // La verificación de sesión es asíncrona: el setState ocurre tras el await.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         checkAuth();
+    }, [checkAuth]);
+
+    // Solo se piden datos protegidos cuando hay sesión activa.
+    useEffect(() => {
+        if (!currentUser) return undefined;
+
+        // Carga asíncrona: el setState ocurre tras el await de los fetch.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadUsers();
 
         const syncInterval = setInterval(() => {
@@ -102,7 +109,7 @@ export function UserProvider({ children }) {
             clearInterval(syncInterval);
             unsubscribe();
         };
-    }, [checkAuth, loadUsers]);
+    }, [currentUser, loadUsers]);
 
     const login = async (username, password) => {
         if (syncManager.isOnline) {
@@ -115,10 +122,12 @@ export function UserProvider({ children }) {
                 if (response.user) {
                     setCurrentUser(response.user);
                     sessionStorage.setItem('currentUser', JSON.stringify(response.user));
-                    try {
-                        await apiPost('/attendance/check-in', {});
-                    } catch {
-                        // ignore
+                    if (!response.user.mustChangePassword) {
+                        try {
+                            await apiPost('/attendance/check-in', {});
+                        } catch {
+                            // ignore
+                        }
                     }
                     return { success: true, user: response.user };
                 }
@@ -129,6 +138,35 @@ export function UserProvider({ children }) {
             }
         } else {
             return { success: false, error: 'No hay conexión. El login requiere internet.' };
+        }
+    };
+
+    const changePassword = async (currentPassword, newPassword) => {
+        if (!syncManager.isOnline) {
+            return { success: false, error: 'Necesitas conexión con el servidor para cambiar la contraseña.' };
+        }
+        try {
+            const response = await syncManager.fetchFromAPI('/auth/password', {
+                method: 'PUT',
+                body: JSON.stringify({ currentPassword, newPassword }),
+            });
+
+            if (!response?.user) {
+                return { success: false, error: 'Respuesta inválida del servidor' };
+            }
+
+            setCurrentUser(response.user);
+            sessionStorage.setItem('currentUser', JSON.stringify(response.user));
+
+            try {
+                await apiPost('/attendance/check-in', {});
+            } catch {
+                // ignore
+            }
+
+            return { success: true, user: response.user };
+        } catch (error) {
+            return { success: false, error: error.message };
         }
     };
 
@@ -191,6 +229,7 @@ export function UserProvider({ children }) {
         inactiveUsers,
         login,
         logout,
+        changePassword,
         addUser,
         updateUser,
         deleteUser,

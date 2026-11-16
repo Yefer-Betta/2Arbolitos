@@ -9,6 +9,7 @@ import { Finance } from './components/Finance';
 import Escandallo from './components/Escandallo';
 import { useUser } from './context/UserContext';
 import { LoginScreen } from './components/LoginScreen';
+import { ChangePasswordScreen } from './components/ChangePasswordScreen';
 import { UserManager } from './context/UserManager';
 import { AdminPanel } from './components/AdminPanel';
 import { AuditViewer } from './components/AuditViewer';
@@ -20,10 +21,14 @@ import { allTabs } from './lib/tabs';
 
 
 export function App() {
-  const { isAuthenticated } = useUser();
+  const { isAuthenticated, currentUser } = useUser();
 
   if (!isAuthenticated) {
     return <LoginScreen />;
+  }
+
+  if (currentUser?.mustChangePassword) {
+    return <ChangePasswordScreen />;
   }
 
   return <MainApp />;
