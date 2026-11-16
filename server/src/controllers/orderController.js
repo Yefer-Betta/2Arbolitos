@@ -350,13 +350,34 @@ export const orderController = {
     const { status } = req.body;
 
     const validStatuses = ['PENDING', 'PREPARING', 'READY', 'SERVED', 'CANCELLED'];
-    
+
     if (!validStatuses.includes(status)) {
       throw new AppError('Estado inválido', 400);
     }
 
+    const current = await prisma.order.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!current) {
+      throw new AppError('Pedido no encontrado', 404);
+    }
+
+    // La cocina solo avanza la preparación y puede cancelar lo que aún no salió.
+    if (req.user?.role === 'COOK') {
+      const cookTransitions = {
+        PENDING: ['PREPARING', 'CANCELLED'],
+        PREPARING: ['READY', 'CANCELLED'],
+        READY: ['CANCELLED'],
+      };
+      const allowed = cookTransitions[current.status] || [];
+      if (!allowed.includes(status)) {
+        throw new AppError('La cocina no puede aplicar ese cambio de estado', 403);
+      }
+    }
+
     const data = { status };
-    
+
     if (status === 'SERVED') {
       data.completedAt = new Date();
     }
