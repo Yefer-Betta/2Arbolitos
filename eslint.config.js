@@ -54,7 +54,9 @@ export default [
   {
     files: [
       'scripts/**/*.{js,mjs,cjs}',
+      'tests/**/*.js',
       'vite.config.js',
+      'vitest.config.js',
       'postcss.config.js',
       'tailwind.config.js',
       'eslint.config.js',

@@ -10,6 +10,8 @@
     "dev:full": "concurrently -n vite,api -c cyan,magenta \"npm run dev\" \"npm run api\"",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "vite preview --host",
     "start": "node scripts/cli.js",
     "postinstall": "node -e \"console.log('\\n  Para iniciar: npm start\\n  O abre: iniciar.ps1 (clic derecho - PowerShell)\\n')\"",
@@ -51,6 +53,7 @@
     "tailwindcss": "^4.1.18",
     "to-ico": "^1.1.5",
     "vite": "^7.3.1",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^5.1.0"
   }
 }
