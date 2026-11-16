@@ -11,6 +11,10 @@ RUN npx prisma generate
 COPY server/src ./src
 COPY server/scripts ./scripts
 
+# El backend importa server/src/shared/money.js. En local es un re-export a la
+# raíz; dentro de la imagen se reemplaza por el módulo real.
+COPY shared/money.js ./src/shared/money.js
+
 # Avisos legales (la MIT exige incluir el copyright en las copias distribuidas).
 COPY LICENSE NOTICE.md ./
 

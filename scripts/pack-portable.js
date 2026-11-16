@@ -196,6 +196,17 @@ async function copyDist(staging) {
   await fsp.cp(from, path.join(staging, 'dist'), { recursive: true });
 }
 
+/**
+ * El backend portable vive en staging/server y su re-export
+ * server/src/shared/money.js apunta a staging/shared/money.js.
+ */
+async function copyShared(staging) {
+  const from = path.join(ROOT, 'shared');
+  if (!fs.existsSync(from)) fail('shared/ no existe (helper de dinero).');
+  log('Copiando shared/ ...');
+  await fsp.cp(from, path.join(staging, 'shared'), { recursive: true });
+}
+
 /* ------------------------------------------------------------------ */
 /* 3a. Version visible para el panel (Get-AppVersion)                  */
 /* ------------------------------------------------------------------ */
@@ -743,6 +754,7 @@ async function main() {
   await preparePortableNode(staging);
   await copyDist(staging);
   await copyServer(staging);
+  await copyShared(staging);
   await copyPanel(staging);
   await copyLegal(staging);
   await writeVersionFiles(staging);

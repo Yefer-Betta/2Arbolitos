@@ -1,4 +1,5 @@
 // Utilidades de entrada y formato de montos por moneda (COP, USD, Bs.).
+import { amountToCop as moneyToCop } from './money.js';
 
 /** Deja solo los dígitos (COP) o dígitos + un punto decimal (USD/Bs.). */
 export function cleanAmount(value, currency) {
@@ -28,8 +29,7 @@ export function formatAmount(raw, currency) {
 
 /** Convierte el monto de un pago a COP según su método (USD/Bs. usan la tasa). */
 export function amountToCop(amount, method, exchangeRate, exchangeRateBs) {
-  const amt = parseFloat(amount) || 0;
-  if (method === 'cash_usd') return amt * (exchangeRate || 4000);
-  if (method === 'cash_bs') return amt * (exchangeRateBs || 40);
-  return amt;
+  const value = String(method || '').toLowerCase();
+  const currency = value === 'cash_usd' ? 'USD' : value === 'cash_bs' ? 'Bs.' : 'COP';
+  return moneyToCop(amount, currency, exchangeRate, exchangeRateBs);
 }

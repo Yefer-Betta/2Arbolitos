@@ -18,6 +18,10 @@ COPY --from=server-deps /app/server ./server
 COPY server/prisma ./server/prisma
 COPY server/src ./server/src
 
+# server/src/shared/money.js re-exporta ../../../shared/money.js desde
+# /app/server/src/shared, es decir /app/shared.
+COPY shared ./shared
+
 COPY --from=frontend-builder /app/dist ./dist
 
 # Avisos legales: la MIT exige incluir el copyright en las copias distribuidas.
