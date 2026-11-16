@@ -384,7 +384,7 @@ export function POS({ tableId, onBack }) {
         setShowRecipe(false);
     };
 
-    const handleFinalizeSale = () => {
+    const handleFinalizeSale = async () => {
         const getOrderType = () => {
             if (!tableId || tableId.startsWith('mesa-')) return 'mesa';
             if (tableId === 'para-llevar') return 'para-llevar';
@@ -416,19 +416,29 @@ export function POS({ tableId, onBack }) {
             };
         });
 
+        // Se envía un solo modo de descuento; el servidor lo valida y recalcula.
+        const discountInputValue = discountFinalPrice && parseFloat(discountFinalPrice) > 0
+            ? discountData.discountValue
+            : 0;
+        const discountInputPercent = discountInputValue <= 0 && discountPercent && parseFloat(discountPercent) > 0
+            ? parseFloat(discountPercent)
+            : 0;
+
         const orderData = {
             tableId: tableId || null,
             items: cart.map(item => ({ ...item, notes: itemNotes[item.product?.id || item.id] || null })),
             totalCop: totals.cop,
             totalUsd: totals.usd,
+            subtotalCop: discountData.originalCop,
             exchangeRateSnapshot: exchangeRate,
             exchangeRateBsSnapshot: exchangeRateBs,
             date: new Date().toISOString(),
             orderType: getOrderType(),
             originalPriceCop: discountData.originalCop,
             originalPriceUsd: discountData.originalUsd,
-            discountValue: discountData.discountValue,
-            discountPercent: discountData.discountPercent,
+            discountValue: discountInputValue,
+            discountPercent: discountInputPercent,
+            discountMode: discountInputValue > 0 ? 'value' : discountInputPercent > 0 ? 'percent' : undefined,
             payments: splitsPayload,
             customerId: selectedCustomer?.id || null,
             deliveryAddress: tableId?.startsWith('domicilio') ? (deliveryAddressInput || selectedCustomer?.address || null) : (selectedCustomer?.address || null),
@@ -436,9 +446,15 @@ export function POS({ tableId, onBack }) {
             deliveryCost: tableId?.startsWith('domicilio') ? deliveryCostNum : 0,
         };
 
-        addOrder(orderData);
+        // Se muestra el ticket de inmediato y se reemplaza con los totales que
+        // devuelve el servidor (fuente de verdad) cuando responde.
         setLastOrder(orderData);
         setShowRecipe(true);
+
+        const created = await addOrder(orderData);
+        if (created && !created.offline && created.id) {
+            setLastOrder(created);
+        }
     };
 
     const closeCheckout = () => {

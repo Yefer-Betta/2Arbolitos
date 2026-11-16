@@ -11,19 +11,29 @@ const paymentSchema = z.object({
 const orderItemSchema = z.object({
   productId: z.string().min(1),
   quantity: z.number().int().positive(),
-  unitPrice: z.number().positive(),
+  // El servidor recalcula el precio desde la BD; se acepta por compatibilidad
+  // con PWAs antiguas, pero no se usa.
+  unitPrice: z.number().nonnegative().optional(),
   notes: z.string().optional(),
   modifiers: z.any().optional(),
 });
 
+const orderTypeSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim().toUpperCase().replace(/[\s-]+/g, '_') : value),
+  z.enum(['MESA', 'PARA_LLEVAR', 'DOMICILIO'])
+);
+
 export const createOrderSchema = z.object({
   tableId: z.string().optional().nullable(),
-  orderType: z.enum(['MESA', 'PARA_LLEVAR', 'DOMICILIO']).optional(),
+  orderType: orderTypeSchema.optional(),
   items: z.array(orderItemSchema).min(1, 'El pedido debe tener al menos un producto'),
   exchangeRate: z.number().positive().optional(),
   exchangeRateBsSnapshot: z.number().positive().optional(),
   discountValue: z.number().min(0).optional(),
   discountPercent: z.number().min(0).max(100).optional(),
+  discountMode: z.enum(['value', 'percent']).optional(),
+  tipValue: z.number().min(0).optional(),
+  tipPercent: z.number().min(0).max(100).optional(),
   notes: z.string().optional(),
   payments: z.array(paymentSchema).optional(),
   customerId: z.string().optional().nullable(),

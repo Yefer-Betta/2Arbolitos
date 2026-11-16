@@ -30,16 +30,20 @@ export function Ticket({ order, business, orderType }) {
             </div>
 
             <div className="space-y-1 mb-3 pb-3 border-b border-dashed border-gray-300">
-                {order.items?.map((item, i) => (
-                    <div key={i} className="flex justify-between text-xs">
-                        <span className="truncate max-w-[50%]">{item.quantity} x {item.product?.name || item.name}</span>
-                        <span>
-                            {item.product?.isUsd
-                                ? `$${(item.product.price * item.quantity).toFixed(2)}`
-                                : `$${((item.product?.price || item.price) * item.quantity).toLocaleString()}`}
-                        </span>
-                    </div>
-                ))}
+                {order.items?.map((item, i) => {
+                    const unitPrice = item.unitPrice ?? item.product?.price ?? item.price ?? 0;
+                    const isUsd = item.product?.isUsd || item.currency === 'USD';
+                    return (
+                        <div key={i} className="flex justify-between text-xs">
+                            <span className="truncate max-w-[50%]">{item.quantity} x {item.product?.name || item.name}</span>
+                            <span>
+                                {isUsd
+                                    ? `$${(unitPrice * item.quantity).toFixed(2)}`
+                                    : `$${(unitPrice * item.quantity).toLocaleString()}`}
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
 
             <div className="space-y-1 text-xs">
@@ -47,10 +51,10 @@ export function Ticket({ order, business, orderType }) {
                     <>
                         <div className="flex justify-between text-gray-500">
                             <span>Subtotal:</span>
-                            <span>${order.originalPriceCop?.toLocaleString()}</span>
+                            <span>${(order.subtotalCop ?? order.originalPriceCop)?.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-red-500 font-bold">
-                            <span>Desc ({order.discountPercent?.toFixed(1)}%):</span>
+                            <span>Desc{order.discountPercent > 0 ? ` (${order.discountPercent.toFixed(1)}%)` : ''}:</span>
                             <span>-${order.discountValue?.toLocaleString()}</span>
                         </div>
                     </>

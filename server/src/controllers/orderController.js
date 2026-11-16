@@ -1,6 +1,11 @@
 import prisma from '../config/database.js';
 import { notifySSEClients } from '../sse.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
+import {
+  buildOrderPayments,
+  priceOrderItems,
+  resolveOrderType,
+} from '../lib/orderPricing.js';
 
 function parseLocalDate(value) {
   const parts = String(value).split('-').map(Number);
@@ -8,6 +13,22 @@ function parseLocalDate(value) {
     return new Date(parts[0], parts[1] - 1, parts[2]);
   }
   return new Date(value);
+}
+
+function collectModifierIds(items = []) {
+  const ids = new Set();
+  for (const item of items) {
+    if (!Array.isArray(item?.modifiers)) continue;
+    for (const modifier of item.modifiers) {
+      const id = typeof modifier === 'string' ? modifier : modifier?.id;
+      if (id) ids.add(id);
+    }
+  }
+  return [...ids];
+}
+
+function indexById(records = []) {
+  return new Map(records.map((record) => [record.id, record]));
 }
 
 export const orderController = {
@@ -115,11 +136,29 @@ export const orderController = {
   }),
 
   createOrder: asyncHandler(async (req, res) => {
-    const { tableId, orderType, items, exchangeRate, exchangeRateBsSnapshot, discountValue, discountPercent, notes, payments, customerId, deliveryAddress, deliveryPhone, deliveryCost, clientOrderId } = req.body;
-    
+    const {
+      tableId,
+      orderType,
+      items,
+      exchangeRate,
+      exchangeRateBsSnapshot,
+      discountValue,
+      discountPercent,
+      discountMode,
+      notes,
+      payments,
+      customerId,
+      deliveryAddress,
+      deliveryPhone,
+      deliveryCost,
+      clientOrderId,
+      tipValue,
+      tipPercent,
+    } = req.body;
+
     const userId = req.user?.id;
 
-    if (!items || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       throw new AppError('El pedido debe tener al menos un producto', 400);
     }
 
@@ -143,9 +182,6 @@ export const orderController = {
         return res.status(201).json(existing);
       }
     }
-
-    const rate = exchangeRate || 4000;
-    const rateBs = exchangeRateBsSnapshot || 40;
 
     // Validate tableId early
     let dbTableId = tableId;
@@ -181,153 +217,185 @@ export const orderController = {
       }
     }
 
-    // Wrap all DB writes in a single transaction
-    const { order } = await prisma.$transaction(async (tx) => {
-      let totalCop = 0;
-      let totalUsd = 0;
+    let order;
+    try {
+      ({ order } = await prisma.$transaction(async (tx) => {
+        const productIds = [...new Set(items.map((item) => item?.productId).filter(Boolean))];
+        const modifierIds = collectModifierIds(items);
 
-      const orderItems = [];
-      for (const item of items) {
-        const price = item.unitPrice || 0;
-        const unitPrice = price;
-        const totalPrice = unitPrice * item.quantity;
+        const [products, modifiers, productGroups] = await Promise.all([
+          productIds.length
+            ? tx.product.findMany({ where: { id: { in: productIds } } })
+            : Promise.resolve([]),
+          modifierIds.length
+            ? tx.modifier.findMany({ where: { id: { in: modifierIds } } })
+            : Promise.resolve([]),
+          productIds.length
+            ? tx.productModifierGroup.findMany({ where: { productId: { in: productIds } } })
+            : Promise.resolve([]),
+        ]);
 
-        totalCop += totalPrice;
-        totalUsd += totalPrice / rate;
-
-        let productId = item.productId;
-        
-        if (productId) {
-          const existing = await tx.product.findUnique({ where: { id: productId } });
-          if (!existing) {
-            throw new Error(`Producto con ID ${productId} no encontrado`);
+        const allowedGroupsByProduct = new Map();
+        for (const group of productGroups) {
+          if (!allowedGroupsByProduct.has(group.productId)) {
+            allowedGroupsByProduct.set(group.productId, new Set());
           }
+          allowedGroupsByProduct.get(group.productId).add(group.groupId);
         }
 
-        orderItems.push({
-          productId: productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice,
-          notes: item.notes,
-          modifiers: item.modifiers || null,
+        // El servidor ignora unitPrice/totalPrice del cliente y recalcula todo.
+        const totals = priceOrderItems({
+          items,
+          productsById: indexById(products),
+          modifiersById: indexById(modifiers),
+          allowedGroupsByProduct,
+          exchangeRate,
+          exchangeRateBs: exchangeRateBsSnapshot,
+          discountValue,
+          discountPercent,
+          discountMode,
+          deliveryCost,
+          tipValue,
+          tipPercent,
         });
-      }
 
-      const discount = discountPercent > 0 ? discountPercent : 0;
-      const deliveryCop = Number(deliveryCost) || 0;
-      const subtotalCop = discount > 0
-        ? totalCop - (totalCop * discount / 100)
-        : totalCop;
-      const subtotalUsd = discount > 0
-        ? totalUsd - (totalUsd * discount / 100)
-        : totalUsd;
-      // El costo de envío (domicilio) se suma después del descuento, igual que en el POS.
-      const finalTotalCop = subtotalCop + deliveryCop;
-      const finalTotalUsd = subtotalUsd + (deliveryCop / rate);
+        const orderItems = totals.lines.map((line) => ({
+          productId: line.productId,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          totalPrice: line.lineTotalCop,
+          notes: line.notes,
+          modifiers: line.modifiers.length > 0 ? line.modifiers : null,
+        }));
 
-      const order = await tx.order.create({
-        data: {
-          tableId: dbTableId,
-          userId,
-          customerId: customerId || null,
-          orderType: orderType ? orderType.toUpperCase() : 'MESA',
-          clientOrderId: clientOrderId || null,
-          totalCop: finalTotalCop,
-          totalUsd: finalTotalUsd,
-          exchangeRate: exchangeRate || 4000,
-          exchangeRateBs: rateBs,
-          discountValue: discountValue || 0,
-          discountPercent: discountPercent || 0,
-          notes,
-          deliveryAddress: deliveryAddress || null,
-          deliveryPhone: deliveryPhone || null,
-          deliveryCost: deliveryCost || 0,
-          items: {
-            create: orderItems,
-          },
-        },
-        include: {
-          table: true,
-          user: {
-            select: { id: true, name: true, username: true },
-          },
-          items: {
-            include: {
-              product: true,
+        const createdOrder = await tx.order.create({
+          data: {
+            tableId: dbTableId,
+            userId,
+            customerId: customerId || null,
+            orderType: resolveOrderType(orderType),
+            clientOrderId: clientOrderId || null,
+            totalCop: totals.totalCop,
+            totalUsd: totals.totalUsd,
+            exchangeRate: totals.exchangeRate,
+            exchangeRateBs: totals.exchangeRateBs,
+            discountValue: totals.discountCop,
+            discountPercent: totals.discountMode === 'percent' ? totals.discountPercent : 0,
+            notes,
+            deliveryAddress: deliveryAddress || null,
+            deliveryPhone: deliveryPhone || null,
+            deliveryCost: totals.deliveryCostCop,
+            items: {
+              create: orderItems,
             },
           },
-        },
-      });
-
-      // Create payments if provided
-      let createdPayments = [];
-      if (payments && Array.isArray(payments) && payments.length > 0) {
-        for (const p of payments) {
-          const payment = await tx.payment.create({
-            data: {
-              orderId: order.id,
-              method: p.method,
-              currency: p.currency || 'COP',
-              amount: p.amount,
-              change: p.change || 0,
-              reference: p.reference,
+          include: {
+            table: true,
+            user: {
+              select: { id: true, name: true, username: true },
             },
-          });
-          createdPayments.push(payment);
-        }
+            items: {
+              include: {
+                product: true,
+              },
+            },
+          },
+        });
 
-        const totalPaid = createdPayments.reduce((sum, p) => {
-          if (p.currency === 'USD') return sum + p.amount * rate;
-          if (p.currency === 'Bs.') return sum + p.amount * rateBs;
-          return sum + p.amount; // COP
-        }, 0);
-        const shouldServe = totalPaid >= finalTotalCop;
-        if (shouldServe) {
-          await tx.order.update({
-            where: { id: order.id },
-            data: { status: 'SERVED', completedAt: new Date() },
+        // Los pagos se normalizan aquí: el vuelto lo calcula el servidor.
+        let createdPayments = [];
+        let paymentSummary = null;
+        if (Array.isArray(payments) && payments.length > 0) {
+          paymentSummary = buildOrderPayments(payments, {
+            totalCop: totals.totalCop,
+            exchangeRate: totals.exchangeRate,
+            exchangeRateBs: totals.exchangeRateBs,
           });
-          order.status = 'SERVED';
-          order.completedAt = new Date();
-        }
-      }
 
-      // Include payments in response
-      order.payments = createdPayments || [];
-
-      // Descontar inventario y crear movimientos
-      for (const item of order.items) {
-        if (item.productId) {
-          const invItems = await tx.inventoryItem.findMany({
-            where: { productId: item.productId },
-          });
-          for (const inv of invItems) {
-            if (inv.quantity < item.quantity) {
-              console.warn(`Stock insuficiente para "${inv.name}": disponible ${inv.quantity}, requerido ${item.quantity}`);
-            }
-            const deducted = Math.min(item.quantity, inv.quantity);
-            const newQty = Math.max(0, inv.quantity - item.quantity);
-            await tx.inventoryItem.update({
-              where: { id: inv.id },
-              data: { quantity: newQty },
-            });
-            await tx.inventoryMovement.create({
+          for (const payment of paymentSummary.payments) {
+            const created = await tx.payment.create({
               data: {
-                itemId: inv.id,
-                quantity: -deducted,
-                previous: inv.quantity,
-                newQuantity: newQty,
-                reason: 'venta',
-                userId: userId,
+                orderId: createdOrder.id,
+                method: payment.method,
+                currency: payment.currency,
+                amount: payment.amount,
+                change: payment.change,
+                reference: payment.reference,
               },
             });
+            createdPayments.push(created);
+          }
+
+          if (paymentSummary.isFullyPaid) {
+            await tx.order.update({
+              where: { id: createdOrder.id },
+              data: { status: 'SERVED', completedAt: new Date() },
+            });
+            createdOrder.status = 'SERVED';
+            createdOrder.completedAt = new Date();
           }
         }
-      }
 
-      return { order, createdPayments };
-    });
+        createdOrder.payments = createdPayments;
+
+        // Datos calculados para que el ticket y la PWA muestren lo mismo que se guardó.
+        createdOrder.subtotalCop = totals.subtotalCop;
+        createdOrder.totalBs = totals.totalBs;
+        createdOrder.changeCop = paymentSummary?.changeCop || 0;
+        createdOrder.pricing = {
+          subtotalCop: totals.subtotalCop,
+          discountCop: totals.discountCop,
+          totalCop: totals.totalCop,
+          totalUsd: totals.totalUsd,
+          totalBs: totals.totalBs,
+          exchangeRate: totals.exchangeRate,
+          exchangeRateBs: totals.exchangeRateBs,
+        };
+
+        // Descontar inventario y crear movimientos
+        for (const item of createdOrder.items) {
+          if (item.productId) {
+            const invItems = await tx.inventoryItem.findMany({
+              where: { productId: item.productId },
+            });
+            for (const inv of invItems) {
+              if (inv.quantity < item.quantity) {
+                console.warn(`Stock insuficiente para "${inv.name}": disponible ${inv.quantity}, requerido ${item.quantity}`);
+              }
+              const deducted = Math.min(item.quantity, inv.quantity);
+              const newQty = Math.max(0, inv.quantity - item.quantity);
+              await tx.inventoryItem.update({
+                where: { id: inv.id },
+                data: { quantity: newQty },
+              });
+              await tx.inventoryMovement.create({
+                data: {
+                  itemId: inv.id,
+                  quantity: -deducted,
+                  previous: inv.quantity,
+                  newQuantity: newQty,
+                  reason: 'venta',
+                  userId: userId,
+                },
+              });
+            }
+          }
+        }
+
+        return { order: createdOrder };
+      }));
+    } catch (error) {
+      // Dos reintentos simultáneos con el mismo clientOrderId: devolver el
+      // pedido ya creado en vez de un 500/409.
+      if (error?.code === 'P2002' && clientOrderId) {
+        const existing = await prisma.order.findUnique({ where: { clientOrderId }, include: fullInclude });
+        if (existing) {
+          notifySSEClients('order:created', existing);
+          return res.status(201).json(existing);
+        }
+      }
+      throw error;
+    }
 
     // Delete table state after transaction succeeds
     if (tableId) {

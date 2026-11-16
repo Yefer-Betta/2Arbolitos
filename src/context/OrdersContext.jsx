@@ -361,8 +361,8 @@ export function OrdersProvider({ children }) {
     const transformedItems = originalItems.map(item => ({
       productId: item.product?.id || item.productId,
       quantity: item.quantity,
+      // El backend recalcula el precio; se mantiene por compatibilidad de despliegue.
       unitPrice: item.product?.price || item.unitPrice || 0,
-      totalPrice: (item.product?.price || item.unitPrice || 0) * item.quantity,
       notes: item.notes || null,
       modifiers: item._modifiers || null,
     }));
@@ -376,6 +376,7 @@ export function OrdersProvider({ children }) {
       exchangeRateBsSnapshot: order.exchangeRateBsSnapshot || order.exchangeRateBs || 40,
       discountValue: order.discountValue || 0,
       discountPercent: order.discountPercent || 0,
+      discountMode: order.discountMode || undefined,
       payments: order.payments,
       customerId: order.customerId || null,
       deliveryAddress: order.deliveryAddress || null,
