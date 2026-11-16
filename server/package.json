@@ -14,7 +14,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "node prisma/seed.js",
-    "db:flag-defaults": "node scripts/flag-default-passwords.js"
+    "db:flag-defaults": "node scripts/flag-default-passwords.js",
+    "db:report-money": "node scripts/report-historical-money.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
