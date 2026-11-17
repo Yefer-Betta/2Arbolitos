@@ -133,6 +133,7 @@ npm run docker:rebuild # docker compose up -d --build
 - `getToken()` en `server/src/middleware/auth.js` acepta además `Authorization: Bearer <jwt>` como respaldo para scripts/clientes no‑navegador.
 - `authorize(...roles)` restringe por rol (`ADMIN, MANAGER, CASHIER, WAITER, COOK`).
 - Endpoints de menú con `optionalAuth` (p. ej. `GET /api/products`, `GET /api/categories`): sin cookie devuelven solo campos públicos; con cookie, el detalle completo. Es intencional para el menú por QR.
+- **Token versioning** (`C8`): `User.tokenVersion` (`Int @default(0)`, migración aditiva `20261116000000_add_token_version_to_user`). Login, cambio de contraseña y actualización de usuario incrementan `tokenVersion` e incluyen el valor en el JWT. El middleware `authenticate` compara el `tokenVersion` del JWT con el de la BD; si no coinciden (contraseña cambiada), devuelve `401` con código `TOKEN_VERSION_MISMATCH`. Esto invalida todos los JWT previos sin necesidad de cambiar `JWT_SECRET`. `JWT_SECRET` sigue siendo obligatorio (no usar fallbacks inseguros en producción).
 
 ## Database
 

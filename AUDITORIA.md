@@ -80,13 +80,14 @@ Estados: **CONFIRMADO** (se verificó en el código), **PARCIAL** (existe pero i
 
 | # | Hallazgo | Severidad | Estado | Archivo:línea | Arreglo propuesto |
 |---|---|---|---|---|---|
-| C1 | Los productos `isUsd` se envían al servidor con el precio en USD como si fuera COP: la UI muestra el total convertido, pero el pedido se guarda con un total mucho menor | **Crítica** | CONFIRMADO | `src/context/OrdersContext.jsx:345-350`; `src/components/POS.jsx:275-281`; `server/src/controllers/orderController.js:190-196` | Convertir a COP antes de enviar (`isUsd ? price * rate : price`) o enviar `currency` por ítem y que el servidor convierta con la tasa del snapshot. Una sola fuente de verdad. |
-| C2 | `discountValue` se guarda pero nunca se resta; solo se aplica `discountPercent` | **Media** | CONFIRMADO | `server/src/controllers/orderController.js:217-227,240` | Aplicar descuento por valor o por porcentaje, nunca ambos; calcular en una función compartida y probada. |
-| C3 | El vuelto no se resta: la caja suma `p.amount` bruto y `totalPaid` también, así que las ventas por método quedan infladas por el cambio entregado | **Alta** | CONFIRMADO | `src/components/Finance.jsx:123-135`; `server/src/controllers/orderController.js:280-285,418-423` | Regla única: `efectivoNeto = amount - change`; tarjeta/Nequi sin cambio. Aplicarla en caja, cierre y `shouldServe`. |
-| C4 | Aritmética de punto flotante sin redondeo monetario (totales, tasas, descuentos) | **Media** | CONFIRMADO | `server/src/controllers/orderController.js:186-227`; `src/components/POS.jsx:275-321` | Redondear a peso (COP entero) en cada paso y comparar con tolerancia de 1 peso. Para USD/Bs., 2 decimales. Tests. |
-| C5 | `POST /orders/:id/payment` no es idempotente y no valida que la suma de pagos no exceda el total; hoy el frontend no lo usa (los pagos van dentro de `POST /orders`) | **Media** | CONFIRMADO | `server/src/controllers/orderController.js:385-437`; `src/context/OrdersContext.jsx:355-372` | Añadir `paymentId`/idempotency key y validar suma ≤ total. Si se mantiene sin uso, documentarlo o retirarlo. |
-| C6 | Los gastos se pueden duplicar al reintentar: el frontend genera `id`, pero el backend lo ignora y crea otro | **Alta** | CONFIRMADO | `src/context/FinanceContext.jsx:74-82`; `server/src/controllers/expenseController.js:13-26`; `src/lib/syncManager.js:119-230` | Aceptar `id` del cliente como `id` (o `clientId` único) y hacer `upsert`; repetir la petición deja el mismo gasto. |
-| C7 | ¿La cola offline duplica pedidos al reintentar? | — | **FALSO** | `server/src/controllers/orderController.js:139-145`; `src/context/OrdersContext.jsx:330-334,356,372` | No requiere cambio: `clientOrderId` se consulta antes de crear y el pedido es idempotente. Sí conviene capturar la violación de unicidad si dos reintentos entran a la vez. |
+| C1 | Los productos `isUsd` se envían al servidor con el precio en USD como si fuera COP: la UI muestra el total convertido, pero el pedido se guarda con un total mucho menor | **Crítica** | CORREGIDO `0a2fafd` | `src/context/OrdersContext.jsx:345-350`; `src/components/POS.jsx:275-281`; `server/src/controllers/orderController.js:190-196` | El servidor recalcula precios desde BD (producto + modificadores), ignora `unitPrice` del cliente y devuelve totales. Order type normalizado (slug lowercase). |
+| C2 | `discountValue` se guarda pero nunca se resta; solo se aplica `discountPercent` | **Media** | CORREGIDO `0a2fafd` | `server/src/controllers/orderController.js:217-227,240` | Descuento por valor XOR porcentaje, nunca ambos (campo `mode` lo clarifica). Validación en `orderPricing.js`. |
+| C3 | El vuelto no se resta: la caja suma `p.amount` bruto y `totalPaid` también, así que las ventas por método quedan infladas por el cambio entregado | **Alta** | CORREGIDO `8ac6767` | `src/components/Finance.jsx:123-135`; `server/src/controllers/orderController.js:280-285,418-423` | El cierre recalcula ventas desde DB (órdenes en el periodo), cambio excluido. `aggregateSalesByMethod` usada en `closureController.js`. |
+| C4 | Aritmética de punto flotante sin redondeo monetario (totales, tasas, descuentos) | **Media** | CORREGIDO `0a2fafd` | `server/src/controllers/orderController.js:186-227`; `src/components/POS.jsx:275-321` | Helper `shared/money.js` (ESM puro) con redondeo COP entero, USD/Bs. 2 decimales. Tests en `money.test.js`. |
+| C5 | `POST /orders/:id/payment` no es idempotente y no valida que la suma de pagos no exceda el total; hoy el frontend no lo usa (los pagos van dentro de `POST /orders`) | **Media** | CORREGIDO `8ac6767` | `server/src/controllers/orderController.js:385-437`; `src/context/OrdersContext.jsx:355-372` | Valida suma ≤ total (tolerancia 1 peso), normaliza métodos a mayúsculas y moneda por defecto. Rechaza sobrepago con 400. |
+| C6 | Los gastos se pueden duplicar al reintentar: el frontend genera `id`, pero el backend lo ignora y crea otro | **Alta** | CORREGIDO `8ac6767` | `src/context/FinanceContext.jsx:74-82`; `server/src/controllers/expenseController.js:13-26`; `src/lib/syncManager.js:119-230` | `createExpense` hace `upsert` con el `id` del cliente cuando lo envía; doble envío no duplica. |
+| C7 | ¿La cola offline duplica pedidos al reintentar? | — | CORREGIDO `0a2fafd` | `server/src/controllers/orderController.js:139-145`; `src/context/OrdersContext.jsx:330-334,356,372` | `clientOrderId` se consulta antes de crear; captura `P2002` y devuelve el pedido existente (201, no 500) ante reintento simultáneo. |
+| C8 | Un JWT emitido antes de un cambio de contraseña sigue válido hasta expirar; no hay forma de revocarlo sin cambiar `JWT_SECRET` | **Alta** | CORREGIDO `9873386` | `server/prisma/schema.prisma` (`User.tokenVersion`); `server/src/controllers/authController.js` (login, changePassword, updateUser incrementan e incluyen `tokenVersion` en el JWT); `server/src/middleware/auth.js` (compara `tokenVersion` del JWT con la BD, devuelve 401 `TOKEN_VERSION_MISMATCH` si no coinciden) | Nueva columna `tokenVersion Int @default(0)` en `users`. Cada cambio de contraseña la incrementa, invalidando todos los JWT previos. Migración aditiva (`20261116000000_add_token_version_to_user`). |
 
 ### 2.4 Sync, SSE y concurrencia
 
@@ -398,21 +399,20 @@ Notas de implementación del bloque (b):
 
 | Bloque | Hallazgos |
 |---|---|
-| (c) Dinero | C1, C2, C3, C4, C5, C6 + Vitest |
+| (c) Dinero + token versioning | C1, C2, C3, C4, C5, C6, C7 (corregidos) + C8 tokenVersion (corregido) + Vitest (47 tests) |
 | (d) Tooling y PWA | E1, E2, E4, E6, F3, F4, NOTICE/PRIVACY |
 | Extras aprobados | A10, A11, A13, D1, D3, F2 |
 | Solo actualización de dependencias | zod ≥ 4.6.6; revisar `proxy-addr`/`body-parser` con parche menor de express |
 | No por ahora | A9 (CSP), F5 (resto de dependencias), F6 (code-splitting) |
 | Fase 3 | Instalador `.exe` sin Docker ni MySQL externo (recomendación: MariaDB portable como servicio) |
 
-### 9.4 Verificación del bloque (b)
+### 9.4 Verificación del bloque (c)
 
 | Comprobación | Resultado |
 |---|---|
 | `npm run lint` | PASA, 0 errores y 0 warnings |
-| `npm run build` | PASA (539.36 kB, aviso de F6) |
+| `npm run build` | PASA (bundle generado en `dist/`) |
+| `npm test` | PASA, 8 archivos, 47 tests |
 | `npx prisma validate` | PASA |
-| `npx prisma generate` | Cliente regenerado con `mustChangePassword` |
-| `node --check` en `seed.js`, `flag-default-passwords.js`, `orderController.js` | PASA |
-| Tests | No hay framework todavía; Vitest entra en el bloque (c) |
-| Prueba HTTP en vivo | No ejecutada: Docker Desktop estaba apagado |
+| Migración `tokenVersion` | `server/prisma/migrations/20261116000000_add_token_version_to_user/migration.sql` (aditiva) |
+| Prueba HTTP en vivo | No ejecutada: Docker Desktop estaba apagado; tests usan mocks |
