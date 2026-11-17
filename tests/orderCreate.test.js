@@ -123,6 +123,61 @@ describe('createOrder usa la base de datos como autoridad', () => {
 
     expect(parsed.orderType).toBe('PARA_LLEVAR');
   });
+
+  it('rechaza un descuento con modo declarado contradictorio', async () => {
+    const { normalizeDiscount } = await import('../server/src/lib/orderPricing.js');
+
+    expect(() => normalizeDiscount({
+      subtotalCop: 50000,
+      discountValue: 0,
+      discountPercent: 10,
+      discountMode: 'value',
+    })).toThrow();
+
+    expect(() => normalizeDiscount({
+      subtotalCop: 50000,
+      discountValue: 5000,
+      discountPercent: 0,
+      discountMode: 'percent',
+    })).toThrow();
+  });
+
+  it('devuelve el pedido existente ante reintento simultáneo con clientOrderId repetido (C7)', async () => {
+    prismaMock.order.findUnique.mockImplementation(async ({ where }) => {
+      if (where?.clientOrderId) {
+        return {
+          id: 'existing-1',
+          clientOrderId: 'client-1',
+          status: 'PENDING',
+          totalCop: 80000,
+          items: [],
+          payments: [],
+        };
+      }
+      return null;
+    });
+    prismaMock.$transaction.mockImplementation(async () => {
+      const error = new Error('Unique constraint failed');
+      error.code = 'P2002';
+      throw error;
+    });
+
+    const res = response();
+    const next = vi.fn();
+
+    await orderController.createOrder(request({
+      tableId: 'mesa-1',
+      orderType: 'mesa',
+      clientOrderId: 'client-1',
+      items: [{ productId: 'p-usd', quantity: 2 }],
+      exchangeRate: 4000,
+      exchangeRateBsSnapshot: 40,
+    }), res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(201);
+    expect(res.body.id).toBe('existing-1');
+  });
   it('ignora el unitPrice del cliente y responde los totales calculados', async () => {
     prismaMock.product.findMany.mockResolvedValue([
       { id: 'p-usd', price: 10, isUsd: true, active: true },

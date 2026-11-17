@@ -125,15 +125,23 @@ export function priceOrderItems({
  * interpreta como porcentaje; si se contradicen, se rechaza.
  */
 export function normalizeDiscount({ subtotalCop, discountValue = 0, discountPercent = 0, discountMode = null } = {}) {
-  if (discountMode === 'value') {
-    return { discountValue, discountPercent: 0 };
-  }
-  if (discountMode === 'percent') {
-    return { discountValue: 0, discountPercent };
-  }
-
   const value = toNumber(discountValue);
   const percent = toNumber(discountPercent);
+
+  // Un modo declarado que contradice el valor del otro tipo: rechaza.
+  if (discountMode === 'value' && percent > 0) {
+    throw new AppError('El descuento debe ser por valor o por porcentaje, no ambos', 400);
+  }
+  if (discountMode === 'percent' && value > 0) {
+    throw new AppError('El descuento debe ser por valor o por porcentaje, no ambos', 400);
+  }
+
+  if (discountMode === 'value') {
+    return { discountValue: value, discountPercent: 0 };
+  }
+  if (discountMode === 'percent') {
+    return { discountValue: 0, discountPercent: percent };
+  }
 
   if (value > 0 && percent > 0) {
     const expected = roundCop((toNumber(subtotalCop) * percent) / 100);

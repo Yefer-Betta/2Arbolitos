@@ -483,16 +483,50 @@ export const orderController = {
       throw new AppError('Pedido no encontrado', 404);
     }
 
+    const rate = order.exchangeRate || 4000;
+    const rateBs = order.exchangeRateBs || 40;
+
+    const existingPayments = await prisma.payment.findMany({
+      where: { orderId: id },
+      select: { amount: true, currency: true },
+    });
+
+    const currentPaidCop = existingPayments.reduce((sum, p) => {
+      if (p.currency === 'USD') return sum + p.amount * rate;
+      if (p.currency === 'Bs.') return sum + p.amount * rateBs;
+      return sum + p.amount;
+    }, 0);
+
+    const normalizePayment = (p) => {
+      const method = String(p?.method || '').trim().toUpperCase();
+      const currency = p?.currency || (method === 'CASH_USD' ? 'USD' : method === 'CASH_BS' ? 'Bs.' : 'COP');
+      const amount = Number(p?.amount) || 0;
+      return { method, currency, amount, change: Number(p?.change) || 0, reference: p?.reference };
+    };
+
+    const newPaymentsCop = paymentsData.reduce((sum, p) => {
+      const { currency, amount } = normalizePayment(p);
+      if (currency === 'USD') return sum + amount * rate;
+      if (currency === 'Bs.') return sum + amount * rateBs;
+      return sum + amount;
+    }, 0);
+
+    // Tolerancia de 1 peso: se rechaza solo si se supera el total.
+    if (currentPaidCop + newPaymentsCop > order.totalCop + 1) {
+      throw new AppError('La suma de pagos supera el total del pedido', 400);
+    }
+
     const createdPayments = [];
     for (const p of paymentsData) {
+      const data = normalizePayment(p);
       const payment = await prisma.payment.create({
         data: {
           orderId: id,
-          method: p.method,
-          currency: p.currency || 'COP',
-          amount: p.amount,
-          change: p.change || 0,
-          reference: p.reference,
+          method: data.method,
+          currency: data.currency,
+          amount: data.amount,
+          change: data.change,
+          reference: data.reference,
         },
       });
       createdPayments.push(payment);
@@ -502,14 +536,12 @@ export const orderController = {
       where: { orderId: id },
       select: { amount: true, currency: true },
     });
-    const rate = order.exchangeRate || 4000;
-    const rateBs = order.exchangeRateBs || 40;
     const totalPaid = allPayments.reduce((sum, p) => {
       if (p.currency === 'USD') return sum + p.amount * rate;
       if (p.currency === 'Bs.') return sum + p.amount * rateBs;
-      return sum + p.amount; // COP
+      return sum + p.amount;
     }, 0);
-    const shouldServe = totalPaid >= order.totalCop;
+    const shouldServe = totalPaid + 1 >= order.totalCop;
 
     const updatedOrder = await prisma.order.update({
       where: { id },

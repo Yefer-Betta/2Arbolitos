@@ -1,5 +1,6 @@
 import prisma from '../config/database.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
+import { aggregateSalesByMethod } from '../shared/money.js';
 
 export const closureController = {
   getClosures: asyncHandler(async (req, res) => {
@@ -10,17 +11,44 @@ export const closureController = {
   }),
 
   createClosure: asyncHandler(async (req, res) => {
-    const { id, orderCount, totalSalesCOP, totalSalesUSD, totalExpenses, exchangeRate, salesByMethod, countedCash, countedUsd, countedBs, countedNequi, countedDebit, differences, totalDifference, notes } = req.body;
+    const {
+      id,
+      orderCount,
+      totalSalesUSD,
+      totalExpenses,
+      exchangeRate,
+      countedCash,
+      countedUsd,
+      countedBs,
+      countedNequi,
+      countedDebit,
+      differences,
+      totalDifference,
+      notes,
+    } = req.body;
+
+    const closureDate = req.body.date ? new Date(req.body.date) : new Date();
+    const previousClosure = await prisma.closure.findFirst({ orderBy: { date: 'desc' } });
+    const cutoff = previousClosure ? new Date(previousClosure.date) : new Date(0);
+
+    const orders = await prisma.order.findMany({
+      where: { createdAt: { gt: cutoff, lte: closureDate } },
+      include: { payments: true },
+    });
+
+    const recalculatedSalesByMethod = aggregateSalesByMethod(orders);
+    const recalculatedTotalSalesCOP = orders.reduce((sum, order) => sum + (order.totalCop || 0), 0);
 
     const closure = await prisma.closure.create({
       data: {
         ...(id ? { id } : {}),
+        date: closureDate,
         orderCount: orderCount || 0,
-        totalSalesCOP: totalSalesCOP || 0,
+        totalSalesCOP: recalculatedTotalSalesCOP,
         totalSalesUSD: totalSalesUSD || 0,
         totalExpenses: totalExpenses || 0,
         exchangeRate: exchangeRate || 4000,
-        salesByMethod: salesByMethod || undefined,
+        salesByMethod: recalculatedSalesByMethod,
         countedCash: countedCash ?? undefined,
         countedUsd: countedUsd ?? undefined,
         countedBs: countedBs ?? undefined,
