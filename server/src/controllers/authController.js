@@ -26,24 +26,48 @@ export const authController = {
       throw new AppError('Credenciales inválidas', 401);
     }
 
+    // Increment tokenVersion para forzar regeneración del JWT
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { tokenVersion: { increment: 1 } },
+    });
+
+    const refreshedUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        mustChangePassword: true,
+        tokenVersion: true,
+      },
+    });
+
     const token = jwt.sign(
-      { id: user.id, role: user.role, mustChangePassword: user.mustChangePassword },
+      {
+        id: refreshedUser.id,
+        role: refreshedUser.role,
+        mustChangePassword: refreshedUser.mustChangePassword,
+        tokenVersion: refreshedUser.tokenVersion,
+      },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
-    const permissions = await getUserPermissions(user.role);
+    const permissions = await getUserPermissions(refreshedUser.role);
 
     res.cookie(TOKEN_COOKIE, token, cookieOptions());
 
     res.json({
       user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        role: user.role,
+        id: refreshedUser.id,
+        username: refreshedUser.username,
+        name: refreshedUser.name,
+        role: refreshedUser.role,
         permissions,
-        mustChangePassword: user.mustChangePassword,
+        mustChangePassword: refreshedUser.mustChangePassword,
+        tokenVersion: refreshedUser.tokenVersion,
       },
     });
   }),
@@ -123,26 +147,44 @@ export const authController = {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedPassword, mustChangePassword: false },
+      data: { password: hashedPassword, mustChangePassword: false, tokenVersion: { increment: 1 } },
+    });
+
+    const refreshedUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        mustChangePassword: true,
+        tokenVersion: true,
+      },
     });
 
     const token = jwt.sign(
-      { id: user.id, role: user.role, mustChangePassword: false },
+      {
+        id: refreshedUser.id,
+        role: refreshedUser.role,
+        mustChangePassword: refreshedUser.mustChangePassword,
+        tokenVersion: refreshedUser.tokenVersion,
+      },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
     res.cookie(TOKEN_COOKIE, token, cookieOptions());
 
-    const permissions = await getUserPermissions(user.role);
+    const permissions = await getUserPermissions(refreshedUser.role);
 
     res.json({
       user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        role: user.role,
+        id: refreshedUser.id,
+        username: refreshedUser.username,
+        name: refreshedUser.name,
+        role: refreshedUser.role,
         permissions,
-        mustChangePassword: false,
+        mustChangePassword: refreshedUser.mustChangePassword,
+        tokenVersion: refreshedUser.tokenVersion,
       },
     });
   }),
@@ -175,6 +217,7 @@ export const authController = {
     if (password) {
       data.password = await bcrypt.hash(password, 10);
       data.mustChangePassword = true;
+      data.tokenVersion = { increment: 1 };
     }
 
     const user = await prisma.user.update({
@@ -186,6 +229,7 @@ export const authController = {
         name: true,
         role: true,
         active: true,
+        tokenVersion: true,
       },
     });
 

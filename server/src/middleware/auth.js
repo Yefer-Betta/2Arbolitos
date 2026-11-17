@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { parseCookies, TOKEN_COOKIE } from '../config/cookies.js';
+import prisma from '../config/database.js';
 
 /**
  * Obtiene el JWT desde la cookie httpOnly (navegador) o, como respaldo,
@@ -21,7 +22,26 @@ const PASSWORD_CHANGE_ALLOWED_PATHS = new Set([
   '/api/auth/verify',
 ]);
 
-export const authenticate = (req, res, next) => {
+/**
+ * Verifica que el tokenVersion del JWT coincida con el de la BD.
+ * Si el usuario cambió contraseña, el tokenVersion se incrementó y el JWT anterior es inválido.
+ */
+export async function verifyTokenVersion(decoded) {
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.id },
+    select: { tokenVersion: true },
+  });
+
+  if (!user) {
+    throw new Error('Usuario no encontrado');
+  }
+
+  if (user.tokenVersion !== decoded.tokenVersion) {
+    throw new Error('Token inválido - la contraseña ha sido cambiada');
+  }
+}
+
+export const authenticate = async (req, res, next) => {
   try {
     const token = getToken(req);
 
@@ -30,6 +50,9 @@ export const authenticate = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Verificar tokenVersion para detectar cambios de contraseña
+    await verifyTokenVersion(decoded);
 
     req.user = decoded;
 
@@ -45,6 +68,9 @@ export const authenticate = (req, res, next) => {
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Token expirado' });
+    }
+    if (error.message === 'Token inválido - la contraseña ha sido cambiada') {
+      return res.status(401).json({ error: 'Token inválido - la contraseña ha sido cambiada', code: 'TOKEN_VERSION_MISMATCH' });
     }
     return res.status(401).json({ error: 'Token inválido' });
   }
