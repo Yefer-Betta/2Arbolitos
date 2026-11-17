@@ -1,0 +1,45 @@
+name: CI — lint, build y tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias (raíz)
+        run: npm ci
+
+      - name: Instalar dependencias (server)
+        working-directory: server
+        run: npm ci
+
+      - name: Generar cliente Prisma
+        working-directory: server
+        run: npx prisma generate
+
+      - name: Validar esquema Prisma
+        working-directory: server
+        run: npx prisma validate
+
+      - name: Ejecutar lint (raíz)
+        run: npm run lint
+
+      - name: Ejecutar build (frontend)
+        run: npm run build
+
+      - name: Ejecutar tests (Vitest)
+        run: npm test
