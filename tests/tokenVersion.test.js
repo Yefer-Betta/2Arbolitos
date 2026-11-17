@@ -53,6 +53,19 @@ describe('token versioning (C8) - verifyTokenVersion', () => {
       'Usuario no encontrado',
     );
   });
+
+  it('JWT antiguo sin claim (undefined) contra usuario con tokenVersion=0: acepta', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ tokenVersion: 0 });
+    // decoded sin tokenVersion (JWT emitido antes de agregar la columna)
+    await expect(verifyTokenVersion({ id: 'user-1' })).resolves.toBeUndefined();
+  });
+
+  it('JWT antiguo sin claim (undefined) contra usuario con tokenVersion>0: rechaza', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ tokenVersion: 2 });
+    await expect(verifyTokenVersion({ id: 'user-1' })).rejects.toThrow(
+      'Token inválido - la contraseña ha sido cambiada',
+    );
+  });
 });
 
 describe('token versioning (C8) - authenticate middleware', () => {
@@ -103,5 +116,37 @@ describe('token versioning (C8) - authenticate middleware', () => {
     expect(next).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(401);
     expect(res.body.error).toBe('Token no proporcionado');
+  });
+
+  it('JWT antiguo sin claim contra usuario con tokenVersion=0: acepta (nadie expulsado al actualizar)', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ tokenVersion: 0 });
+
+    const token = makeToken({ id: 'user-1', role: 'WAITER' }); // sin tokenVersion
+
+    const req = { headers: { authorization: `Bearer ${token}` }, originalUrl: '/api/orders' };
+    const res = response();
+    const next = vi.fn();
+
+    await authenticate(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.statusCode).toBeNull();
+  });
+
+  it('JWT antiguo sin claim contra usuario con tokenVersion>0: rechaza (contraseña cambiada)', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ tokenVersion: 2 });
+
+    const token = makeToken({ id: 'user-1', role: 'WAITER' }); // sin tokenVersion
+
+    const req = { headers: { authorization: `Bearer ${token}` }, originalUrl: '/api/orders' };
+    const res = response();
+    const next = vi.fn();
+
+    await authenticate(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(401);
+    expect(res.body.error).toBe('Token inválido - la contraseña ha sido cambiada');
+    expect(res.body.code).toBe('TOKEN_VERSION_MISMATCH');
   });
 });

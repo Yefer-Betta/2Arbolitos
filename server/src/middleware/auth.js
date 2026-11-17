@@ -36,7 +36,12 @@ export async function verifyTokenVersion(decoded) {
     throw new Error('Usuario no encontrado');
   }
 
-  if (user.tokenVersion !== decoded.tokenVersion) {
+  // Los JWT emitidos antes de tokenVersion no traen el claim: se tratan como 0.
+  // Nadie es expulsado al actualizar salvo que el usuario ya tenga tokenVersion > 0
+  // (es decir, que cambió su contraseña después de agregar la columna).
+  const tokenVersionFromJwt = Number.isInteger(decoded.tokenVersion) ? decoded.tokenVersion : 0;
+
+  if (user.tokenVersion !== tokenVersionFromJwt) {
     throw new Error('Token inválido - la contraseña ha sido cambiada');
   }
 }
