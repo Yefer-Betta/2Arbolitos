@@ -10,10 +10,22 @@ if (!existsSync(backupsDir)) mkdirSync(backupsDir);
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const backupFile = join(backupsDir, `backup-${timestamp}.sql`);
 
-const dumpCmd = `docker compose exec -T db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arbolitos' > "${backupFile}"`;
+// Detectar modo: Docker si existe docker-compose.yml y el contenedor db responde
+const composeFile = join(projectRoot, 'docker-compose.yml');
+const isDocker = existsSync(composeFile);
+
+let dumpCmd;
+if (isDocker) {
+  dumpCmd = `docker compose exec -T db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" 2arbolitos' > "${backupFile}"`;
+} else {
+  // Portable: usar mysqldump local contra localhost (MySQL/MariaDB del sistema)
+  const mysqlRootPassword = process.env.MYSQL_ROOT_PASSWORD || '';
+  const auth = mysqlRootPassword ? `-p"${mysqlRootPassword}"` : '';
+  dumpCmd = `mysqldump -u root ${auth} 2arbolitos > "${backupFile}"`;
+}
 
 try {
-  console.log('Ejecutando backup (docker compose exec db mysqldump)...');
+  console.log(`Ejecutando backup (${isDocker ? 'docker' : 'portable'})...`);
   execSync(dumpCmd, { stdio: ['pipe', 'inherit', 'inherit'], shell: true, cwd: projectRoot });
   console.log('Backup creado en', backupFile);
 } catch (err) {
