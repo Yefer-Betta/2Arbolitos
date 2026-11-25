@@ -3,6 +3,8 @@ import prisma from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 import { authorizePermissions } from '../middleware/authorizePermissions.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
+import { validate } from '../middleware/validate.js';
+import { inventoryItemSchema } from '../lib/validations.js';
 const router = Router();
 
 function audit(entity, entityId, action, before, after, userId) {
@@ -28,14 +30,14 @@ router.get('/inventory/:id', authenticate, asyncHandler(async (req, res) => {
   res.json(item);
 }));
 
-router.post('/inventory', authenticate, authorizePermissions(['MANAGE_INVENTORY']), asyncHandler(async (req, res) => {
+router.post('/inventory', authenticate, authorizePermissions(['MANAGE_INVENTORY']), validate(inventoryItemSchema), asyncHandler(async (req, res) => {
   const data = req.body;
   const item = await prisma.inventoryItem.create({ data });
   audit('InventoryItem', item.id, 'CREATE', null, item, getUserId(req));
   res.status(201).json(item);
 }));
 
-router.patch('/inventory/:id', authenticate, authorizePermissions(['MANAGE_INVENTORY']), asyncHandler(async (req, res) => {
+router.patch('/inventory/:id', authenticate, authorizePermissions(['MANAGE_INVENTORY']), validate(inventoryItemSchema), asyncHandler(async (req, res) => {
   const { id } = req.params;
   const data = req.body;
   const before = await prisma.inventoryItem.findUnique({ where: { id } });
