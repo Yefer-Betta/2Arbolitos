@@ -30,6 +30,7 @@
     "shots": "node scripts/visual/shots.mjs"
   },
   "dependencies": {
+    "@fontsource/outfit": "^5.3.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
     "react": "^19.2.0",

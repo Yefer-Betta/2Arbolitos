@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import '@fontsource/outfit'
 import './index.css'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { UserProvider } from './context/UserContext.jsx'
