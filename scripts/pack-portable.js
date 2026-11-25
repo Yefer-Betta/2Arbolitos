@@ -37,10 +37,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 
-const args = new Set(process.argv.slice(2));
-const USE_SYSTEM_NODE = args.has('--system-node');
-const SKIP_BUILD = args.has('--skip-build');
-const SKIP_NODE_MODULES = args.has('--skip-nm');
+const argv = process.argv.slice(2);
+const USE_SYSTEM_NODE = argv.includes('--system-node');
+const SKIP_BUILD = argv.includes('--skip-build');
+const SKIP_NODE_MODULES = argv.includes('--skip-nm');
+const WITH_MARIADB = argv.includes('--with-mariadb');
+const mariadbUrlIndex = argv.indexOf('--mariadb-url');
+const MARIADB_URL = mariadbUrlIndex >= 0 && mariadbUrlIndex + 1 < argv.length
+  ? argv[mariadbUrlIndex + 1]
+  : '';
 
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const version = pkg.version || '1.0.0';
@@ -147,6 +152,68 @@ async function preparePortableNode(staging) {
   } finally {
     await fsp.rm(tmp, { recursive: true, force: true }).catch(() => {});
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* 2a. MariaDB portable (opcional, --with-mariadb)                     */
+/* ------------------------------------------------------------------ */
+async function prepareMariaDB(staging) {
+  if (!WITH_MARIADB) {
+    log('MariaDB portable omitida (usa --with-mariadb para incluirla).');
+    return;
+  }
+
+  const mariadbDir = path.join(staging, 'mariadb');
+  await fsp.mkdir(mariadbDir, { recursive: true });
+
+  // 1) Si el usuario provee una URL, descargar y extraer.
+  if (MARIADB_URL) {
+    const tmp = path.join(os.tmpdir(), `arbolitos-mariadb-${Date.now()}`);
+    await fsp.mkdir(tmp, { recursive: true });
+    try {
+      const file = path.basename(MARIADB_URL);
+      const zipPath = path.join(tmp, file);
+      log(`Descargando MariaDB desde ${MARIADB_URL} ...`);
+      const dl = spawnSync('curl', ['-L', '--fail', '--silent', '--show-error', '-o', zipPath, MARIADB_URL], { stdio: 'inherit' });
+      if (dl.status !== 0) throw new Error('curl fallo al descargar MariaDB');
+      log('Extrayendo MariaDB ...');
+      const extractDir = path.join(tmp, 'ex');
+      await fsp.mkdir(extractDir, { recursive: true });
+      const res = spawnSync('tar', ['-x', '-f', zipPath, '-C', extractDir], { stdio: 'inherit' });
+      if (res.status !== 0) throw new Error('tar no pudo extraer el ZIP de MariaDB');
+      // Buscar el directorio raiz extraido (mariadb-*-winx64)
+      const entries = await fsp.readdir(extractDir);
+      const rootEntry = entries.find((e) => e.startsWith('mariadb-') && e.includes('winx64'));
+      if (!rootEntry) throw new Error('No se encontro el directorio de MariaDB en el ZIP');
+      const srcMaria = path.join(extractDir, rootEntry);
+      // Copiar contenido (bin, share, etc.) a staging/mariadb
+      const items = await fsp.readdir(srcMaria);
+      for (const item of items) {
+        await fsp.cp(path.join(srcMaria, item), path.join(mariadbDir, item), { recursive: true });
+      }
+      log(`MariaDB portable incluida: ${rootEntry}`);
+      return;
+    } catch (err) {
+      warn(`No se pudo descargar MariaDB automaticamente (${err.message}).`);
+    } finally {
+      await fsp.rm(tmp, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+
+  // 2) Si existe carpeta local mariadb/ en la raiz del proyecto, copiarla.
+  const localMaria = path.join(ROOT, 'mariadb');
+  if (fs.existsSync(localMaria)) {
+    log('Copiando MariaDB portable local (mariadb/) ...');
+    const items = await fsp.readdir(localMaria);
+    for (const item of items) {
+      await fsp.cp(path.join(localMaria, item), path.join(mariadbDir, item), { recursive: true });
+    }
+    log('MariaDB portable incluida desde carpeta local.');
+    return;
+  }
+
+  // 3) Ninguna fuente disponible: fallar con mensaje claro.
+  fail('MariaDB portable solicitada (--with-mariadb) pero no se encontro origen. Opciones:\n  - Pasa --mariadb-url <URL-del-ZIP-de-MariaDB-para-Windows>\n  - O coloca los binarios en la carpeta mariadb/ de la raiz del proyecto');
 }
 
 /* ------------------------------------------------------------------ */
@@ -752,6 +819,7 @@ async function main() {
   log(`Staging: ${staging}`);
 
   await preparePortableNode(staging);
+  await prepareMariaDB(staging);
   await copyDist(staging);
   await copyServer(staging);
   await copyShared(staging);
