@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import os from 'os';
 import net from 'net';
 import path from 'path';
@@ -97,14 +98,19 @@ export function getLocalIP() {
 }
 
 function findFreePort(startPort) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    const strict = process.env.STRICT_PORT === '1';
     const server = net.createServer();
     server.listen(startPort, '127.0.0.1', () => {
       const port = server.address().port;
       server.close(() => resolve(port));
     });
-    server.on('error', () => {
-      resolve(findFreePort(startPort + 1));
+    server.on('error', (_err) => {
+      if (strict) {
+        reject(new Error(`Puerto ${startPort} ocupado y STRICT_PORT=1: no se puede arrancar`));
+      } else {
+        resolve(findFreePort(startPort + 1));
+      }
     });
   });
 }
@@ -143,6 +149,8 @@ export async function startServer(usePort) {
         /^http:\/\/127\.0\.0\.1(:\d+)?$/,
         /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/,
         /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/,
+        // 172.16/12 (Docker, WSL y algunas LAN): 172.16.0.0 - 172.31.255.255
+        /^http:\/\/172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}(:\d+)?$/,
         ...extraPatterns,
       ];
       callback(null, allowedPatterns.some(pattern => pattern.test(origin)));
@@ -254,7 +262,7 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
       res.write(':\n\n');
     }, 30000);
 
-    const clientId = Date.now();
+    const clientId = crypto.randomUUID();
     addSSEClient(clientId, res);
 
     req.on('close', () => {
@@ -265,6 +273,11 @@ h1{color:#1A4D2E;font-size:1.5rem;margin-bottom:0.5rem}
 
   const distPath = path.join(__dirname, '../../dist');
   app.use(express.static(distPath));
+
+  // Endpoints /api/* desconocidos responden 404 JSON (no el SPA)
+  app.use('/api', (req, res) => {
+    res.status(404).json({ error: 'Endpoint no encontrado', code: 'API_NOT_FOUND' });
+  });
 
   app.get('*', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
