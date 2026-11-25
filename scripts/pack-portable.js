@@ -529,7 +529,7 @@ function startBat() {
     '  echo.',
     '  echo       Creando base de datos si no existe ...',
     '  pushd "%SERVER_DIR%"',
-    '  "%NODE_EXE%" -e "const mysql=require(\'mysql2/promise\');(async()=>{const c=await mysql.createConnection({host:\'127.0.0.1\',port:3306,user:\'root\'});await c.query(\'CREATE DATABASE IF NOT EXISTS \`2arbolitos\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci\');await c.end();console.log(\'BD lista.\');})();" >nul 2>&1',
+    '  "%NODE_EXE%" -e "const mysql=require(\'mysql2/promise\');(async()=>{const c=await mysql.createConnection({host:\'127.0.0.1\',port:3306,user:\'root\'});await c.query(\'CREATE DATABASE IF NOT EXISTS `2arbolitos` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci\');await c.end();console.log(\'BD lista.\');})();" >nul 2>&1',
     '  popd',
     '  set "EMBEDDED_DB=1"',
     ')',
