@@ -585,6 +585,11 @@ function Stop-ArbolitosSystem {
             }
         } catch { }
 
+        # Detener tambien MariaDB embebido si esta corriendo (por si start.bat no se cerro limpiamente)
+        try {
+            Get-Process -Name 'mysqld' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        } catch { }
+
         if (-not $stopped) {
             throw 'No se encontro el servidor portable corriendo en el puerto 3002.'
         }
