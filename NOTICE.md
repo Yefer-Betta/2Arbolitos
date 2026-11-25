@@ -66,8 +66,20 @@ Estas son las dependencias que se ejecutan en tiempo de ejecución y que, por lo
 ### Plataformas que NO se distribuyen
 
 - **Node.js** — licencia MIT. En el paquete portable se incluye `node/node.exe` sin modificaciones; su licencia viaja con el binario.
-- **MySQL / MariaDB** — **no** se incluye. MySQL Community Server se distribuye bajo GPLv2 (con excepción FOSS) y MariaDB bajo GPLv2; por eso cada instalación la aporta el propio restaurante como requisito previo.
+- **MySQL Community Server** — **no** se incluye por defecto. Se distribuye bajo GPLv2 (con excepción FOSS). Cada instalación lo aporta como requisito previo, salvo que se use el modo MariaDB portable embebido (ver abajo).
 - **Docker Desktop** — no se incluye; se usa como requisito del modo Docker y se rige por los términos de Docker Inc.
+
+### MariaDB portable embebido (opcional, --with-mariadb)
+
+El empaquetador portable puede incluir **MariaDB Community Server** para Windows x64 (`--with-mariadb`) para que el paquete sea autosuficiente y no requiera instalar MySQL/MariaDB por separado.
+
+- **MariaDB Community Server** — licencia **GPLv2**. Al incluirla en el paquete distribuido, usted acepta los términos de la GPLv2 y debe hacer disponible el código fuente correspondiente a quienes reciban el binario.
+- Los binarios de MariaDB se copian en la carpeta `mariadb/` del paquete y los datos viven en `mariadb/data/`.
+- Si no se usa `--with-mariadb`, el usuario debe instalar MySQL 8 o MariaDB 10.4+ por su cuenta y configurar `DATABASE_URL` en `server/.env`.
+
+## 5. Marcas de terceros
+
+Docker, MySQL, MariaDB, Node.js, React, Prisma, GitHub y cualquier otra marca mencionada pertenecen a sus respectivos titulares. La mención es solo descriptiva y no implica patrocinio ni afiliación.
 
 ## 5. Marcas de terceros
 

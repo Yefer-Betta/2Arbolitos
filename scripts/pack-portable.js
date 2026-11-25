@@ -674,8 +674,8 @@ Este paquete incluye el sistema completo para ejecutarlo en Windows
 SIN instalar Node.js ni compilar nada. El backend (Express + Prisma)
 sirve tambien la interfaz web ya compilada (dist/).
 
-REQUISITO UNICO: MySQL 8
-------------------------
+BASE DE DATOS
+-------------
 La arquitectura actual del proyecto requiere un servidor MySQL.
 Instala MySQL 8 (Community) o MariaDB 10.4+ en la misma maquina y
 asegurate de que el servicio este en ejecucion antes de arrancar.
@@ -687,9 +687,10 @@ asegurate de que el servicio este en ejecucion antes de arrancar.
 
 CONTENIDO
 ---------
-  start.bat            Lanzador (doble clic para iniciar todo)
+  start.bat            Lanzador (doble clic para iniciar todo; inicia MariaDB embebido si esta incluida)
   Panel.bat            Panel de control (estado, iniciar, respaldar)
   README-PORTABLE.txt  Este archivo
+  mariadb\\             MariaDB portable (solo si se empaco con --with-mariadb)
   node\\node.exe        Node.js LTS x64 portable (no requiere instalar)
   dist\\               Frontend compilado
   server\\             Backend Express + Prisma y sus dependencias
@@ -702,14 +703,16 @@ CONTENIDO
 
 COMO ARRANCAR
 -------------
-1. Asegurate de que MySQL este iniciado.
+1. Si el ZIP incluye MariaDB embebido (carpeta mariadb/), start.bat la
+   iniciara automaticamente. Si no, asegurate de que MySQL/MariaDB
+   externo este iniciado y configurado en server\\.env.
 2. Extrae TODO el ZIP en una carpeta, idealmente una ruta corta,
    por ejemplo:  C:\\2Arbolitos
    (evita "Escritorio\\cosas\\..." con rutas muy largas).
 3. Doble clic en  start.bat
-4. La primera vez te pedira los datos de MySQL (host, puerto, usuario,
-   clave y nombre de base de datos). Con Enter aceptas los valores
-   por defecto. Se creara server\\.env.
+4. La primera vez, si usas MariaDB embebido, se creara server\\.env
+   automaticamente con valores por defecto (root, sin clave). Si usas
+   MySQL externo, te pedira los datos de conexión.
 5. El sistema creara/actualizara las tablas y, si la base esta vacia,
    cargara los datos iniciales (seed).
 6. Se abrira el navegador en http://localhost:3002 (o el puerto elegido).
