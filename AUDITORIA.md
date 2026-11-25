@@ -397,14 +397,14 @@ Notas de implementación del bloque (b):
 
 ### 9.3 Pendientes acordados
 
-| Bloque | Hallazgos |
-|---|---|
-| (c) Dinero + token versioning | C1, C2, C3, C4, C5, C6, C7 (corregidos) + C8 tokenVersion (corregido) + Vitest (47 tests) |
-| (d) Tooling y PWA | E1, E2, E4, E6, F3, F4, NOTICE/PRIVACY |
-| Extras aprobados | A10, A11, A13, D1, D3, F2 |
-| Solo actualización de dependencias | zod ≥ 4.6.6; revisar `proxy-addr`/`body-parser` con parche menor de express |
-| No por ahora | A9 (CSP), F5 (resto de dependencias), F6 (code-splitting) |
-| Fase 3 | Instalador `.exe` sin Docker ni MySQL externo (recomendación: MariaDB portable como servicio) |
+| Bloque | Hallazgos | Estado |
+|---|---|---|
+| (c) Dinero + token versioning | C1, C2, C3, C4, C5, C6, C7 (corregidos) + C8 tokenVersion (corregido) + Vitest | CERRADO |
+| (d) Tooling y PWA | E1, E2, E4, E6, F3, F4, NOTICE/PRIVACY | CERRADO |
+| Extras aprobados | A10, A11, A13, D1, D3, F2 | CERRADO |
+| Solo actualización de dependencias | zod ≥ 4.6.6; proxy-addr 2.0.8 (parche express/body-parser) | CERRADO |
+| No por ahora | A9 (CSP), F5 (resto de dependencias), F6 (code-splitting) | PENDIENTE (Fase 3) |
+| Fase 3 | Instalador `.exe` sin Docker ni MySQL externo (recomendación: MariaDB portable como servicio) | PENDIENTE |
 
 ### 9.4 Verificación del bloque (c)
 
@@ -412,7 +412,20 @@ Notas de implementación del bloque (b):
 |---|---|
 | `npm run lint` | PASA, 0 errores y 0 warnings |
 | `npm run build` | PASA (bundle generado en `dist/`) |
-| `npm test` | PASA, 8 archivos, 47 tests |
+| `npm test` | PASA, 9 archivos, 53 tests |
 | `npx prisma validate` | PASA |
-| Migración `tokenVersion` | `server/prisma/migrations/20261116000000_add_token_version_to_user/migration.sql` (aditiva) |
+| Migración `tokenVersion` | `server/prisma/migrations/20261116000002_add_token_version_to_user/migration.sql` (aditiva, posterior a must_change_password) |
 | Prueba HTTP en vivo | No ejecutada: Docker Desktop estaba apagado; tests usan mocks |
+
+### 9.5 Verificación del bloque (d)
+
+| Comprobación | Resultado |
+|---|---|
+| `npm run lint` | PASA, 0 errores y 0 warnings |
+| `npm run build` | PASA (bundle con `@fontsource/outfit` embebido, PWA con maskable) |
+| `npm test` | PASA, 9 archivos, 53 tests (2 skip por falta de MySQL real) |
+| `npx prisma validate` | PASA |
+| CI workflow | `.github/workflows/ci.yml` (lint + build + test en PR/push) |
+| Prueba HTTP en vivo | No ejecutada: Docker Desktop estaba apagado |
+
+---
