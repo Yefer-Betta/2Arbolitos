@@ -26,7 +26,7 @@ Puedes usar el código para tu propio negocio, modificarlo y ofrecerlo como serv
 |---------|----------|
 | **Outfit** (Rodrigo Fuenzalida y contributors) | [SIL Open Font License 1.1](https://openfontlicense.org/) |
 
-La aplicación solicita la fuente a Google Fonts (`fonts.googleapis.com`). Si el equipo no tiene internet, el navegador usa una fuente del sistema y la aplicación sigue funcionando.
+La tipografía Outfit va autoalojada en el bundle del frontend mediante [`@fontsource/outfit`](https://fontsource.org/) (SIL Open Font License 1.1), por lo que no hay petición externa a Google Fonts al abrir la aplicación.
 
 ## 4. Librerías de terceros
 
@@ -41,12 +41,14 @@ Estas son las dependencias que se ejecutan en tiempo de ejecución y que, por lo
 | `clsx` | 2.1.x | MIT |
 | `tailwind-merge` | 3.5.x | MIT |
 | `lucide-react` (íconos Lucide) | 0.563.x | ISC |
+| `vite-plugin-pwa` / Workbox (PWA y service worker) | 1.2.x | MIT |
 
 ### Backend (se incluye en `server/node_modules`)
 
 | Paquete | Versión | Licencia |
 |---------|---------|----------|
 | `@prisma/client` (Prisma) | 5.22.x | Apache-2.0 |
+| `prisma` (CLI de Prisma) | 5.22.x | Apache-2.0 |
 | `bcryptjs` | 2.4.x | MIT |
 | `bonjour-service` | 1.4.x | MIT |
 | `cors` | 2.8.x | MIT |

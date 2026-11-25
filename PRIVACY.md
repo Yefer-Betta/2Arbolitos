@@ -52,11 +52,11 @@ Los datos **no se venden ni se ceden** a terceros. Solo salen de la máquina en 
 
 | Destino | Cuándo | Qué se envía |
 |---------|--------|--------------|
-| **Google Fonts** (`fonts.googleapis.com`) | Al abrir la aplicación en un navegador con internet, para descargar la tipografía Outfit | La IP del navegador y datos técnicos de la petición, según la política de Google |
+| **Tipografía Outfit** (autoalojada vía `@fontsource/outfit`) | Al construir el frontend (`vite build`), la tipografía se incluye en el bundle; no hay petición externa al abrir la aplicación | Ninguna (no sale de la máquina) |
 | **GitHub** (`api.github.com` / `github.com`) | Solo si un administrador pulsa **Buscar actualizacion** en el panel | Ningún dato del restaurante; GitHub puede registrar la IP de quien consulta |
 | **Proveedor de internet / red local** | Tráfico normal de la red | Metadatos de conexión |
 
-> Si necesitas que la aplicación no haga **ninguna** petición externa, se puede servir la tipografía desde el propio servidor (autoalojada) y no usar el botón de actualización. Consúltalo con quien administre tu instalación.
+> La tipografía Outfit va autoalojada en el bundle (`@fontsource/outfit`), así que la aplicación no hace peticiones externas para fuentes. El único destino externo opcional es el botón de actualización del panel (GitHub).
 
 El **menú público por QR** (`GET /api/products`, `GET /api/categories` sin sesión) expone únicamente campos comerciales del menú: nombre, descripción, precio, categoría e imagen. Nunca expone clientes, ventas ni usuarios. Cualquier persona conectada a la red puede leerlo; por eso el servidor debe permanecer en la red interna.
 
@@ -85,7 +85,7 @@ Medidas incluidas en el software:
 
 Recomendaciones para el restaurante:
 
-- Cambiar las contraseñas de los usuarios de ejemplo (`admin/admin123`, etc.) el primer día.
+- Cambiar las contraseñas iniciales generadas por el instalador el primer día (el seed ya no usa contraseñas fijas).
 - No exponer el POS directamente a internet; para acceso remoto usar VPN.
 - Si se publica detrás de HTTPS, activar `COOKIE_SECURE=true`.
 - Restringir el acceso físico al servidor y a la red WiFi del personal.

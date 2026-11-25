@@ -49,7 +49,7 @@ Mesas, cocina (KDS), caja y multi-moneda en un solo sistema.
 | **Caja y cierre Z** | Ventas por método de pago, gastos del turno, arqueo y cierre de caja. |
 | **Multi-moneda** | COP, USD y bolívares con tasa configurable y vuelto calculado. |
 | **Menú y categorías** | Productos, modificadores, precios en USD opcionales y agrupación por categoría. |
-| **Sin internet** | Opera en la red local; la PWA guarda una copia de trabajo y sincroniza al volver. |
+| **Sin internet** | Opera en la red local; la PWA guarda una copia de trabajo y sincroniza al volver. El *service worker* solo se registra sobre HTTPS; en la LAN por IP y HTTP funciona como web normal (no hay instalación PWA ni offline en celulares). |
 | **Roles y permisos** | Admin, Gerente, Cajero, Mesero y Cocina, con permisos por rol y baja reversible. |
 | **Actualización con un clic** | El panel de Windows consulta la última release y la instala sin tocar tus datos. |
 
@@ -149,15 +149,17 @@ Celular / tablet / PC  ──►  Nginx (solo Docker)  ──►  Express + Pris
 
 ## Usuarios iniciales
 
-| Rol | Usuario | Contraseña |
-|:----|:--------|:-----------|
-| Administrador | `admin` | `admin123` |
-| Gerente | `gerente` | `waiter123` |
-| Cajero | `cajero` | `waiter123` |
-| Mesero | `mesero` | `waiter123` |
-| Cocina | `cocina` | `cook123` |
+El instalador genera contraseñas aleatorias para cada rol y las muestra una sola vez al terminar la instalación. Los usuarios iniciales son:
 
-> Cambia estas contraseñas el primer día y crea un usuario por empleado.
+| Rol | Usuario |
+|:----|:--------|
+| Administrador | `admin` |
+| Gerente | `gerente` |
+| Cajero | `cajero` |
+| Mesero | `mesero` |
+| Cocina | `cocina` |
+
+> Las contraseñas se generan al azar en la instalación y se muestran solo una vez. Cámbialas el primer día y crea un usuario por empleado.
 
 ---
 

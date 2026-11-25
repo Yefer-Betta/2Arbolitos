@@ -209,7 +209,7 @@ Shell scripts **must remain LF** or the Docker container will fail to execute th
 
 Sin Docker: distribuir el ZIP portable y ejecutar `start.bat` (requiere MySQL/MariaDB local).
 
-Default users after seed: `admin/admin123`, `gerente/waiter123`, `cajero/waiter123`, `mesero/waiter123`, `cocina/cook123`.
+Default users after seed: contraseñas generadas aleatoriamente por el instalador (mostradas una sola vez). Usuarios iniciales: `admin`, `gerente`, `cajero`, `mesero`, `cocina`.
 
 `.env` is gitignored. `HOST_IP` controls QR‑code generation (detected by `instalar.bat`; falls back to request `Host` header if `0.0.0.0`). `COOKIE_SECURE=true` solo si se sirve detrás de HTTPS.
 
