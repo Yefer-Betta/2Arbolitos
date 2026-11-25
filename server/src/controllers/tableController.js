@@ -182,7 +182,9 @@ export const tableController = {
     const serverVersion = current ? current.version : 0;
     const clientVersion = _clientVersion || 0;
 
-    if (clientVersion < serverVersion) {
+    // Comparación estricta: dos escrituras con la misma versión no se pisan.
+    // Si el cliente no trae la versión exacta del servidor, hay conflicto.
+    if (current && clientVersion !== serverVersion) {
       notifySSEClients('table:conflict', {
         tableId,
         serverData: JSON.parse(current.items || '[]'),
@@ -193,6 +195,16 @@ export const tableController = {
         tableId,
         serverData: JSON.parse(current.items || '[]'),
         serverVersion,
+      });
+    }
+    // Primera escritura en una mesa vacía: el cliente debe traer versión 0 (o no traerla)
+    if (!current && clientVersion !== 0) {
+      return res.status(409).json({
+        conflict: true,
+        tableId,
+        serverData: [],
+        serverVersion: 0,
+        error: 'Versión de cliente inesperada para mesa vacía',
       });
     }
 
