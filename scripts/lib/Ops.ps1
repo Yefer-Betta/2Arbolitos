@@ -755,6 +755,7 @@ function Get-LatestRelease {
 
     $tag = [string]$release.tag_name
     $assets = @()
+    $checksumUrl = ''
     if ($release.assets) {
         $assets = @($release.assets | ForEach-Object {
             [pscustomobject]@{
@@ -763,15 +764,19 @@ function Get-LatestRelease {
                 Size = [int64]$_.size
             }
         })
+        # Buscar un archivo de checksums adjunto al release para verificar la descarga
+        $checksum = @($release.assets | Where-Object { $_.Name -like '*.sha256' } | Select-Object -First 1)
+        if ($checksum.Count -gt 0) { $checksumUrl = [string]$checksum[0].Url }
     }
 
     return [pscustomobject]@{
-        Tag       = $tag
-        Version   = ($tag -replace '^[vV]', '')
-        Url       = [string]$release.html_url
-        Notes     = [string]$release.body
-        Published = [string]$release.published_at
-        Assets    = $assets
+        Tag          = $tag
+        Version      = ($tag -replace '^[vV]', '')
+        Url          = [string]$release.html_url
+        Notes        = [string]$release.body
+        Published    = [string]$release.published_at
+        Assets       = $assets
+        ChecksumUrl  = $checksumUrl
     }
 }
 
@@ -834,6 +839,7 @@ function Get-UpdateInfo {
         Available      = $available
         CanUpdate      = $canUpdate
         AssetUrl       = $assetUrl
+        ChecksumUrl    = if ($release) { $release.ChecksumUrl } else { '' }
         ReleaseUrl     = if ($release) { $release.Url } else { '' }
         Notes          = if ($release) { $release.Notes } else { '' }
         Message        = $message
@@ -866,7 +872,8 @@ function Copy-UpdateTree {
 function Expand-UpdatePackage {
     param(
         [Parameter(Mandatory = $true)][string]$Url,
-        [Parameter(Mandatory = $true)][string]$Destination
+        [Parameter(Mandatory = $true)][string]$Destination,
+        [string]$ChecksumUrl = ''
     )
 
     if (Test-Path -LiteralPath $Destination) {
@@ -883,6 +890,34 @@ function Expand-UpdatePackage {
         Invoke-WebRequest -Uri $Url -OutFile $zip -UseBasicParsing -TimeoutSec 600
     } catch {
         throw ("No se pudo descargar la actualizacion. " + $_.Exception.Message)
+    }
+
+    # Verificar SHA256 si el publicador adjunto un archivo de checksums
+    if ($ChecksumUrl) {
+        $checksumTmp = Join-Path $Destination 'paquete.sha256'
+        try {
+            Invoke-WebRequest -Uri $ChecksumUrl -OutFile $checksumTmp -UseBasicParsing -TimeoutSec 600
+        } catch {
+            throw ("No se pudo descargar el archivo de checksums. " + $_.Exception.Message)
+        }
+
+        $expectedHash = (Get-Content -LiteralPath $checksumTmp -Raw).Trim().Split(' ')[0]
+        Remove-Item -LiteralPath $checksumTmp -Force -ErrorAction SilentlyContinue
+
+        $actualHash = ''
+        try {
+            $sha = [System.Security.Cryptography.SHA256]::Create()
+            $stream = [System.IO.File]::OpenRead($zip)
+            $hashBytes = $sha.ComputeHash($stream)
+            $stream.Close()
+            $actualHash = ($hashBytes | ForEach-Object { $_.ToString('x2') }) -join ''
+        } catch {
+            throw ("No se pudo calcular el hash SHA256 del paquete. " + $_.Exception.Message)
+        }
+
+        if ([string]::IsNullOrWhiteSpace($expectedHash) -or $actualHash -ne $expectedHash) {
+            throw ("El hash SHA256 del paquete no coincide con el publicado. Posible descarga corrupta o manipulada.")
+        }
     }
 
     $extract = Join-Path $Destination 'contenido'
@@ -950,7 +985,7 @@ function Invoke-ArbolitosUpdate {
         } else {
             $temp = Join-Path $env:TEMP ("2arbolitos-update-" + [guid]::NewGuid().ToString('N'))
             $sourceZip = "https://github.com/$($Script:RepoSlug)/archive/refs/tags/$($info.Tag).zip"
-            $extract = Expand-UpdatePackage -Url $sourceZip -Destination $temp
+            $extract = Expand-UpdatePackage -Url $sourceZip -Destination $temp -ChecksumUrl $info.ChecksumUrl
             $source = Find-UpdateRoot -Path $extract
             try {
                 Copy-UpdateTree -Source $source -Destination $root -ExcludeNames @('.env', '.git', 'logs', 'backups', 'screenshots', 'release', 'server')
@@ -967,7 +1002,7 @@ function Invoke-ArbolitosUpdate {
         $result = "Sistema actualizado a v$($info.LatestVersion)."
     } else {
         $temp = Join-Path $env:TEMP ("2arbolitos-update-" + [guid]::NewGuid().ToString('N'))
-        $extract = Expand-UpdatePackage -Url $info.AssetUrl -Destination $temp
+        $extract = Expand-UpdatePackage -Url $info.AssetUrl -Destination $temp -ChecksumUrl $info.ChecksumUrl
         $source = Find-UpdateRoot -Path $extract
         $root = Get-ArbolitosRoot
 

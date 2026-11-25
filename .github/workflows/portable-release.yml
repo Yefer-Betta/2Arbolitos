@@ -47,10 +47,19 @@ jobs:
       - name: Empaquetar portable
         run: node scripts/pack-portable.js --skip-build --system-node
 
-      - name: Adjuntar ZIP a la release
+      - name: Generar SHA256 del ZIP
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem release/2Arbolitos-Portable-Windows-x64-*.zip | Select-Object -First 1
+          $hash = Get-FileHash -Algorithm SHA256 -Path $zip.FullName | Select-Object -ExpandProperty Hash
+          $hash | Out-File -FilePath ($zip.FullName + '.sha256') -Encoding utf8
+
+      - name: Adjuntar ZIP y SHA256 a la release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
-          files: release/2Arbolitos-Portable-Windows-x64-*.zip
+          files: |
+            release/2Arbolitos-Portable-Windows-x64-*.zip
+            release/2Arbolitos-Portable-Windows-x64-*.zip.sha256
           fail_on_unmatched_files: true
           overwrite_files: true
