@@ -1,0 +1,9 @@
+# Se ejecuta antes de 20-envsubst-on-templates.sh (que genera la config real).
+# Docker Desktop publica el DNS embebido en 127.0.0.11; Kiri pone la IP del
+# gateway de la red en /etc/resolv.conf. Tomarla de ahi sirve en ambos.
+backend_resolver=$(awk '$1 == "nameserver" { print $2; exit }' /etc/resolv.conf)
+if [ -z "$backend_resolver" ]; then
+    backend_resolver=127.0.0.11
+fi
+export BACKEND_RESOLVER="$backend_resolver"
+export BACKEND_HOST="${BACKEND_HOST:-backend}"

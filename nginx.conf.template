@@ -10,8 +10,14 @@ server {
     gzip_types text/css application/javascript image/svg+xml;
     gzip_min_length 256;
 
+    # Resolver dinamico: Docker usa 127.0.0.11 y Kiri el gateway de la red.
+    # El nombre se resuelve al atender cada peticion, no al arrancar Nginx,
+    # para que el frontend pueda iniciarse aunque el backend no este levantado.
+    resolver ${BACKEND_RESOLVER} valid=10s ipv6=off;
+    set $backend_upstream http://${BACKEND_HOST}:3002;
+
     location /api/ {
-        proxy_pass http://backend:3002;
+        proxy_pass $backend_upstream$request_uri;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -23,13 +29,13 @@ server {
     }
 
     location /qr {
-        proxy_pass http://backend:3002;
+        proxy_pass $backend_upstream$request_uri;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
     }
 
     location /api/events {
-        proxy_pass http://backend:3002;
+        proxy_pass $backend_upstream$request_uri;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

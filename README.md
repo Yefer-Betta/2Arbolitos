@@ -103,7 +103,7 @@ docker compose up -d      # iniciar
 docker compose down       # detener
 ```
 
-> Con Kiri, estos comandos funcionan igual después de `docker context use kiri`. Kiri además ofrece dominios locales (`http://frontend.kiri.local`) y HTTPS con su propia CA.
+> Con Kiri, estos comandos funcionan igual después de `docker context use kiri`. Kiri además ofrece dominios locales: el frontend responde en `http://frontend.2arbolitos.kiri.local`. En la ventana de Kiri arranca el **proyecto Compose `2arbolitos`**, no la imagen `2arbolitos-frontend` suelta: sin el contenedor `backend` la interfaz carga pero el login no funciona.
 
 ### Portable Windows x64
 
