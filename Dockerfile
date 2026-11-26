@@ -1,16 +1,16 @@
-FROM node:20-alpine AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine AS server-deps
+FROM node:22-alpine AS server-deps
 WORKDIR /app/server
 COPY server/package*.json ./
 RUN npm ci --omit=dev
 
-FROM node:20-alpine
+FROM node:22-alpine
 RUN apk add --no-cache netcat-openbsd
 WORKDIR /app
 
