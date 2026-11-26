@@ -10,6 +10,20 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 2arbolitos_segura_2024
+          MYSQL_DATABASE: 2arbolitos
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -p2arbolitos_segura_2024"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,7 +31,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Instalar dependencias (raíz)
@@ -33,6 +47,8 @@ jobs:
 
       - name: Validar esquema Prisma
         working-directory: server
+        env:
+          DATABASE_URL: mysql://root:2arbolitos_segura_2024@localhost:3306/2arbolitos?schema=public
         run: npx prisma validate
 
       - name: Ejecutar lint (raíz)
