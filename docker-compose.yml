@@ -37,7 +37,7 @@ services:
       PORT: 3002
       NODE_ENV: production
       DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-2arbolitos_segura_2024}@db:3306/2arbolitos?schema=public&charset=utf8mb4
-      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env (minimo 32 caracteres, ej: openssl rand -hex 32)}
+      JWT_SECRET: "${JWT_SECRET:?Define JWT_SECRET en .env (minimo 32 caracteres, ej: openssl rand -hex 32)}"
       JWT_EXPIRES_IN: 7d
       HOST_IP: ${HOST_IP:-0.0.0.0}
       DOCKER: "true"
