@@ -14,10 +14,12 @@ Hay dos formas soportadas de instalar. **Docker es la recomendada**; el paquete 
 
 | Modo | Requisito único | Instalación |
 |------|-----------------|-------------|
-| **Docker** (recomendado) | Docker Desktop | `instalar.bat` (una vez) + `iniciar.ps1` (uso diario) |
+| **Docker** (recomendado) | Docker Desktop **o** Kiri | `instalar.bat` (una vez) + `iniciar.ps1` (uso diario) |
 | **Portable Windows** (sin Docker) | MySQL 8 o MariaDB 10.4+ | ZIP `2Arbolitos-Portable-Windows-x64-<versión>.zip` → doble clic en `start.bat` |
 
 ### Docker
+
+Cualquier motor que hable la Docker Engine API funciona: Docker Desktop o **[Kiri](https://github.com/libracoder/kiri)** (runtime ligero en Rust, Apache-2.0, gratis para uso comercial; Windows con WSL 2). Kiri se usa con `docker context use kiri`; a partir de ahí `docker`, `docker compose` y `buildx` funcionan sin cambios. Los scripts de PowerShell detectan el contexto activo con `docker context show`: si es `kiri` muestran «Motor (Kiri)» y abren Kiri cuando el motor está detenido; si no, usan Docker Desktop. Los mensajes de error y el diagnóstico usan el nombre del motor detectado.
 
 | Paso | Qué se hace |
 |------|-------------|

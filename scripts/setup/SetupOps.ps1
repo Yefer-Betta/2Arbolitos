@@ -571,8 +571,8 @@ function Get-FailureInfo {
         @{
             Code    = 'ENGINE_OFF'
             Title   = 'El motor de Docker no esta corriendo'
-            Detail  = 'Docker Desktop esta instalado pero su motor no responde.'
-            Hints   = @('Se intenta abrir Docker Desktop y esperar a que responda.')
+            Detail  = 'El motor (Docker Desktop o Kiri) no responde.'
+            Hints   = @('Se intenta abrir el motor correspondiente y esperar a que responda.')
             Pattern = 'Cannot connect to the Docker daemon|error during connect|docker daemon is not running'
         },
         @{
@@ -818,7 +818,7 @@ function Get-RepairFindings {
             Id       = 'docker'
             Severity = 'bad'
             Title    = 'Docker no esta instalado'
-            Detail   = 'Instala Docker Desktop desde docker.com y vuelve a abrir este instalador.'
+            Detail   = 'Instala Docker Desktop (docker.com) o Kiri (runkiri.com/releases) y vuelve a abrir este instalador.'
             Fix      = ''
             FixLabel = ''
         })
@@ -829,7 +829,7 @@ function Get-RepairFindings {
         [void]$rows.Add([pscustomobject]@{
             Id       = 'engine'
             Severity = 'bad'
-            Title    = 'Docker Desktop no esta corriendo'
+            Title    = ((Get-ContainerEngineName) + ' no esta corriendo')
             Detail   = 'El motor de Docker no responde.'
             Fix      = 'engine'
             FixLabel = 'Iniciar Docker'
@@ -1101,9 +1101,10 @@ function Install-Arbolitos {
     if (-not (Test-DockerCli)) {
         Write-Event -Type 'step' -Data @{ id = 'preflight'; state = 'bad'; text = 'Docker no esta instalado' }
         Stop-Setup -Code 'DOCKER_MISSING' -Title 'Docker no esta instalado' `
-            -Detail 'Este instalador necesita Docker Desktop.' `
+            -Detail 'Este instalador necesita Docker (Docker Desktop o Kiri).' `
             -Hints @(
-                'Descargalo en https://www.docker.com/products/docker-desktop/ e instalalo.',
+                'Opcion A: Descarga Docker Desktop en https://www.docker.com/products/docker-desktop/',
+                'Opcion B: Instala Kiri (ligero, open source) en https://runkiri.com/releases/',
                 'Despues vuelve a abrir este instalador.'
             )
     }
@@ -1119,10 +1120,11 @@ function Install-Arbolitos {
         }
         if (-not (Test-DockerEngine -Force)) {
             Write-Event -Type 'step' -Data @{ id = 'preflight'; state = 'bad'; text = 'Docker no responde' }
-            Stop-Setup -Code 'ENGINE_OFF' -Title 'Docker Desktop no esta corriendo' `
-                -Detail 'El motor de Docker no responde.' `
+            Stop-Setup -Code 'ENGINE_OFF' -Title 'Docker no esta corriendo' `
+                -Detail 'El motor de Docker no responde (ni Docker Desktop ni Kiri).' `
                 -Hints @(
-                    'Abre Docker Desktop y espera a que diga "Engine running".',
+                    'Si usas Docker Desktop: abrelo y espera a que diga "Engine running".',
+                    'Si usas Kiri: abre la app Kiri y espera a que el motor inicie.',
                     'Vuelve a intentarlo.'
                 )
         }
@@ -1259,9 +1261,10 @@ function Invoke-Repair {
             Write-Event -Type 'step' -Data @{ id = 'fix'; state = 'ok'; text = 'Configuracion corregida' }
         }
         'engine' {
-            if (-not (Open-DockerDesktop)) {
-                Stop-Setup -Code 'ENGINE_OFF' -Title 'No se encontro Docker Desktop' `
-                    -Detail 'Abrelo manualmente y vuelve a intentar.' -Hints @('Inicio > Docker Desktop')
+            $engineName = Get-ContainerEngineName
+            if (-not (Open-ContainerEngine)) {
+                Stop-Setup -Code 'ENGINE_OFF' -Title "No se encontro $engineName" `
+                    -Detail 'Abrelo manualmente y vuelve a intentar.' -Hints @("Inicio > $engineName")
             }
             $deadline = (Get-Date).AddSeconds(150)
             while ((Get-Date) -lt $deadline) {
@@ -1270,10 +1273,10 @@ function Invoke-Repair {
             }
             if (-not (Test-DockerEngine -Force)) {
                 Stop-Setup -Code 'ENGINE_OFF' -Title 'Docker no respondio' `
-                    -Detail 'Docker Desktop no arranco en 150 segundos.' `
-                    -Hints @('Abrelo manualmente y espera a que diga "Engine running".')
+                    -Detail "$engineName no arranco en 150 segundos." `
+                    -Hints @("Abrelo manualmente y espera a que el motor de $engineName inicie.")
             }
-            Write-Event -Type 'step' -Data @{ id = 'fix'; state = 'ok'; text = 'Docker Desktop respondiendo' }
+            Write-Event -Type 'step' -Data @{ id = 'fix'; state = 'ok'; text = "$engineName respondiendo" }
         }
         'start' {
             $up = Invoke-SetupNative -Tokens @('compose', 'up', '-d') -TimeoutSec 300

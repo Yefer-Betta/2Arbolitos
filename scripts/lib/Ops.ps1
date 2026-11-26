@@ -245,6 +245,44 @@ function Test-DockerEngine {
     return $ok
 }
 
+# Kiri habla la Docker Engine API: basta con que el contexto activo sea "kiri".
+# Con eso, docker, docker compose y buildx funcionan sin cambios.
+function Test-IsKiri {
+    if (-not (Test-DockerCli)) { return $false }
+    $result = Invoke-Native -FileName 'docker' -Arguments 'context show' -TimeoutSec 10
+    if ($result.ExitCode -ne 0) { return $false }
+    return (([string]$result.Out).Trim() -ieq 'kiri')
+}
+
+function Get-ContainerEngineName {
+    if (Test-IsKiri) { return 'Kiri' }
+    return 'Docker'
+}
+
+# Abre el motor correcto: Kiri cuando es el contexto activo, Docker Desktop si no.
+function Open-ContainerEngine {
+    if (Test-IsKiri) {
+        $kiriCli = Get-Command kiri -ErrorAction SilentlyContinue
+        if ($kiriCli) {
+            try {
+                Start-Process -FilePath $kiriCli.Source -ArgumentList 'ui' -WindowStyle Hidden
+                return $true
+            } catch { }
+        }
+        foreach ($path in @(
+            (Join-Path $env:LOCALAPPDATA 'Programs\Kiri\Kiri.exe'),
+            (Join-Path $env:ProgramFiles 'Kiri\Kiri.exe')
+        )) {
+            if ($path -and (Test-Path -LiteralPath $path)) {
+                Start-Process -FilePath $path
+                return $true
+            }
+        }
+        return $false
+    }
+    return Open-DockerDesktop
+}
+
 function Invoke-DockerCompose {
     param(
         [string[]]$Tokens = @(),
@@ -523,9 +561,10 @@ function Start-ArbolitosSystem {
         }
 
         if (-not (Test-DockerEngine -Force)) {
-            $opened = Open-DockerDesktop
+            $engineName = Get-ContainerEngineName
+            $opened = Open-ContainerEngine
             if (-not $opened) {
-                throw 'Docker Desktop no esta corriendo y no se encontro el acceso directo. Abrelo manualmente y vuelve a intentar.'
+                throw "$engineName no esta corriendo y no se encontro el acceso directo. Abrelo manualmente y vuelve a intentar."
             }
             $deadline = (Get-Date).AddSeconds(150)
             while ((Get-Date) -lt $deadline) {
@@ -533,7 +572,7 @@ function Start-ArbolitosSystem {
                 if (Test-DockerEngine -Force) { break }
             }
             if (-not (Test-DockerEngine -Force)) {
-                throw 'Docker Desktop no respondio en 150 segundos. Abrelo manualmente y vuelve a intentar.'
+                throw "$engineName no respondio en 150 segundos. Abrelo manualmente y vuelve a intentar."
             }
         }
 
@@ -1089,10 +1128,11 @@ function Get-Diagnostics {
             })
 
             $engine = Test-DockerEngine -Force
+            $engineName = Get-ContainerEngineName
             [void]$rows.Add([pscustomobject]@{
-                Label  = 'Motor Docker'
+                Label  = "Motor $engineName"
                 State  = if ($engine) { 'ok' } else { 'bad' }
-                Detail = if ($engine) { 'Respondiendo' } else { 'Detenido: abre Docker Desktop' }
+                Detail = if ($engine) { 'Respondiendo' } else { "Detenido: abre $engineName" }
             })
 
             if ($engine) {

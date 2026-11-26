@@ -59,7 +59,10 @@ Mesas, cocina (KDS), caja y multi-moneda en un solo sistema.
 
 ### Docker (recomendado)
 
-Requisito: **Docker Desktop** en Windows, macOS o Linux.
+Requisito: un motor compatible con la Docker Engine API. Sirve cualquiera de estos dos:
+
+- **Docker Desktop** en Windows, macOS o Linux (el más extendido).
+- **[Kiri](https://runkiri.com/releases/)** — runtime ligero en Rust, open source (Apache-2.0), gratis para uso comercial. Habla la Docker Engine API, así que `docker`, `docker compose` y `buildx` funcionan sin cambios. Windows requiere WSL 2. Para usarlo, instala Kiri y ejecuta `docker context use kiri` antes de instalar.
 
 ```batch
 git clone https://github.com/Yefer-Betta/2Arbolitos.git
@@ -67,7 +70,9 @@ cd 2Arbolitos
 instalar.bat
 ```
 
-`instalar.bat` abre un instalador visual (PowerShell + WPF, sin dependencias extra) que valida Docker, detecta la IP de la red, genera los secretos, abre el puerto en el firewall, construye las imágenes, arranca los contenedores y verifica el login. Al terminar deja un acceso directo **2Arbolitos POS** en el escritorio.
+El instalador detecta el contexto activo (`docker context show`): si es `kiri`, muestra «Motor (Kiri)» y abre Kiri cuando el motor está detenido; si no, usa Docker Desktop. En todo lo demás el flujo es idéntico.
+
+`instalar.bat` abre un instalador visual (PowerShell + WPF, sin dependencias extra) que valida el motor, detecta la IP de la red, genera los secretos, abre el puerto en el firewall, construye las imágenes, arranca los contenedores y verifica el login. Al terminar deja un acceso directo **2Arbolitos POS** en el escritorio.
 
 Si la ventana no abre, el mismo instalador corre en consola:
 
@@ -85,7 +90,7 @@ instalar.bat /consola
 - Contenedores con configuración vieja → los recrea para que lean el `.env` actual.
 - Contraseña de la base distinta a la del volumen → reutiliza la anterior **sin borrar datos**.
 - Puerto 80 ocupado → avisa y permite elegir otro.
-- Docker Desktop cerrado → intenta abrirlo y espera al motor.
+- Motor detenido (Docker Desktop o Kiri) → intenta abrirlo y espera a que responda.
 - IP local cambiada → actualiza `HOST_IP` para los QR.
 - Regla de firewall ausente → la vuelve a crear.
 
@@ -97,6 +102,8 @@ Si ya está configurado, basta con:
 docker compose up -d      # iniciar
 docker compose down       # detener
 ```
+
+> Con Kiri, estos comandos funcionan igual después de `docker context use kiri`. Kiri además ofrece dominios locales (`http://frontend.kiri.local`) y HTTPS con su propia CA.
 
 ### Portable Windows x64
 

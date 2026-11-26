@@ -566,8 +566,8 @@ function Render-Status {
     $backupState = if ($status.LastBackup) { 'ok' } else { 'info' }
 
     $rows = @(
-        @{ Caption = 'Docker instalado'; State = $dockerState; Detail = if ($status.DockerCli) { 'si' } else { 'no' } },
-        @{ Caption = 'Motor de Docker'; State = $engineState; Detail = if ($status.Engine) { 'activo' } else { 'detenido' } },
+        @{ Caption = 'Docker CLI'; State = $dockerState; Detail = if ($status.DockerCli) { 'si' } else { 'no' } },
+        @{ Caption = 'Motor (' + (Get-ContainerEngineName) + ')'; State = $engineState; Detail = if ($status.Engine) { 'activo' } else { 'detenido' } },
         @{ Caption = 'Administrador'; State = $adminState; Detail = if ($status.Admin) { 'si' } else { 'no' } },
         @{ Caption = 'Puerto'; State = $portState; Detail = $portDetail },
         @{ Caption = 'Disco libre'; State = $diskState; Detail = $diskDetail },
