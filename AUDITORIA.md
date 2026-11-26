@@ -403,8 +403,8 @@ Notas de implementación del bloque (b):
 | (d) Tooling y PWA | E1, E2, E4, E6, F3, F4, NOTICE/PRIVACY | CERRADO |
 | Extras aprobados | A10, A11, A13, D1, D3, F2 | CERRADO |
 | Solo actualización de dependencias | zod ≥ 4.6.6; proxy-addr 2.0.8 (parche express/body-parser) | CERRADO |
-| No por ahora | A9 (CSP), F5 (resto de dependencias), F6 (code-splitting) | PENDIENTE (Fase 3) |
-| Fase 3 | Instalador `.exe` sin Docker ni MySQL externo (recomendación: MariaDB portable como servicio) | PENDIENTE |
+| No por ahora | A9 (CSP), F5 (resto de dependencias), F6 (code-splitting) | PENDIENTE (post-Fase 3) |
+| Fase 3 | Instalador `.exe` sin Docker ni MySQL externo (recomendación: MariaDB portable como servicio) | CERRADO |
 
 ### 9.4 Verificación del bloque (c)
 
@@ -427,5 +427,24 @@ Notas de implementación del bloque (b):
 | `npx prisma validate` | PASA |
 | CI workflow | `.github/workflows/ci.yml` (lint + build + test en PR/push) |
 | Prueba HTTP en vivo | No ejecutada: Docker Desktop estaba apagado |
+
+### 9.6 Verificación del bloque (c) + (d) + Fase 3
+
+| Comprobación | Resultado |
+|---|---|
+| `npm run lint` | PASA, 0 errores y 0 warnings |
+| `npm run build` | PASA (bundle generado en `dist/`) |
+| `npm test` | PASA, 9 archivos, 53 tests |
+| `npx prisma validate` | PASA |
+| MariaDB portable en empaquetador | `scripts/pack-portable.js --with-mariadb --mariadb-url <URL>` |
+| `start.bat` con MariaDB embebido | Inicia mysqld, inicializa data/, crea BD, migra, seed, arranca backend |
+| Panel detiene MariaDB embebido | `taskkill /F /IM mysqld.exe` al detener el sistema portable |
+| NOTICE.md GPLv2 MariaDB | Documentada licencia de MariaDB Community Server |
+| Prueba HTTP en vivo | No ejecutada: Docker Desktop estaba apagado; MariaDB embebido no probado en vivo |
+
+Elementos dejados intencionalmente para una fase posterior (no bloquean Fase 3):
+- A9 (CSP): requiere probar la app; puede romper estilos inline.
+- F5 (resto de dependencias): actualización de `proxy-addr`/`body-parser` ya parcheada; restantes requieren verificación de compatibilidad.
+- F6 (code-splitting): bundle >500 kB aviso de Vite; no bloquea.
 
 ---
