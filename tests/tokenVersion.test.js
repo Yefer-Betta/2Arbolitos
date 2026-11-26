@@ -16,8 +16,8 @@ beforeEach(() => {
 
 const { authenticate, verifyTokenVersion } = await import('../server/src/middleware/auth.js');
 
-// Usar jsonwebtoken real desde server para generar tokens válidos
-const jwt = await import('C:/Users/yefe_/Documents/Proyecto/2arboltos/server/node_modules/jsonwebtoken').then(m => m.default || m);
+// Usar jsonwebtoken real para generar tokens válidos
+import jwt from 'jsonwebtoken';
 
 process.env.JWT_SECRET = 'test-secret';
 
