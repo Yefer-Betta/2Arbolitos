@@ -167,10 +167,13 @@ npm run build && npm run pack:portable -- --skip-build   # reutiliza dist/ exist
 ```
 
 - Empaquetador: `scripts/pack-portable.js`. Salida: `release/2Arbolitos-Portable-Windows-x64-<versión>.zip`.
-- Contenido: `node/node.exe` (Node embebido), `dist/`, `server/` (src + prisma + `node_modules` de producción) y `start.bat`.
-- Primera ejecución (`start.bat`): interactivo, crea `server\.env` con `JWT_SECRET` aleatorio, ejecuta `prisma db push` (crea la DB si no existe) y el seed si está vacía. Arranca en `0.0.0.0:3002` y abre el navegador.
+- Contenido: `node/node.exe` (Node embebido), `dist/`, `server/` (src + prisma + `node_modules` de producción), `start.bat` y, opcionalmente, `mariadb/` (MariaDB portable embebido).
+- Primera ejecución (`start.bat`): interactivo, crea `server\.env` con `JWT_SECRET` aleatorio. Si incluye MariaDB embebido, la inicia, crea la base y configura `DATABASE_URL` automáticamente. Ejecuta `prisma migrate deploy` y el seed si está vacía. Arranca en `0.0.0.0:3002` y abre el navegador.
 - Arranques siguientes: detecta datos existentes y no vuelve a tocar la base.
-- Requiere **MySQL 8 o MariaDB 10.4+** en la misma máquina (no lo empaqueta).
+- Requiere **MySQL 8 o MariaDB 10.4+** en la misma máquina, a menos que se use `--with-mariadb` al empaquetar (incluye MariaDB portable bajo licencia GPLv2).
+- `--skip-build` reutiliza `dist/` si ya existe; si no existe, lanza `vite build`.
+- `--with-mariadb --mariadb-url <URL>` incluye MariaDB portable en el ZIP (GPLv2; ver `NOTICE.md`).
+- `copyLegal` incluye `LICENSE`, `NOTICE.md`, `TERMS.md`, `PRIVACY.md` y `SECURITY.md` en el ZIP: la licencia MIT obliga a distribuir el aviso de copyright con el software.
 - `--skip-build` reutiliza `dist/` si ya existe; si no existe, lanza `vite build`.
 - `copyLegal` incluye `LICENSE`, `NOTICE.md`, `TERMS.md`, `PRIVACY.md` y `SECURITY.md` en el ZIP: la licencia MIT obliga a distribuir el aviso de copyright con el software.
 

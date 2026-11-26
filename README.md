@@ -100,15 +100,18 @@ docker compose down       # detener
 
 ### Portable Windows x64
 
-Sin Docker. Requisito único: **MySQL 8 o MariaDB 10.4+** en la misma máquina.
+Sin Docker. El ZIP puede venir en dos variantes:
+
+- **Con MariaDB embebido** (autosuficiente): incluye MariaDB portable; `start.bat` la inicia, crea la base, corre el seed y arranca todo sin instalar nada más.
+- **Sin MariaDB embebido**: requiere **MySQL 8 o MariaDB 10.4+** en la misma máquina. La primera vez pide los datos de conexión.
 
 1. Descarga el [ZIP de la última release](https://github.com/Yefer-Betta/2Arbolitos/releases/download/v1.1.4/2Arbolitos-Portable-Windows-x64-1.1.4.zip).
 2. Descomprime y abre `start.bat`.
-3. La primera vez pide los datos de MySQL, crea la base, corre el seed y abre el navegador en `http://localhost:3002`.
+3. La primera vez configura la base de datos (o se usa MariaDB embebido si la trae), corre el seed y abre el navegador en `http://localhost:3002`.
 
 El paquete incluye Node.js embebido, el frontend compilado y el backend con sus dependencias: no hay que instalar Node ni compilar nada. En arranques siguientes detecta los datos y no vuelve a tocar la base.
 
-> El ZIP lo genera GitHub Actions al publicar un tag `v*`. Para generarlo tú mismo: `npm run pack:portable`.
+> El ZIP lo genera GitHub Actions al publicar un tag `v*`. Para generarlo con MariaDB embebido tú mismo: `npm run pack:portable -- --with-mariadb --mariadb-url <URL-del-ZIP-de-MariaDB>`.
 
 ---
 
