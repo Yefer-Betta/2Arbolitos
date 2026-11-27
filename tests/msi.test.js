@@ -6,6 +6,7 @@ import {
   MODE_LABELS,
   MSI_NAME,
   productWxs,
+  resolveWixDirectory,
 } from '../scripts/pack-msi.js';
 
 describe('instalador MSI de Windows', () => {
@@ -40,5 +41,19 @@ describe('instalador MSI de Windows', () => {
 
   it('nombra el MSI con la version del proyecto', () => {
     expect(MSI_NAME).toMatch(/^2Arbolitos-Windows-x64-\d+\.\d+\.\d+\.msi$/);
+  });
+
+  it('ignora un WIX del entorno que no contiene los ejecutables de WiX 3', () => {
+    const exists = (file) => file.endsWith('heat.exe');
+
+    expect(
+      resolveWixDirectory('C:\\Program Files (x86)\\WiX Toolset v3.14', exists)
+    ).toBe('');
+  });
+
+  it('usa un WIX del entorno cuando los tres ejecutables estan presentes', () => {
+    const exists = () => true;
+
+    expect(resolveWixDirectory('C:\\wix-local', exists)).toBe('C:\\wix-local');
   });
 });

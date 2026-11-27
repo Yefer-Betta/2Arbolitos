@@ -217,12 +217,20 @@ function sha256(file) {
   return createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
+export function resolveWixDirectory(explicit, exists = fs.existsSync) {
+  if (!explicit) return '';
+  const tools = ['heat.exe', 'candle.exe', 'light.exe'].map((name) =>
+    path.join(explicit, name)
+  );
+  return tools.every(exists) ? explicit : '';
+}
+
 function ensureWix() {
-  const explicit = process.env.WIX;
-  if (explicit) {
-    const heat = path.join(explicit, 'heat.exe');
-    if (!fs.existsSync(heat)) fail(`WIX no apunta a WiX 3 (falta ${heat}).`);
-    return explicit;
+  const explicit = resolveWixDirectory(process.env.WIX);
+  if (explicit) return explicit;
+
+  if (process.env.WIX) {
+    log(`WIX='${process.env.WIX}' no tiene WiX 3 util; se usa la copia verificada.`);
   }
 
   const base = path.join(os.tmpdir(), `2arbolitos-wix-${WIX_VERSION}`);
