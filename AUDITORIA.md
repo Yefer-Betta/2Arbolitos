@@ -404,7 +404,7 @@ Notas de implementación del bloque (b):
 | Extras aprobados | A10, A11, A13, D1, D3, F2 | CERRADO |
 | Solo actualización de dependencias | zod ≥ 4.6.6; proxy-addr 2.0.8 (parche express/body-parser) | CERRADO |
 | No por ahora | A9 (CSP), F5 (resto de dependencias), F6 (code-splitting) | PENDIENTE (post-Fase 3) |
-| Fase 3 | Instalador `.exe` sin Docker ni MySQL externo (recomendación: MariaDB portable como servicio) | CERRADO |
+| Fase 3 | Instalador sin Docker ni MySQL externo (ZIP portable con MariaDB y MSI con ambos modos, `v1.1.6`) | CERRADO |
 
 ### 9.4 Verificación del bloque (c)
 

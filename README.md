@@ -8,10 +8,11 @@
 **Punto de venta para restaurantes que funciona en tu red local, sin internet obligatorio.**
 Mesas, cocina (KDS), caja y multi-moneda en un solo sistema.
 
+[![Descargar MSI](https://img.shields.io/badge/descargar-MSI%20Windows%20x64-1A4D2E?style=for-the-badge&logo=windows&logoColor=white)](#instalador-msi-windows)
 [![Descargar portable](https://img.shields.io/badge/descargar-portable%20Windows%20x64-D4A373?style=for-the-badge&logo=windows&logoColor=white)](#portable-windows-x64)
 [![Instalar con Docker](https://img.shields.io/badge/instalar-Docker-1A4D2E?style=for-the-badge&logo=docker&logoColor=white)](#docker-recomendado)
 
-[![Versión](https://img.shields.io/badge/versión-1.1.4-1A4D2E?style=flat-square)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
+[![Versión](https://img.shields.io/badge/versión-1.1.6-1A4D2E?style=flat-square)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-D4A373?style=flat-square)](#licencia-y-documentos-legales)
 [![Release](https://img.shields.io/github/v/release/Yefer-Betta/2Arbolitos?style=flat-square&color=1A4D2E&label=release)](https://github.com/Yefer-Betta/2Arbolitos/releases/latest)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
@@ -105,6 +106,25 @@ docker compose down       # detener
 
 > Con Kiri, estos comandos funcionan igual después de `docker context use kiri`. Kiri además ofrece dominios locales: el frontend responde en `http://frontend.2arbolitos.kiri.local`. En la ventana de Kiri arranca el **proyecto Compose `2arbolitos`**, no la imagen `2arbolitos-frontend` suelta: sin el contenedor `backend` la interfaz carga pero el login no funciona.
 
+### Instalador MSI (Windows)
+
+El MSI trae los dos modos en un solo archivo. Se instala por usuario en `%LOCALAPPDATA%\2Arbolitos POS`, sin escribir en `Program Files` y sin pedir administrador para instalar. Incluye MariaDB portable para el modo autosuficiente y los archivos de Compose para Docker o Kiri.
+
+1. Descarga `2Arbolitos-Windows-x64-<versión>.msi` desde la [última release](https://github.com/Yefer-Betta/2Arbolitos/releases/latest).
+2. Doble clic y completa el asistente.
+3. Abre el acceso directo **2Arbolitos POS** y elige el modo:
+
+| Opción | Cuándo usarla |
+|:--|:--|
+| **Portable** | Sin Docker ni MySQL externo. Arranca MariaDB incluida, crea la base, corre el seed y abre `http://localhost:3002`. |
+| **Docker/Kiri, primera instalación** | Con Docker Desktop o Kiri instalado. Ejecuta `instalar.bat`, que genera `.env`, construye imágenes y abre el firewall. |
+| **Docker/Kiri, uso diario** | Inicia o detiene los contenedores ya instalados mediante `iniciar.ps1`. |
+| **Panel de control** | Estado, QR, respaldos y actualizaciones. |
+
+La primera vez, el modo portable muestra las contraseñas iniciales una sola vez y obliga a cambiarlas. El modo Docker/Kiri puede pedir administrador solo para abrir la regla del firewall.
+
+> El MSI lo genera GitHub Actions al publicar un tag `v*`. Para generarlo en local: `npm run pack:msi -- --skip-build --system-node`. El proceso descarga WiX 3 y MariaDB portable si faltan.
+
 ### Portable Windows x64
 
 Sin Docker. El ZIP puede venir en dos variantes:
@@ -112,13 +132,13 @@ Sin Docker. El ZIP puede venir en dos variantes:
 - **Con MariaDB embebido** (autosuficiente): incluye MariaDB portable; `start.bat` la inicia, crea la base, corre el seed y arranca todo sin instalar nada más.
 - **Sin MariaDB embebido**: requiere **MySQL 8 o MariaDB 10.4+** en la misma máquina. La primera vez pide los datos de conexión.
 
-1. Descarga el [ZIP de la última release](https://github.com/Yefer-Betta/2Arbolitos/releases/download/v1.1.4/2Arbolitos-Portable-Windows-x64-1.1.4.zip).
+1. Descarga el [ZIP de la última release](https://github.com/Yefer-Betta/2Arbolitos/releases/latest).
 2. Descomprime y abre `start.bat`.
 3. La primera vez configura la base de datos (o se usa MariaDB embebido si la trae), corre el seed y abre el navegador en `http://localhost:3002`.
 
 El paquete incluye Node.js embebido, el frontend compilado y el backend con sus dependencias: no hay que instalar Node ni compilar nada. En arranques siguientes detecta los datos y no vuelve a tocar la base.
 
-> El ZIP lo genera GitHub Actions al publicar un tag `v*`. Para generarlo con MariaDB embebido tú mismo: `npm run pack:portable -- --with-mariadb --mariadb-url <URL-del-ZIP-de-MariaDB>`.
+> El ZIP de la release incluye MariaDB embebido porque se genera junto con el MSI. Para crearlo por separado: `npm run pack:portable -- --with-mariadb --mariadb-url <URL-del-ZIP-de-MariaDB>`.
 
 ---
 

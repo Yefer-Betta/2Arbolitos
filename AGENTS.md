@@ -179,6 +179,19 @@ npm run build && npm run pack:portable -- --skip-build   # reutiliza dist/ exist
 - `--skip-build` reutiliza `dist/` si ya existe; si no existe, lanza `vite build`.
 - `copyLegal` incluye `LICENSE`, `NOTICE.md`, `TERMS.md`, `PRIVACY.md` y `SECURITY.md` en el ZIP: la licencia MIT obliga a distribuir el aviso de copyright con el software.
 
+### MSI de Windows
+
+```bash
+npm run pack:msi -- --skip-build --system-node
+```
+
+- Empaquetador: `scripts/pack-msi.js`. Salida: `release/2Arbolitos-Windows-x64-<versión>.msi` y su `.sha256`.
+- Instala en `%LOCALAPPDATA%\2Arbolitos POS` por usuario. No usa `Program Files` ni servicios de Windows.
+- Incluye el ZIP portable con MariaDB embebido y, además, `docker-compose.yml`, Dockerfiles, `scripts/setup/` y `scripts/docker/`, así que `Iniciar.bat` ofrece modo portable y modo Docker/Kiri.
+- WiX 3 se descarga a `%TEMP%\2arbolitos-wix-3.14.1` con verificación de hash; se puede apuntar a una copia local con `WIX=<carpeta con candle.exe, heat.exe y light.exe>`.
+- `--mariadb-url <URL>` reemplaza la URL oficial de MariaDB 11.4.14 usada por defecto.
+- El workflow `portable-release.yml` genera el MSI y adjunta ambos artefactos, con sus SHA256, a la release del tag.
+
 ## Documentos legales
 
 | Archivo | Contenido | Cuándo actualizarlo |

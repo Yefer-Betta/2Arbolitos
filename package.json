@@ -1,7 +1,7 @@
 {
   "name": "2arbolitos",
   "private": true,
-  "version": "1.1.5",
+  "version": "1.1.6",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -27,6 +27,7 @@
     "docker:rebuild": "docker compose up -d --build",
     "backup": "node scripts/backup.js",
     "pack:portable": "node scripts/pack-portable.js",
+    "pack:msi": "node scripts/pack-msi.js",
     "shots": "node scripts/visual/shots.mjs"
   },
   "dependencies": {

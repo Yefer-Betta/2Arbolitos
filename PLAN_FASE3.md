@@ -14,7 +14,8 @@ Entregar un paquete portable Windows x64 que **no requiera que el usuario instal
 
 Notas:
 - La licencia de MariaDB es GPLv2 → debe añadirse a `NOTICE.md`.
-- No se generará un instalador `.exe` compilado (Inno Setup/NSIS) en esta fase por complejidad y falta de herramientas de compilación en este entorno; se entrega como **ZIP portable autosuficiente** (`start.bat` hace todo). El ZIP ya existe; Fase 3 lo hace autosuficiente en DB.
+- No se generó un instalador `.exe` compilado (Inno Setup/NSIS) en esta fase por complejidad y falta de herramientas de compilación en este entorno; se entrega como **ZIP portable autosuficiente** (`start.bat` hace todo). El ZIP ya existe; Fase 3 lo hace autosuficiente en DB.
+- Ampliación `v1.1.6`: `scripts/pack-msi.js` genera un **MSI** con WiX 3 que instala el ZIP portable con MariaDB y los archivos de Docker/Kiri. No reemplaza al ZIP; lo complementa.
 
 ## Pendientes de Fase 3 (lista)
 1. [ ] Descargar/incluir MariaDB portable para Windows x64 (zip oficial) en el paquete

@@ -1,6 +1,6 @@
-name: Portable Windows Zip
+name: Windows portable y MSI
 
-# Empaqueta el ZIP portable y lo adjunta a la release del tag.
+# Empaqueta el ZIP portable y el MSI, y los adjunta a la release del tag.
 # Se dispara solo al empujar un tag v* o a mano desde Actions.
 on:
   push:
@@ -44,8 +44,8 @@ jobs:
       - name: Compilar frontend
         run: npm run build
 
-      - name: Empaquetar portable
-        run: node scripts/pack-portable.js --skip-build --system-node
+      - name: Empaquetar MSI y ZIP portable con MariaDB
+        run: node scripts/pack-msi.js --skip-build --system-node
 
       - name: Generar SHA256 del ZIP
         shell: pwsh
@@ -54,12 +54,14 @@ jobs:
           $hash = Get-FileHash -Algorithm SHA256 -Path $zip.FullName | Select-Object -ExpandProperty Hash
           $hash | Out-File -FilePath ($zip.FullName + '.sha256') -Encoding utf8
 
-      - name: Adjuntar ZIP y SHA256 a la release
+      - name: Adjuntar ZIP y MSI a la release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
             release/2Arbolitos-Portable-Windows-x64-*.zip
             release/2Arbolitos-Portable-Windows-x64-*.zip.sha256
+            release/2Arbolitos-Windows-x64-*.msi
+            release/2Arbolitos-Windows-x64-*.msi.sha256
           fail_on_unmatched_files: true
           overwrite_files: true

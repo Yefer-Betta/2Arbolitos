@@ -42,6 +42,7 @@ const USE_SYSTEM_NODE = argv.includes('--system-node');
 const SKIP_BUILD = argv.includes('--skip-build');
 const SKIP_NODE_MODULES = argv.includes('--skip-nm');
 const WITH_MARIADB = argv.includes('--with-mariadb');
+const KEEP_STAGING = argv.includes('--keep-staging');
 const mariadbUrlIndex = argv.indexOf('--mariadb-url');
 const MARIADB_URL = mariadbUrlIndex >= 0 && mariadbUrlIndex + 1 < argv.length
   ? argv[mariadbUrlIndex + 1]
@@ -500,12 +501,18 @@ function startBat() {
     '  echo [INFO] No hay MariaDB embebido. Usa MySQL/MariaDB externo en server\\.env.',
     ')',
     '',
+    'if not exist "%SERVER_DIR%\\.env" (',
+    '  call :CREATE_ENV',
+    '  if errorlevel 1 goto :fail',
+    ')',
+    '',
     'if "%EMBEDDED_DB%"=="1" (',
     '  echo.',
     '  echo [1/5] Iniciando MariaDB embebido ...',
-    '  if not exist "%MARIADB_DIR%\\data" (',
+    '  if not exist "%MARIADB_DIR%\\data\\mysql" (',
+    '    if exist "%MARIADB_DIR%\\data" rmdir /s /q "%MARIADB_DIR%\\data"',
     '    echo       Inicializando directorio de datos de MariaDB ...',
-    '    "%MARIADB_DIR%\\bin\\mysqld" --initialize-insecure --user=root --datadir="%MARIADB_DIR%\\data" >nul 2>&1',
+    '    "%MARIADB_DIR%\\bin\\mariadb-install-db.exe" --datadir="%MARIADB_DIR%\\data" -s >nul 2>&1',
     '  )',
     '  start "" /b "%MARIADB_DIR%\\bin\\mysqld.exe" --datadir="%MARIADB_DIR%\\data" --port=3306 --bind-address=127.0.0.1',
     '  echo       Esperando a que MariaDB este listo ...',
@@ -513,11 +520,12 @@ function startBat() {
     '  for /L %%i in (1,1,30) do (',
     '    pushd "%SERVER_DIR%"',
     '    "%NODE_EXE%" scripts\\ptool.cjs check >nul 2>&1',
-    '    if "!ERRORLEVEL!"=="0" (',
+    '    set "RC=!ERRORLEVEL!"',
+    '    popd',
+    '    if "!RC!"=="0" (',
     '      set "MARIADB_READY=1"',
     '      goto :MARIADB_OK',
     '    )',
-    '    popd',
     '    timeout /t 2 >nul',
     '  )',
     ':MARIADB_OK',
@@ -532,11 +540,6 @@ function startBat() {
     '  "%NODE_EXE%" -e "const mysql=require(\'mysql2/promise\');(async()=>{const c=await mysql.createConnection({host:\'127.0.0.1\',port:3306,user:\'root\'});await c.query(\'CREATE DATABASE IF NOT EXISTS `2arbolitos` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci\');await c.end();console.log(\'BD lista.\');})();" >nul 2>&1',
     '  popd',
     '  set "EMBEDDED_DB=1"',
-    ')',
-    '',
-    'if not exist "%SERVER_DIR%\\.env" (',
-    '  call :CREATE_ENV',
-    '  if errorlevel 1 goto :fail',
     ')',
     '',
     'rem --- Leer puerto de la aplicacion desde server/.env ---',
@@ -902,7 +905,11 @@ async function main() {
   log(`ZIP listo: ${outZip}  (${sizeMb} MB)`);
   log('----------------------------------------------');
 
-  await fsp.rm(stagingParent, { recursive: true, force: true }).catch(() => {});
+  if (KEEP_STAGING) {
+    log(`Staging conservado: ${staging}`);
+  } else {
+    await fsp.rm(stagingParent, { recursive: true, force: true }).catch(() => {});
+  }
 }
 
 main().catch((err) => {
